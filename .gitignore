@@ -39,3 +39,10 @@ leadgen.toml          # a user's real config may name private datasets; keep the
 *.swp
 .DS_Store
 Thumbs.db
+
+# Data & Large Archives
+*.osm.pbf
+*.pbf
+*.crdownload
+*.db
+*_backup.py

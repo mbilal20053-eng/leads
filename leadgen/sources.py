@@ -17,6 +17,7 @@ import time
 import requests
 
 from .audit import UA
+from .geo import normalize_country
 
 # ───────────────────────── Overture (bulk, national) ─────────────────────────
 FALLBACK_RELEASE = "2026-05-20.0"
@@ -38,8 +39,9 @@ def _overture_release(con) -> str:
 
 
 def overture_collect(bbox, categories: list[str] | None = None,
-                     limit: int | None = None, log=print) -> list[dict]:
-    """Stream Overture Places for a bbox, optionally filtered to category substrings."""
+                     limit: int | None = None, log=print,
+                     country: str | None = None) -> list[dict]:
+    """Stream Overture Places for a bbox, optionally filtered to category substrings and country."""
     try:
         import duckdb
     except ImportError:
@@ -53,15 +55,29 @@ def overture_collect(bbox, categories: list[str] | None = None,
     s3 = (f"s3://overturemaps-us-west-2/release/{release}"
           f"/theme=places/type=place/*")
 
+    cat_field = "categories.primary"
+    try:
+        desc = [d[0] for d in con.execute(f"SELECT * FROM read_parquet('{s3}', hive_partitioning=1) LIMIT 0").description]
+        if "taxonomy" in desc:
+            cat_field = "taxonomy.primary"
+    except Exception:
+        pass
+
     cat_clause = ""
     if categories:
-        ors = " OR ".join("lower(categories.primary) LIKE ?" for _ in categories)
+        ors = " OR ".join(f"lower({cat_field}) LIKE ?" for _ in categories)
         cat_clause = f"AND ({ors})"
     params = [f"%{c.lower()}%" for c in (categories or [])]
 
+    country_clause = ""
+    if country:
+        c_code, _ = normalize_country(country)
+        if c_code:
+            country_clause = f"AND (addresses[1].country = '{c_code}' OR addresses[1].country IS NULL)"
+
     sql = f"""
       SELECT names.primary AS name,
-             categories.primary AS category,
+             {cat_field} AS category,
              CASE WHEN length(websites)>0 THEN websites[1] END AS website,
              CASE WHEN length(phones)>0   THEN phones[1]   END AS phone,
              CASE WHEN length(emails)>0   THEN emails[1]   END AS email,
@@ -69,6 +85,7 @@ def overture_collect(bbox, categories: list[str] | None = None,
              addresses[1].locality AS city,
              addresses[1].region   AS state,
              addresses[1].postcode AS zip,
+             addresses[1].country  AS country,
              brand.names.primary AS brand,
              bbox.xmin AS lon, bbox.ymin AS lat
       FROM read_parquet('{s3}', hive_partitioning=1)
@@ -76,10 +93,11 @@ def overture_collect(bbox, categories: list[str] | None = None,
         AND bbox.ymin BETWEEN {south} AND {north}
         AND names.primary IS NOT NULL
         {cat_clause}
+        {country_clause}
       {f'LIMIT {int(limit)}' if limit else ''}
     """
     cols = ["name", "category", "website", "phone", "email", "address",
-            "city", "state", "zip", "brand", "lon", "lat"]
+            "city", "state", "zip", "country", "brand", "lon", "lat"]
     rows = con.execute(sql, params).fetchall()
     out = []
     for r in rows:
@@ -163,8 +181,9 @@ def osm_collect(bbox, osm_tags: list[str], log=print) -> list[dict]:
             "email": (tags.get("email") or tags.get("contact:email") or "").strip(),
             "address": ", ".join(p for p in [line1, tags.get("addr:city", "")] if p),
             "city": tags.get("addr:city", ""),
-            "state": tags.get("addr:state", ""),
+            "state": tags.get("addr:state", "") or tags.get("addr:province", ""),
             "zip": tags.get("addr:postcode", ""),
+            "country": tags.get("addr:country", ""),
             "brand": tags.get("brand", ""),
             "lat": el.get("lat") or (el.get("center") or {}).get("lat"),
             "lon": el.get("lon") or (el.get("center") or {}).get("lon"),
@@ -193,6 +212,7 @@ _SOCRATA_FIELDS = {
     "city": ("city", "business_city", "physical_city", "mail_city"),
     "state": ("state", "business_state", "physical_state"),
     "zip": ("zip", "zip_code", "zipcode", "postal_code", "business_zip"),
+    "country": ("country", "business_country", "physical_country", "mail_country"),
     "phone": ("phone", "phone_number", "business_phone", "telephone"),
     "website": ("website", "url", "web", "web_address"),
 }
@@ -224,6 +244,7 @@ def _socrata_map_row(row: dict) -> dict | None:
         "city": city,
         "state": _first_field(row, _SOCRATA_FIELDS["state"]),
         "zip": _first_field(row, _SOCRATA_FIELDS["zip"]),
+        "country": _first_field(row, _SOCRATA_FIELDS.get("country", ())),
         "brand": "",
         "lat": None, "lon": None,
         "source": "socrata",
@@ -373,6 +394,7 @@ def _npi_map(res: dict) -> dict | None:
         "city": city,
         "state": loc.get("state", ""),
         "zip": (loc.get("postal_code") or "")[:5],
+        "country": "US",
         "brand": "",
         "lat": None, "lon": None,
         "source": "npi",
@@ -454,7 +476,7 @@ def foursquare_collect(bbox, categories: list[str] | None = None,
         params = [f"%{c.lower()}%" for c in categories]
     sql = f"""
       SELECT name, fsq_category_labels, website, tel, email,
-             address, locality, region, postcode, latitude, longitude
+             address, locality, region, postcode, country, latitude, longitude
       FROM read_parquet('{FSQ_BASE}')
       WHERE latitude BETWEEN {south} AND {north}
         AND longitude BETWEEN {west} AND {east}
@@ -464,7 +486,7 @@ def foursquare_collect(bbox, categories: list[str] | None = None,
     rows = con.execute(sql, params).fetchall()
     out = []
     for (name, labels, website, tel, email, address, locality, region,
-         postcode, lat, lon) in rows:
+         postcode, country, lat, lon) in rows:
         out.append({
             "name": (name or "").strip(),
             "category": (labels[0] if labels else ""),
@@ -475,6 +497,7 @@ def foursquare_collect(bbox, categories: list[str] | None = None,
             "city": locality or "",
             "state": region or "",
             "zip": postcode or "",
+            "country": country or "",
             "brand": "",
             "lat": lat, "lon": lon,
             "source": "foursquare",

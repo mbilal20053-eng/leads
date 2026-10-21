@@ -8,12 +8,74 @@ import re
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-from .geo import resolve_market
+from .geo import (resolve_market, resolve_market_details, normalize_country,
+                  normalize_state)
 from .sources import (overture_collect, osm_collect, socrata_collect,
                       npi_collect, foursquare_collect, arcgis_collect)
 from .suppression import norm, build_suppression_set
 from .export import write_outputs
 from .vertical import Vertical
+
+
+def ensure_location_columns(columns: list[tuple[str, str]]) -> list[tuple[str, str]]:
+    """Ensure ('State', 'state') and ('Country', 'country') are in columns after ('City', 'city')."""
+    keys = [k for _, k in columns]
+    if "state" in keys and "country" in keys:
+        return columns
+    new_cols = []
+    has_city = any(k == "city" for _, k in columns)
+    for h, k in columns:
+        new_cols.append((h, k))
+        if k == "city":
+            if "state" not in keys:
+                new_cols.append(("State", "state"))
+            if "country" not in keys:
+                new_cols.append(("Country", "country"))
+    if not has_city:
+        cur_keys = [k for _, k in new_cols]
+        if "state" not in cur_keys:
+            new_cols.append(("State", "state"))
+        if "country" not in cur_keys:
+            new_cols.append(("Country", "country"))
+    return new_cols
+
+
+def _matches_country(val: str | None, target: str | None) -> bool:
+    if not target or not str(target).strip():
+        return True
+    if not val or not str(val).strip():
+        return False
+    t_code, t_name = normalize_country(str(target))
+    v_code, v_name = normalize_country(str(val))
+    if t_code and v_code and t_code == v_code:
+        return True
+    v_low = str(val).strip().lower()
+    t_low = str(target).strip().lower()
+    return v_low == t_low or v_low in t_low or t_low in v_low
+
+
+def _matches_state(val: str | None, target: str | None, country_code: str = "") -> bool:
+    if not target or not str(target).strip():
+        return True
+    if not val or not str(val).strip():
+        return False
+    t_norm = normalize_state(str(target), country_code)
+    v_norm = normalize_state(str(val), country_code)
+    if t_norm and v_norm and t_norm.upper() == v_norm.upper():
+        return True
+    v_low = str(val).strip().lower()
+    t_low = str(target).strip().lower()
+    return v_low == t_low or v_low in t_low or t_low in v_low
+
+
+def _matches_city(val: str | None, target: str | None) -> bool:
+    if not target or not str(target).strip():
+        return True
+    if not val or not str(val).strip():
+        return False
+    v_low = str(val).strip().lower()
+    t_low = str(target).strip().lower()
+    return v_low == t_low or t_low in v_low or v_low in t_low
 
 
 def load_crm_names(path_or_text: str, *, is_text: bool = False) -> set[str]:
@@ -71,15 +133,16 @@ def _dedupe(leads: list[dict]) -> list[dict]:
     return list(seen.values())
 
 
-def run_pipeline(vertical: Vertical, market: str, *,
+def run_pipeline(vertical: Vertical, market: str = "", *,
                  sources=("overture",), limit: int | None = None,
                  enrich: bool = True, enrich_cap: int | None = 150,
                  out_stem: str | None = None, config_override: dict | None = None,
                  exclude_names: set | None = None, demo: bool = False,
+                 country: str | None = None, state: str | None = None, city: str | None = None,
                  log=print) -> list[dict]:
-    """Run the full pipeline for one vertical in one market.
+    """Run the full pipeline for one vertical in one market or location.
 
-    sources: any of ("overture", "osm").
+    sources: any of ("overture", "osm", "socrata", "npi", "foursquare", ...).
     enrich:  run the vertical's enrich_fn (fetches each business's site).
     enrich_cap: only enrich the top-N by collection order (cost control); None = all.
     out_stem: if set, also writes <stem>_crm.csv and <stem>.xlsx.
@@ -89,6 +152,9 @@ def run_pipeline(vertical: Vertical, market: str, *,
     exclude_names: normalized company names to drop (e.g. the user's existing CRM)
                    — see load_crm_names(). Matches are removed, not just flagged.
     demo: if True, use bundled offline sample data + fixture enrichment (no network).
+    country: optional country name or ISO code (e.g. 'Canada', 'CA', 'United States', 'US')
+    state: optional state or province (e.g. 'Ontario', 'Texas', 'ON', 'TX')
+    city: optional city name (e.g. 'Toronto', 'Austin')
     Returns the scored, sorted list of lead dicts. Output file paths, when written,
     are attached as run_pipeline.last_outputs = (csv_path, xlsx_path).
     """
@@ -98,18 +164,49 @@ def run_pipeline(vertical: Vertical, market: str, *,
     if config_override:
         cfg.update(config_override)
 
+    target_country = (country or "").strip()
+    target_state = (state or "").strip()
+    target_city = (city or "").strip()
+
     # 1. COLLECT
     leads: list[dict] = []
     if demo:
         from .demo import demo_records
         leads = demo_records()
         log(f"DEMO MODE — using {len(leads)} bundled sample businesses (no network).")
+        market_country_code = "US"
+        market_country = "United States"
+        market_state = ""
+        market_city = ""
     else:
-        bbox, label = resolve_market(market)
-        log(f"Market: {label}  bbox={tuple(round(x,3) for x in bbox)}")
+        # Build market description if omitted but city/state/country provided
+        if not market and (target_city or target_state or target_country):
+            parts = [p for p in (target_city, target_state, target_country) if p]
+            market = ", ".join(parts)
+        if not market:
+            raise ValueError("a market, city, state, or country is required to run the pipeline.")
+
+        bbox, label, geo_info = resolve_market_details(market, country=target_country,
+                                                       state=target_state, city=target_city)
+        market_country_code = geo_info.get("country_code", "")
+        market_country = geo_info.get("country", "")
+        market_state = geo_info.get("state", "")
+        market_city = geo_info.get("city", "")
+
+        loc_tags = []
+        if target_country: loc_tags.append(f"country={target_country}")
+        if target_state: loc_tags.append(f"state={target_state}")
+        if target_city: loc_tags.append(f"city={target_city}")
+        tag_str = f" [{', '.join(loc_tags)}]" if loc_tags else ""
+
+        log(f"Market: {label}{tag_str}  bbox={tuple(round(x,3) for x in bbox)}")
         if "overture" in sources:
             try:
-                leads += overture_collect(bbox, vertical.overture_categories, limit, log)
+                try:
+                    leads += overture_collect(bbox, vertical.overture_categories, limit, log,
+                                             country=target_country or market_country_code)
+                except TypeError:
+                    leads += overture_collect(bbox, vertical.overture_categories, limit, log)
             except Exception as e:
                 log(f"  Overture failed: {e}")
         if "osm" in sources and vertical.osm_tags:
@@ -165,6 +262,39 @@ def run_pipeline(vertical: Vertical, market: str, *,
                     leads += url_csv_collect(cfg["url_csv"], limit=limit, log=log)
                 except Exception as e:
                     log(f"  URL CSV failed: {e}")
+
+    # Backfill missing location attributes from the resolved search location
+    for r in leads:
+        if not r.get("country") and market_country_code:
+            r["country"] = market_country_code
+        if not r.get("state") and market_state:
+            r["state"] = market_state
+        if not r.get("city") and market_city:
+            r["city"] = market_city
+
+    # Location filtering if requested
+    if target_country:
+        before = len(leads)
+        leads = [r for r in leads if _matches_country(r.get("country"), target_country)]
+        if before - len(leads):
+            log(f"  filtered to country '{target_country}': {len(leads)}/{before} kept")
+    if target_state:
+        before = len(leads)
+        leads = [r for r in leads if _matches_state(r.get("state"), target_state, market_country_code or target_country)]
+        if before - len(leads):
+            log(f"  filtered to state '{target_state}': {len(leads)}/{before} kept")
+    if target_city and not demo:
+        if target_city.lower() not in label.lower() and target_city.lower() not in market.lower():
+            before = len(leads)
+            leads = [r for r in leads if _matches_city(r.get("city"), target_city)]
+            if before - len(leads):
+                log(f"  filtered to city '{target_city}': {len(leads)}/{before} kept")
+    elif target_city and demo:
+        before = len(leads)
+        leads = [r for r in leads if _matches_city(r.get("city"), target_city)]
+        if before - len(leads):
+            log(f"  filtered to city '{target_city}': {len(leads)}/{before} kept")
+
     # Drop permanently-closed businesses, then normalize phones (helps dialing +
     # cross-source dedupe identity).
     from .quality import cross_source_dedupe, normalize_phone, is_closed
@@ -248,6 +378,7 @@ def run_pipeline(vertical: Vertical, market: str, *,
         import os
         d, base = os.path.split(out_stem)
         stem = os.path.join(d, re.sub(r"[^a-z0-9]+", "_", base.lower()).strip("_"))
-        run_pipeline.last_outputs = write_outputs(leads, vertical.columns, stem, log)
+        cols = ensure_location_columns(vertical.columns)
+        run_pipeline.last_outputs = write_outputs(leads, cols, stem, log)
 
     return leads

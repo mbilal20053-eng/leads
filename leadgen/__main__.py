@@ -29,6 +29,9 @@ def main(argv=None) -> int:
                     help="list the saved named markets and exit")
     ap.add_argument("--vertical", help="vertical key (see --list)")
     ap.add_argument("--market", help="named market key or a geocodable place name")
+    ap.add_argument("--country", help="filter by country or search in this country (e.g. 'Canada', 'US', 'United Kingdom')")
+    ap.add_argument("--state", help="filter by state or province (e.g. 'Texas', 'Ontario', 'TX', 'ON')")
+    ap.add_argument("--city", help="filter by city (e.g. 'Austin', 'Toronto', 'London')")
     ap.add_argument("--sources", nargs="+", default=None,
                     choices=["overture", "osm", "socrata", "npi", "foursquare",
                              "arcgis", "wikidata", "ckan", "localfile", "url_csv"],
@@ -80,8 +83,10 @@ def main(argv=None) -> int:
 
     vertical_key = args.vertical or file_cfg.get("default_vertical")
     market = args.market or file_cfg.get("default_market")
+    if not market and (args.city or args.state or args.country):
+        market = ", ".join(p for p in (args.city, args.state, args.country) if p)
     if not vertical_key or not market:
-        ap.error("--vertical and --market are required (via flags, a leadgen.toml, or --list)")
+        ap.error("--vertical and either --market or --country/--state/--city are required (via flags, a leadgen.toml, or --list)")
 
     sources = tuple(args.sources or file_cfg.get("sources") or ["overture"])
     limit = args.limit if args.limit is not None else file_cfg.get("limit")
@@ -134,6 +139,7 @@ def main(argv=None) -> int:
             enrich=False, enrich_cap=enrich_cap,
             out_stem=None,
             config_override=override or None,
+            country=args.country, state=args.state, city=args.city,
             log=log,
         )
         by_source: dict[str, int] = {}
@@ -159,17 +165,19 @@ def main(argv=None) -> int:
         enrich=enrich, enrich_cap=enrich_cap,
         out_stem=args.out or f"{vertical_key}_{market}",
         config_override=override or None,
+        country=args.country, state=args.state, city=args.city,
         log=log,
     )
 
     # Extra output formats, written next to the CSV/XLSX stem.
     if args.format and run_pipeline.last_outputs:
         from . import exporters
+        from .pipeline import ensure_location_columns
         import os
         stem = os.path.splitext(run_pipeline.last_outputs[0])[0]
         if stem.endswith("_crm"):
             stem = stem[:-4]
-        cols = vertical.columns
+        cols = ensure_location_columns(vertical.columns)
         if "jsonl" in args.format:
             print("  ->", exporters.write_jsonl(leads, cols, stem + ".jsonl"))
         if "json" in args.format:
