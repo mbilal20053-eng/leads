@@ -6,6 +6,7 @@ let currentPageSize = 50;
 let currentSearch = "";
 let currentTier = "all";
 let currentState = "all";
+let currentCountry = "all";
 let currentCategory = "all";
 let currentOpportunity = "all";
 let currentHasPhone = false;
@@ -54,6 +55,7 @@ async function loadLeads() {
     search: currentSearch,
     tier: currentTier,
     state: currentState,
+    country: currentCountry,
     category: currentCategory,
     opportunity: currentOpportunity,
     has_phone: currentHasPhone ? "true" : "false",
@@ -68,7 +70,8 @@ async function loadLeads() {
     }
     const data = await res.json();
     
-    renderKPIs(data.stats, data.sources_breakdown);
+    if (data.sources_breakdown && data.sources_breakdown.length > 0) { window.cachedBreakdown = data.sources_breakdown; }
+    renderKPIs(data.stats, data.sources_breakdown || window.cachedBreakdown, data.dataset_name);
     renderTable(data.leads, data.total);
     renderPagination(data.total, data.page, data.page_size);
     if (data.states) updateStatesFilter(data.states);
@@ -84,7 +87,7 @@ async function loadLeads() {
   }
 }
 
-function renderKPIs(stats, breakdown) {
+function renderKPIs(stats, breakdown, datasetName) {
   if (!stats) return;
   const total = Number(stats.total || 0);
   const tierA = Number(stats.tier_a || 0);
@@ -112,9 +115,34 @@ function renderKPIs(stats, breakdown) {
     kPhone.innerHTML = phone.toLocaleString() + ' <span style="font-size:12px;font-weight:600;opacity:0.85;">(' + phonePct + '%)</span>';
   }
 
-  // Update banner if present
+  // Update banner total count to exact number of current filtered source!
   const bannerTotal = document.getElementById("bannerTotalCount");
   if (bannerTotal) bannerTotal.textContent = total.toLocaleString();
+
+  const kDatasetLabel = document.getElementById("kpiDatasetLabel");
+  if (kDatasetLabel) {
+    if (datasetName) {
+      kDatasetLabel.textContent = datasetName;
+    } else {
+      const activeChip = document.querySelector(".source-chip.active");
+      kDatasetLabel.textContent = activeChip ? activeChip.innerText.trim() : currentDataset;
+    }
+  }
+
+  const metaCount = document.getElementById("metaCount");
+  if (metaCount) metaCount.textContent = total.toLocaleString();
+
+  const bannerShare = document.getElementById("bannerSharePct");
+  if (bannerShare) {
+    if (currentDataset === "all_global") {
+      bannerShare.textContent = "100% (All Sources)";
+    } else if (breakdown) {
+      const item = breakdown.find(function(b) { return b.id === currentDataset; });
+      if (item) {
+        bannerShare.textContent = item.pct + "% of Total (" + Number(item.count).toLocaleString() + " leads)";
+      }
+    }
+  }
 
   if (breakdown && breakdown.length > 0) {
     renderSourceDistribution(breakdown);
@@ -155,14 +183,43 @@ function renderSourceDistribution(breakdown) {
 function selectSourceChip(id) {
   currentDataset = id;
   currentPage = 1;
-  const sel = document.getElementById("datasetSelect");
-  if (sel) sel.value = id;
-  
-  const bannerShare = document.getElementById("bannerSharePct");
-  if (bannerShare) {
-    bannerShare.textContent = (id === "all_global") ? "100% (All Sources)" : "Filtered Dataset";
+  currentSearch = "";
+  const sInput = document.getElementById("searchInput");
+  if (sInput) sInput.value = "";
+
+  // 1. Immediately highlight clicked chip visually
+  document.querySelectorAll(".source-chip").forEach(function(b) {
+    b.classList.remove("active");
+  });
+  const chips = document.querySelectorAll(".source-chip");
+  for (let i = 0; i < chips.length; i++) {
+    const attr = chips[i].getAttribute("onclick");
+    if (attr && attr.indexOf("'" + id + "'") !== -1) {
+      chips[i].classList.add("active");
+      break;
+    }
   }
-  
+
+  // 2. Sync with dataset select dropdown
+  const sel = document.getElementById("datasetSelect");
+  if (sel) {
+    let opt = sel.querySelector("option[value='" + id + "']");
+    if (!opt) {
+      opt = document.createElement("option");
+      opt.value = id;
+      opt.textContent = id;
+      sel.appendChild(opt);
+    }
+    sel.value = id;
+  }
+
+  // 3. Immediately display skeleton in table
+  const tbody = document.getElementById("leadsTbody");
+  if (tbody) {
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:48px 20px;"><div class="skeleton" style="width:260px;margin:0 auto 12px;height:18px;"></div><span style="color:var(--text-dim);font-weight:500;">Loading ' + escapeHtml(id) + ' leads database...</span></td></tr>';
+  }
+
+  // 4. Fetch the leads for this source
   loadLeads();
 }
 
@@ -398,6 +455,14 @@ function onFilterChange() {
   loadLeads();
 }
 
+function onCountryChange(val) {
+  currentCountry = val || "all";
+  currentPage = 1;
+  const cSel = document.getElementById("countryFilter");
+  if (cSel) cSel.value = currentCountry;
+  loadLeads();
+}
+
 function onCatChange(val) {
   currentCategory = val;
   currentPage = 1;
@@ -438,6 +503,8 @@ function resetFilters() {
   currentSearch = "";
   currentTier = "all";
   currentState = "all";
+  currentCountry = "all";
+  const cSel = document.getElementById("countryFilter"); if (cSel) cSel.value = "all";
   currentCategory = "all";
   currentOpportunity = "all";
   currentHasPhone = false;
@@ -620,7 +687,7 @@ function setExportNextBatch() {
   document.querySelectorAll(".btn-preset").forEach(function(b) { b.classList.remove("active"); });
   updateExportRangePreview();
 
-  showToast("Export range advanced: Lead #" + newFrom.toLocaleString() + " to #" + newTo.toLocaleString());
+  toast("Export range advanced: Lead #" + newFrom.toLocaleString() + " to #" + newTo.toLocaleString());
 }
 
 function triggerRangeExport() {
@@ -639,28 +706,32 @@ function triggerRangeExport() {
 
   if (btn) {
     btn.disabled = true;
-    btn.innerHTML = '<span>⏳</span> Preparing ' + count.toLocaleString() + ' Leads...';
+    btn.innerHTML = '<span>⏳</span> Downloading ' + count.toLocaleString() + ' Leads...';
     setTimeout(function() {
       btn.disabled = false;
       updateExportRangePreview();
-    }, 3500);
+    }, 3000);
   }
 
   const params = new URLSearchParams({
-    dataset: currentDataset,
-    search: currentSearch,
-    tier: currentTier,
-    state: currentState,
-    category: currentCategory,
-    opportunity: currentOpportunity,
+    dataset: currentDataset || "all_global",
+    search: currentSearch || "",
+    tier: currentTier || "all",
+    state: currentState || "all",
+    country: currentCountry || "all",
+    category: currentCategory || "all",
+    opportunity: currentOpportunity || "all",
     has_phone: currentHasPhone ? "true" : "false",
     export: "csv",
     export_from: String(fromVal),
     export_to: String(toVal)
   });
 
-  showToast("Downloading " + count.toLocaleString() + " leads (rows " + fromVal.toLocaleString() + " to " + toVal.toLocaleString() + ")...");
-  window.location.href = "/api/leads?" + params.toString();
+  const exportUrl = "/api/leads?" + params.toString();
+  toast("Downloading " + count.toLocaleString() + " leads (" + currentDataset + ")...");
+
+  // Direct native browser download - leaves page intact while downloading file
+  window.location.href = exportUrl;
 }
 
 function exportCurrentLeads() {
@@ -897,6 +968,8 @@ function copyText(txt, msg) {
     document.body.removeChild(ta);
   }
 }
+
+function showToast(msg) { toast(msg); }
 
 function toast(msg) {
   const el = document.getElementById("toast");
