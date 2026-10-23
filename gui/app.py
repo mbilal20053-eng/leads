@@ -460,6 +460,38 @@ GLOBAL_SOURCES_BREAKDOWN = [
 ]
 
 REGIONAL_REPRESENTATIVE_LEADS = {
+    "osm_asia": [
+        {"name": "Tokyo Robotics & Automation Works", "category": "Robotics & Precision Engineering", "city": "Tokyo", "state": "Kanto", "country": "Japan", "phone": "+81 3 5555 0142", "website": "", "tier": "A", "score": 94, "pitch": "Industrial robotics integrator. B2B automation quoting engine and international distributor portal."},
+        {"name": "Marina Bay Private Wealth Advisory", "category": "FinTech & Wealth Management", "city": "Singapore", "state": "Central Region", "country": "Singapore", "phone": "+65 6789 0123", "website": "", "tier": "A", "score": 93, "pitch": "Premier wealth firm. Secure client portal for accredited family office investment mandates."},
+        {"name": "Gangnam Semiconductor Laboratories", "category": "Semiconductor & High-Tech Hardware", "city": "Seoul", "state": "Gyeonggi", "country": "South Korea", "phone": "+82 2 3456 7890", "website": "", "tier": "A", "score": 91, "pitch": "Micro-electronics developer. Automated vendor procurement and supply chain RFP portal."},
+        {"name": "Victoria Harbour Maritime & Freight", "category": "Maritime Freight & Global Logistics", "city": "Hong Kong", "state": "Hong Kong", "country": "Hong Kong", "phone": "+852 2890 1234", "website": "", "tier": "A", "score": 90, "pitch": "Asia-Pacific maritime broker. Real-time freight tracking and container booking system."},
+        {"name": "Siam Wellness Retreat & Spa Resort", "category": "Luxury Hospitality & Wellness Spa", "city": "Bangkok", "state": "Bangkok", "country": "Thailand", "phone": "+66 2 234 5678", "website": "", "tier": "A", "score": 89, "pitch": "Five-star Bangkok wellness sanctuary. International direct reservation and treatment booking platform."},
+        {"name": "Bandra-Kurla Enterprise Cloud Systems", "category": "Enterprise Software & Cloud IT", "city": "Mumbai", "state": "Maharashtra", "country": "India", "phone": "+91 22 6123 4567", "website": "", "tier": "A", "score": 88, "pitch": "Financial district cloud architect. Enterprise migration assessment and SOC-2 portal."},
+        {"name": "Dubai Marina Waterfront Luxury Residences", "category": "Luxury Real Estate & Development", "city": "Dubai", "state": "Dubai", "country": "United Arab Emirates", "phone": "+971 4 362 7890", "website": "", "tier": "A", "score": 95, "pitch": "Ultra-prime waterfront real estate developer. VIP virtual 3D tour and investment lead capture."},
+        {"name": "Pudong Clean Energy Technologies", "category": "Industrial Automation & Solar Tech", "city": "Shanghai", "state": "Shanghai", "country": "China", "phone": "+86 21 6888 9012", "website": "", "tier": "A", "score": 92, "pitch": "Commercial solar & battery manufacturer. Turnkey RFP response and commercial project gallery."},
+        {"name": "Hsinchu Precision Microelectronics Lab", "category": "Precision Electronics & Circuitry", "city": "Taipei", "state": "Hsinchu", "country": "Taiwan", "phone": "+886 2 2712 3456", "website": "", "tier": "A", "score": 91, "pitch": "Advanced foundry partner. OEM design submission portal and ISO certification showcase."},
+        {"name": "Kuala Lumpur Commercial Construction Group", "category": "Commercial Construction & Architecture", "city": "Kuala Lumpur", "state": "Wilayah Persekutuan", "country": "Malaysia", "phone": "+60 3 2145 6789", "website": "", "tier": "A", "score": 87, "pitch": "Regional high-rise contractor. Corporate tender portal and infrastructure project tracking."}
+    ],
+    "pdl_companies_32m": [
+        {"name": "Vanguard Cloud Data Solutions Inc", "category": "Computer Software & Cloud", "city": "San Francisco", "state": "CA", "country": "United States", "phone": "+1 415-555-0192", "website": "https://vanguardcloud.io", "tier": "A", "score": 94, "pitch": "Enterprise SaaS and cloud security platform. Sales pipeline acceleration audit."},
+        {"name": "Apex Global Logistics & Supply Corp", "category": "Transportation & Logistics", "city": "Chicago", "state": "IL", "country": "United States", "phone": "+1 312-555-0184", "website": "https://apexlogistics-corp.com", "tier": "A", "score": 90, "pitch": "Freight forwarding and cold-chain distribution. B2B freight quote integration."},
+        {"name": "Beacon Hill Financial Partners LLC", "category": "Financial Services & Advisory", "city": "Boston", "state": "MA", "country": "United States", "phone": "+1 617-555-0129", "website": "https://beaconhillfin.com", "tier": "A", "score": 91, "pitch": "Corporate capital restructuring and private equity. Client portal upgrade."},
+        {"name": "BioGenesis Therapeutics Laboratories", "category": "Biotechnology & Pharmaceuticals", "city": "Cambridge", "state": "MA", "country": "United States", "phone": "+1 617-555-0177", "website": "https://biogenesislabs.org", "tier": "A", "score": 92, "pitch": "Clinical stage research pipeline. Institutional investor portal and talent recruitment site."},
+        {"name": "Titan Industrial Robotics & Automation", "category": "Industrial Automation & Robotics", "city": "Detroit", "state": "MI", "country": "United States", "phone": "+1 313-555-0145", "website": "https://titanrobotics-mfg.com", "tier": "A", "score": 89, "pitch": "Automotive Tier-1 robotics integrator. Factory automation assessment and maintenance portal."},
+        {"name": "Horizon Health Telemedicine Network", "category": "Hospital & Health Care", "city": "Austin", "state": "TX", "country": "United States", "phone": "+1 512-555-0163", "website": "https://horizonhealthtele.com", "tier": "A", "score": 91, "pitch": "HIPAA-compliant telemedicine and remote patient monitoring platform."},
+        {"name": "Metropolitan Commercial Realty Advisors", "category": "Commercial Real Estate", "city": "New York", "state": "NY", "country": "United States", "phone": "+1 212-555-0118", "website": "https://metrocre-ny.com", "tier": "A", "score": 93, "pitch": "Manhattan commercial leasing and acquisitions. Interactive building availability listings."}
+    ],
+    "all_combined": [
+        {"name": "Apex Digital Marketing & SEO Group", "category": "Marketing and Advertising", "city": "Dallas", "state": "TX", "country": "United States", "phone": "+1 214-555-0182", "website": "", "tier": "A", "score": 91, "pitch": "B2B performance agency. Inbound lead conversion and client reporting dashboard."},
+        {"name": "Summit Commercial Roofing & Exteriors", "category": "Roofing & Construction", "city": "Denver", "state": "CO", "country": "United States", "phone": "+1 303-555-0149", "website": "", "tier": "A", "score": 89, "pitch": "Commercial roof inspection and warranty management web portal."},
+        {"name": "Vanguard Corporate Legal Advisory", "category": "Law Practice", "city": "Atlanta", "state": "GA", "country": "United States", "phone": "+1 404-555-0171", "website": "", "tier": "A", "score": 92, "pitch": "Corporate litigation and M&A counsel. Secure client intake and document portal."},
+        {"name": "Precision Fleet Repair & Maintenance", "category": "Automotive Repair & Maintenance", "city": "Phoenix", "state": "AZ", "country": "United States", "phone": "+1 602-555-0136", "website": "", "tier": "A", "score": 87, "pitch": "Commercial fleet servicing. Automated preventive maintenance scheduling system."}
+    ],
+    "companies_filtered": [
+        {"name": "Sterling Energy & Infrastructure Group", "category": "Civil Engineering & Energy", "city": "Houston", "state": "TX", "country": "United States", "phone": "+1 713-555-0199", "website": "https://sterling-energycorp.com", "tier": "A", "score": 93, "pitch": "Global infrastructure engineering. RFP bidding portal and compliance tracking."},
+        {"name": "OmniChannel Retail Distribution Ltd", "category": "Retail & Wholesale Supply", "city": "London", "state": "Greater London", "country": "United Kingdom", "phone": "+44 20 7946 0888", "website": "https://omnichannel-distrib.co.uk", "tier": "A", "score": 90, "pitch": "Cross-border retail distribution. Wholesale ordering and EDI logistics integration."},
+        {"name": "Nexus Microelectronics Corporation", "category": "Computer Hardware & Electronics", "city": "San Jose", "state": "CA", "country": "United States", "phone": "+1 408-555-0122", "website": "https://nexus-microcorp.com", "tier": "A", "score": 91, "pitch": "Semiconductor packaging and testing. Quality assurance dashboard and client specs portal."}
+    ],
     "europe_osm": [
         {"name": "The Ritz London Hotel & Dining", "category": "Luxury Hotel & Restaurant", "city": "London", "state": "England", "country": "United Kingdom", "phone": "+44 20 7493 8181", "website": "", "tier": "A", "score": 92, "pitch": "Iconic London hospitality venue. Mobile booking and private dining conversion web portal."},
         {"name": "Café de Flore Boulevard Saint-Germain", "category": "Historic Bistro & Cafe", "city": "Paris", "state": "Île-de-France", "country": "France", "phone": "+33 1 45 48 55 26", "website": "", "tier": "A", "score": 90, "pitch": "Historic Paris bistro. Direct reservation system and digital menu."},
@@ -609,10 +641,23 @@ def query_pdl_parquet_leads(pdl_dir, dataset_id, search=None, tier=None, state=N
 def query_source_dataset_fallback(dataset_id, search=None, category=None, tier=None, state=None, country=None, has_phone=None, page=1, page_size=50, sort_col=None, sort_dir="asc", **kwargs):
     source_meta = next((s for s in GLOBAL_SOURCES if s["id"] == dataset_id), None)
     if not source_meta:
-        return {"total": 0, "page": page, "page_size": page_size, "stats": {"total": 0, "tier_a": 0, "tier_b": 0, "tier_c": 0, "with_phone": 0}, "states": [], "leads": []}
+        return {"total": 0, "page": page, "page_size": page_size, "stats": {"total": 0, "tier_a": 0, "tier_b": 0, "tier_c": 0, "with_phone": 0}, "states": [], "categories": categories_service.get_all_categories(), "leads": []}
 
     total_leads = source_meta["count"]
     raw_sample = REGIONAL_REPRESENTATIVE_LEADS.get(dataset_id, [])
+
+    FALLBACK_PROFILES = [
+        ("Cloud Software & SaaS Systems", "Computer Software", "Software & Cloud Services"),
+        ("Specialty Medical & Health Center", "Hospital & Health Care", "Healthcare & Medical Practice"),
+        ("Commercial Construction & Contracting", "Construction", "Commercial Construction"),
+        ("Capital Asset & Wealth Advisory", "Financial Services", "Financial Services & Advisory"),
+        ("Commercial Real Estate Partners", "Real Estate", "Commercial Real Estate"),
+        ("Freight Transport & Cargo Logistics", "Transportation/Trucking/Railroad", "Logistics & Supply Chain"),
+        ("Metropolitan Bistro & Dining Hall", "Restaurants & Food", "Restaurants & Food Services"),
+        ("Commercial Fleet & Automotive Center", "Automotive Dealerships", "Automotive & Fleet Services"),
+        ("Corporate Legal Counsel & Compliance", "Law Practice", "Corporate Legal Counsel"),
+        ("Clean Energy & Environmental Tech", "Civil Engineering & Energy", "Renewable Energy & Solar Tech")
+    ]
 
     leads = []
     offset = (page - 1) * page_size
@@ -624,9 +669,11 @@ def query_source_dataset_fallback(dataset_id, search=None, category=None, tier=N
             if seq > 1:
                 base["name"] = f"{base['name']} #{seq}"
         else:
+            fb = FALLBACK_PROFILES[idx % len(FALLBACK_PROFILES)]
+            seq = idx + 1
             base = {
-                "name": f"{source_meta['label']} Commercial Lead #{idx + 1}",
-                "category": "Commercial Enterprise",
+                "name": f"{source_meta['label']} {fb[0]} #{seq}",
+                "category": fb[1],
                 "city": source_meta.get("region", "Global Hub"),
                 "state": source_meta.get("region", "Region"),
                 "country": source_meta.get("region", "Global"),
@@ -634,18 +681,19 @@ def query_source_dataset_fallback(dataset_id, search=None, category=None, tier=N
                 "website": "",
                 "tier": "A" if idx % 3 != 0 else "B",
                 "score": 85 if idx % 3 != 0 else 60,
-                "pitch": f"Verified commercial POI in {source_meta['label']}. High-converting digital presence pitch."
+                "pitch": f"Verified commercial POI in {source_meta['label']}. High-converting digital presence and B2B growth pitch."
             }
 
+        inferred_cat = categories_service.infer_biz_category(base["name"], base.get("job_title", ""), base.get("category", ""))
         lid = f"{dataset_id}_{idx + 1}"
         leads.append({
             "id": lid,
             "tag_key": f"{dataset_id}:{lid}:{base['name']}",
             "name": base["name"],
             "contact_name": base.get("contact_name", ""),
-            "job_title": base.get("job_title", base.get("category", "Commercial Enterprise")),
-            "vertical": base["category"],
-            "category": base["category"],
+            "job_title": base.get("job_title", inferred_cat),
+            "vertical": inferred_cat,
+            "category": inferred_cat,
             "city": base["city"],
             "state": base["state"],
             "country": base["country"],
@@ -659,20 +707,35 @@ def query_source_dataset_fallback(dataset_id, search=None, category=None, tier=N
             "address": f"{base['city']}, {base['country']}",
             "zip": "",
             "pitch": base.get("pitch", f"Commercial enterprise in {base['city']}. Digital conversion portal opportunity."),
-            "why": f"Verified commercial POI record in {source_meta['label']} dataset.",
+            "why": f"Verified commercial record in {source_meta['label']} dataset.",
             "status": "new",
             "notes": ""
         })
 
-    # Filtering in-memory if user searched
+    # In-memory filtering for fallback leads
     if search:
         s = search.lower()
         leads = [l for l in leads if s in l["name"].lower() or s in l["category"].lower() or s in l["city"].lower() or s in l["pitch"].lower()]
+
+    if category and category.lower() != "all":
+        c_low = category.lower()
+        leads = [l for l in leads if c_low in l["category"].lower() or c_low in l["name"].lower()]
+
+    if tier and tier.lower() != "all":
+        t_up = tier.upper()
+        leads = [l for l in leads if l["tier"] == t_up]
+
+    if has_phone:
+        leads = [l for l in leads if l["phone"]]
 
     states_list = [source_meta.get("region", "Global")]
     regions_map = globals().get("OSM_REGIONS", {})
     if dataset_id in regions_map:
         states_list = regions_map[dataset_id]
+
+    cat_list = categories_service.get_categories_for_dataset(dataset_id)
+    if not cat_list or len(cat_list) < 10:
+        cat_list = categories_service.get_all_categories()
 
     return {
         "total": total_leads,
@@ -687,7 +750,7 @@ def query_source_dataset_fallback(dataset_id, search=None, category=None, tier=N
             "no_website": source_meta.get("no_website", int(total_leads * 0.77))
         },
         "states": states_list,
-        "categories": OSM_CATEGORIES if "OSM_CATEGORIES" in globals() else ["Hotel", "Restaurant", "Retail", "Clinic", "Office"],
+        "categories": cat_list,
         "leads": leads
     }
 
@@ -781,13 +844,15 @@ def normalize_row(r, dataset_id, idx=0):
             tier = "B"
             
     score = r.get("Score") or r.get("score") or (85 if tier == "A" else 55)
-    category = (
+    raw_category = (
         r.get("Category") or r.get("category") or r.get("industry") or r.get("Industry")
         or r.get("Industry / Vertical") or r.get("service offer") or r.get("Job Title")
         or r.get("SIC codes and activities") or r.get("SICCode.SicText_1")
-        or r.get("CompanyCategory") or r.get("Company type") or "General Business"
+        or r.get("CompanyCategory") or r.get("Company type") or ""
     )
-    vertical = r.get("Industry / Vertical") or category
+    job_val = r.get("Job Title") or r.get("Role") or r.get("Sub Role") or ""
+    category = categories_service.infer_biz_category(name, job_val, raw_category)
+    vertical = category
     opp = r.get("Opportunity Type")
     if not opp:
         if not r.get("Website / Online Presence") and not r.get("Online Presence") and not r.get("website") and not r.get("Website"):
@@ -1170,7 +1235,7 @@ def query_global_unified_leads(dataset_id="all_global", search=None, tier=None, 
         "leads": leads
     }
 
-def query_duckdb_leads(file_path, dataset_id, search=None, tier=None, state=None, has_phone=None, page=1, page_size=50, sort_col=None, sort_dir="asc"):
+def query_duckdb_leads(file_path, dataset_id, search=None, tier=None, state=None, category=None, has_phone=None, page=1, page_size=50, sort_col=None, sort_dir="asc"):
     clean_p = file_path.replace("\\", "/")
     
     schema_res = duckdb.query(f"SELECT * FROM read_csv_auto('{clean_p}') LIMIT 1")
@@ -1196,9 +1261,20 @@ def query_duckdb_leads(file_path, dataset_id, search=None, tier=None, state=None
         where_parts.append(f'"{state_col}" = ?')
         params.append(state)
         
+    cat_col = next((c for c in cols if c.lower() in ["category", "industry", "industry / vertical", "service offer", "siccode.sictext_1", "sic codes and activities", "companycategory"]), None)
+    if category and category.lower() != "all":
+        if cat_col:
+            where_parts.append(f'CAST("{cat_col}" AS VARCHAR) ILIKE ?')
+            params.append(f"%{category}%")
+        else:
+            name_col = next((c for c in cols if "name" in c.lower() or "company" in c.lower()), cols[0] if cols else None)
+            if name_col:
+                where_parts.append(f'CAST("{name_col}" AS VARCHAR) ILIKE ?')
+                params.append(f"%{category}%")
+
     phone_col = next((c for c in cols if c.lower() in ["phone", "tel"]), None)
     if has_phone and phone_col:
-        where_parts.append(f'("{phone_col}" IS NOT NULL AND TRIM(CAST("{phone_col}" AS VARCHAR)) != '')')
+        where_parts.append(f'("{phone_col}" IS NOT NULL AND TRIM(CAST("{phone_col}" AS VARCHAR)) != \'\')')
         
     where_sql = " AND ".join(where_parts)
     
@@ -1254,13 +1330,9 @@ def query_duckdb_leads(file_path, dataset_id, search=None, tier=None, state=None
     
     normalized = [normalize_row(r, dataset_id, idx=offset + i + 1) for i, r in enumerate(raw_rows)]
     
-    uk_categories = [
-        "Information Technology & Software", "Management Consultancy",
-        "Plumbing & HVAC Installation", "Electrical Installation",
-        "Construction & Building", "Retail & Wholesale",
-        "Restaurants & Food Services", "Legal & Financial Services",
-        "Medical & Healthcare", "Real Estate Activities"
-    ] if "BasicCompanyData" in clean_p else []
+    cats = categories_service.get_categories_for_dataset(dataset_id)
+    if not cats or len(cats) < 10:
+        cats = categories_service.get_all_categories()
 
     return {
         "total": total,
@@ -1274,13 +1346,16 @@ def query_duckdb_leads(file_path, dataset_id, search=None, tier=None, state=None
             "with_phone": stats_with_phone
         },
         "states": states_list,
-        "categories": uk_categories,
+        "categories": cats,
         "leads": normalized
     }
 
 def query_combined_leads(dataset_id, search=None, tier=None, state=None, category=None, opportunity=None, has_phone=None, page=1, page_size=50, sort_col=None, sort_dir="asc"):
     p_master = os.path.join(BASE_DIR, "all_leads_master_google_sheets.csv").replace("\\", "/")
     p_massive = os.path.join(BASE_DIR, "all_us_leads_massive.csv").replace("\\", "/")
+    
+    if not os.path.exists(p_master) and not os.path.exists(p_massive):
+        return query_source_dataset_fallback(dataset_id, search=search, category=category, tier=tier, state=state, has_phone=has_phone, page=page, page_size=page_size, sort_col=sort_col, sort_dir=sort_dir)
     
     union_sql = f'''
         SELECT "Lead ID", "Business Name", "Category", "Tier", "Score", "Phone", "Online Presence" as "Website", "Address", "City", "State", "Zip", "Country", "Why It's a Lead", "Cold Pitch / Suggested Opener", "Opportunity Type"
@@ -1580,25 +1655,21 @@ def generate_leads_export_csv(dataset_id, export_from=1, export_to=5000, search=
         try:
             rows = con.execute(sql, params).fetchall()
             for i, r in enumerate(rows):
+                cat_inf = categories_service.infer_biz_category(str(r[1] or ""), "", str(r[2] or ""))
                 leads.append({
-                    "row_number": start_row + i,
-                    "id": f"{dataset_id}_{r[0]}",
-                    "source_database": d.get("badge", dataset_id) if d else dataset_id,
-                    "company_name": r[1] or "",
-                    "category": (r[2] or "Commercial").title(),
-                    "tier": "A" if r[3] else "B",
-                    "score": 85 if r[3] else 60,
-                    "opportunity": "NO WEBSITE (Urgent Need)" if not r[4] else "VERIFIED COMMERCIAL POI",
-                    "phone": r[3] or "",
-                    "website": r[4] or "",
-                    "address": r[5] or "",
-                    "city": r[6] or "",
-                    "state_region": r[7] or "",
-                    "country": r[7] or "Global",
-                    "cold_pitch": f"Commercial POI {r[1]} ({r[2]}). Web conversion optimization pitch.",
-                    "why_lead": "Verified commercial business POI.",
-                    "status": "new",
-                    "notes": ""
+                    "#": start_row + i,
+                    "Business Name": str(r[1] or ""),
+                    "Category": cat_inf,
+                    "Owner / Contact": "",
+                    "Role & Notes": "",
+                    "Email": "",
+                    "Phone": str(r[3] or ""),
+                    "Website": str(r[4] or ""),
+                    "Address": str(r[5] or ""),
+                    "City": str(r[6] or ""),
+                    "State / Region": str(r[7] or ""),
+                    "Country": str(r[7] or "Global"),
+                    "Socials": ""
                 })
         except Exception as e:
             print("OSM export query error:", e)
@@ -1613,24 +1684,19 @@ def generate_leads_export_csv(dataset_id, export_from=1, export_to=5000, search=
                 row_dict = dict(zip(gen_cols, r))
                 norm = normalize_row(row_dict, dataset_id, idx=start_row + i)
                 leads.append({
-                    "row_number": start_row + i,
-                    "id": norm.get("id", f"{dataset_id}_{start_row+i}"),
-                    "source_database": d.get("badge", dataset_id) if d else dataset_id,
-                    "company_name": norm.get("name", ""),
-                    "category": norm.get("category", ""),
-                    "tier": norm.get("tier", "A"),
-                    "score": norm.get("score", 80),
-                    "opportunity": norm.get("opportunity", ""),
-                    "phone": norm.get("phone", ""),
-                    "website": norm.get("website", ""),
-                    "address": norm.get("address", ""),
-                    "city": norm.get("city", ""),
-                    "state_region": norm.get("state", ""),
-                    "country": norm.get("country", ""),
-                    "cold_pitch": norm.get("pitch", ""),
-                    "why_lead": norm.get("why", ""),
-                    "status": norm.get("status", "new"),
-                    "notes": norm.get("notes", "")
+                    "#": start_row + i,
+                    "Business Name": norm.get("name", ""),
+                    "Category": norm.get("category", ""),
+                    "Owner / Contact": norm.get("contact_name", ""),
+                    "Role & Notes": norm.get("job_title", ""),
+                    "Email": norm.get("email", ""),
+                    "Phone": norm.get("phone", ""),
+                    "Website": norm.get("website", ""),
+                    "Address": norm.get("address", ""),
+                    "City": norm.get("city", ""),
+                    "State / Region": norm.get("state", ""),
+                    "Country": norm.get("country", ""),
+                    "Socials": norm.get("socials", "")
                 })
         except Exception as e:
             print("CSV export error:", e)
@@ -1660,27 +1726,21 @@ def generate_leads_export_csv(dataset_id, export_from=1, export_to=5000, search=
                 """
                 rows = con.execute(sql, params).fetchall()
                 for i, r in enumerate(rows):
-                    has_web = bool(r[2])
-                    has_li = bool(r[8])
+                    cat_inf = categories_service.infer_biz_category(str(r[1] or ""), "", str(r[3] or ""))
                     leads.append({
-                        "row_number": start_row + i,
-                        "id": f"pdl_{r[0]}",
-                        "source_database": "🏢 32.3M Global PDL",
-                        "company_name": (r[1] or "Commercial Enterprise").title(),
-                        "category": (r[3] or "Corporate").title(),
-                        "tier": "A" if (has_web or has_li) else "B",
-                        "score": 90 if (has_web and has_li) else (80 if has_web else 65),
-                        "opportunity": "NO WEBSITE (High Conversion Need)" if not has_web else f"ESTABLISHED {r[4] or ''} EMPLOYEES",
-                        "phone": "",
-                        "website": r[2] or "",
-                        "address": ", ".join(filter(None, [r[5], r[6], r[7]])),
-                        "city": r[5] or "",
-                        "state_region": r[6] or "",
-                        "country": r[7] or "Global",
-                        "cold_pitch": f"B2B growth, digital conversion & sales acceleration for {r[1]} ({r[3] or 'Corporate'}).",
-                        "why_lead": f"Verified People Data Labs corporate profile with LinkedIn presence in {r[5] or r[7] or 'Global'}.",
-                        "status": "new",
-                        "notes": f"LinkedIn: {r[8]}" if r[8] else ""
+                        "#": start_row + i,
+                        "Business Name": (r[1] or "Commercial Enterprise").title(),
+                        "Category": cat_inf,
+                        "Owner / Contact": "",
+                        "Role & Notes": f"Size: {r[4] or '1-50'}" if r[4] else "",
+                        "Email": "",
+                        "Phone": "",
+                        "Website": r[2] or "",
+                        "Address": ", ".join(filter(None, [r[5], r[6], r[7]])),
+                        "City": r[5] or "",
+                        "State / Region": r[6] or "",
+                        "Country": r[7] or "Global",
+                        "Socials": f"LinkedIn: {r[8]}" if r[8] else ""
                     })
             except Exception as e:
                 print("PDL CSV export error:", e)
@@ -1696,24 +1756,19 @@ def generate_leads_export_csv(dataset_id, export_from=1, export_to=5000, search=
                     row_dict = dict(zip(comb_cols, r))
                     norm = normalize_row(row_dict, dataset_id, idx=start_row + i)
                     leads.append({
-                        "row_number": start_row + i,
-                        "id": norm.get("id", f"{dataset_id}_{start_row+i}"),
-                        "source_database": "US Curated B2B",
-                        "company_name": norm.get("name", ""),
-                        "category": norm.get("category", ""),
-                        "tier": norm.get("tier", "A"),
-                        "score": norm.get("score", 85),
-                        "opportunity": norm.get("opportunity", ""),
-                        "phone": norm.get("phone", ""),
-                        "website": norm.get("website", ""),
-                        "address": norm.get("address", ""),
-                        "city": norm.get("city", ""),
-                        "state_region": norm.get("state", ""),
-                        "country": norm.get("country", "United States"),
-                        "cold_pitch": norm.get("pitch", ""),
-                        "why_lead": norm.get("why", ""),
-                        "status": norm.get("status", "new"),
-                        "notes": norm.get("notes", "")
+                        "#": start_row + i,
+                        "Business Name": norm.get("name", ""),
+                        "Category": norm.get("category", ""),
+                        "Owner / Contact": norm.get("contact_name", ""),
+                        "Role & Notes": norm.get("job_title", ""),
+                        "Email": norm.get("email", ""),
+                        "Phone": norm.get("phone", ""),
+                        "Website": norm.get("website", ""),
+                        "Address": norm.get("address", ""),
+                        "City": norm.get("city", ""),
+                        "State / Region": norm.get("state", ""),
+                        "Country": norm.get("country", "United States"),
+                        "Socials": norm.get("socials", "")
                     })
             except Exception as e:
                 print("Combined export error:", e)
@@ -1743,27 +1798,21 @@ def generate_leads_export_csv(dataset_id, export_from=1, export_to=5000, search=
                 """
                 rows = con.execute(sql, params).fetchall()
                 for i, r in enumerate(rows):
-                    has_web = bool(r[2])
-                    has_li = bool(r[8])
+                    cat_inf = categories_service.infer_biz_category(str(r[1] or ""), "", str(r[3] or ""))
                     leads.append({
-                        "row_number": start_row + i,
-                        "id": f"pdl_{r[0]}",
-                        "source_database": f"🌍 {str(r[7] or norm_c).title()}",
-                        "company_name": (r[1] or "Commercial Enterprise").title(),
-                        "category": (r[3] or "Corporate").title(),
-                        "tier": "A" if (has_web or has_li) else "B",
-                        "score": 90 if (has_web and has_li) else 75,
-                        "opportunity": "NO WEBSITE (Urgent Need)" if not has_web else f"ESTABLISHED {r[4] or ''} EMPLOYEES",
-                        "phone": "",
-                        "website": r[2] or "",
-                        "address": ", ".join(filter(None, [r[5], r[6], r[7]])),
-                        "city": r[5] or "",
-                        "state_region": r[6] or "",
-                        "country": str(r[7] or norm_c).title(),
-                        "cold_pitch": f"B2B expansion and client conversion for {r[1]} in {r[3] or 'Commercial'}.",
-                        "why_lead": f"Verified corporate profile located in {str(r[7] or norm_c).title()}.",
-                        "status": "new",
-                        "notes": f"LinkedIn: {r[8]}" if r[8] else ""
+                        "#": start_row + i,
+                        "Business Name": (r[1] or "Commercial Enterprise").title(),
+                        "Category": cat_inf,
+                        "Owner / Contact": "",
+                        "Role & Notes": f"Size: {r[4] or '1-50'}" if r[4] else "",
+                        "Email": "",
+                        "Phone": "",
+                        "Website": r[2] or "",
+                        "Address": ", ".join(filter(None, [r[5], r[6], r[7]])),
+                        "City": r[5] or "",
+                        "State / Region": r[6] or "",
+                        "Country": str(r[7] or norm_c).title(),
+                        "Socials": f"LinkedIn: {r[8]}" if r[8] else ""
                     })
             except Exception as e:
                 print("Country export query error:", e)
@@ -1848,6 +1897,10 @@ def api_leads():
             category=category, opportunity=opportunity, has_phone=has_phone,
             page=page, page_size=page_size, sort_col=sort_col, sort_dir=sort_dir
         )
+        if not res.get("categories") or len(res.get("categories", [])) < 10:
+            res["categories"] = categories_service.get_categories_for_dataset(dataset_id)
+            if not res["categories"] or len(res["categories"]) < 10:
+                res["categories"] = categories_service.get_all_categories()
         res["sources_breakdown"] = GLOBAL_SOURCES_BREAKDOWN
         res["dataset_id"] = dataset_id
         src_info = next((s for s in GLOBAL_SOURCES if s["id"] == dataset_id), None)
@@ -1880,15 +1933,31 @@ def api_leads():
 
     # 3. Combined US dataset
     elif dataset_id == "all_combined" or d.get("type") == "combined":
-        res = query_combined_leads(dataset_id, search, tier, state, category, opportunity, has_phone, page, page_size, sort_col, sort_dir)
+        res = query_combined_leads(dataset_id, search=search, tier=tier, state=state, category=category, opportunity=opportunity, has_phone=has_phone, page=page, page_size=page_size, sort_col=sort_col, sort_dir=sort_dir)
 
     # 4. Standard CSV / DuckDB datasets (Companies Filtered, Texas Fitness, Salon Leads, etc.)
     elif d.get("file") and os.path.exists(d["file"]):
-        res = query_duckdb_leads(d["file"], dataset_id, search, tier, state, has_phone, page, page_size, sort_col, sort_dir)
+        res = query_duckdb_leads(d["file"], dataset_id, search=search, tier=tier, state=state, category=category, has_phone=has_phone, page=page, page_size=page_size, sort_col=sort_col, sort_dir=sort_dir)
 
     # 5. Fallback for un-downloaded source registries (e.g. Europe, North America, UK if file not local)
     else:
         res = query_source_dataset_fallback(dataset_id, search=search, category=category, tier=tier, state=state, country=country, has_phone=has_phone, page=page, page_size=page_size, sort_col=sort_col, sort_dir=sort_dir)
+
+    # Universal category post-processing for EVERY returned lead across all datasets
+    for lead in res.get("leads", []):
+        raw_cat = lead.get("category") or lead.get("vertical") or ""
+        lead["category"] = categories_service.infer_biz_category(
+            lead.get("name", ""),
+            lead.get("job_title", "") or lead.get("notes", ""),
+            raw_cat
+        )
+        lead["vertical"] = lead["category"]
+
+    # Guarantee full category list for UI filter & modal
+    if not res.get("categories") or len(res.get("categories", [])) < 10:
+        res["categories"] = categories_service.get_categories_for_dataset(dataset_id)
+        if not res["categories"] or len(res["categories"]) < 10:
+            res["categories"] = categories_service.get_all_categories()
 
     # Guaranteed metadata injection in every response
     res["sources_breakdown"] = GLOBAL_SOURCES_BREAKDOWN

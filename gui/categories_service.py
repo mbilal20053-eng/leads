@@ -100,7 +100,10 @@ def get_all_categories():
 
 def get_categories_for_dataset(dataset_id=None):
     if dataset_id and dataset_id in DATASET_CATEGORIES:
-        return DATASET_CATEGORIES[dataset_id]
+        specific = DATASET_CATEGORIES[dataset_id]
+        specific_ids = {c["id"].lower() for c in specific}
+        remaining = [c for c in ALL_CATEGORIES if c["id"].lower() not in specific_ids]
+        return specific + remaining
     return ALL_CATEGORIES
 
 def search_categories(query="", dataset_id=None):
