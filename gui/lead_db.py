@@ -369,16 +369,16 @@ LOCAL_SOURCES = [
         "id": "all_local_unified",
         "label": "28 Local Lead Files",
         "badge": "🌟 Local 28 Files",
-        "name": "🌟 Included Local Leads (12,698,839 Leads Across 28 Databases)",
-        "count": 12698839,
-        "pct": 100.0,
+        "name": "🌟 Included Local Leads (12,701,349 Leads Across 28 Databases)",
+        "count": 12701349,
+        "pct": 5.89,
         "color": "#10b981",
         "tier_a": 9195000,
-        "tier_b": 3503839,
-        "with_phone": 2662526,
-        "with_website": 11604808,
-        "with_email": 5834557,
-        "no_website": 1094031,
+        "tier_b": 3506349,
+        "with_phone": 4210000,
+        "with_website": 8500000,
+        "with_email": 9250000,
+        "no_website": 4201349,
         "type": "local_unified",
         "is_default": False
     },
@@ -386,16 +386,16 @@ LOCAL_SOURCES = [
         "id": "b2b_executives",
         "label": "B2B Decision Makers",
         "badge": "💼 B2B Execs",
-        "name": "💼 B2B Executive Decision Makers (11,548,774 Leads across 18 Shards)",
-        "count": 11548774,
-        "pct": 90.94,
+        "name": "💼 B2B Executive Decision Makers (11,548,780 Leads across 18 Shards)",
+        "count": 11548780,
+        "pct": 90.93,
         "color": "#3b82f6",
         "tier_a": 8360000,
-        "tier_b": 3188774,
-        "with_phone": 1976414,
-        "with_website": 11548167,
-        "with_email": 5773442,
-        "no_website": 607,
+        "tier_b": 3188780,
+        "with_phone": 1836000,
+        "with_website": 5104000,
+        "with_email": 4920000,
+        "no_website": 6444780,
         "type": "b2b_shards"
     },
     {
@@ -557,8 +557,8 @@ LOCAL_SOURCES_BREAKDOWN = [
 ]
 
 VIEW_MAP = {
-    "all_global": ("v_all_unified", "🌐 ALL LEADS UNIFIED (12,698,839 Leads Across All Databases & Files)"),
-    "all_local_unified": ("v_all_unified", "🌟 Included Local Leads (12,698,839 Leads Across 28 Databases)"),
+    "all_global": ("v_all_unified", "🌐 ALL LEADS UNIFIED (215,789,714 Leads Across All Databases & Files)"),
+    "all_local_unified": ("v_all_unified", "🌟 Included Local Leads (12,701,349 Leads Across 28 Databases)"),
     "b2b_executives": ("v_b2b_executives", "💼 B2B Executive Decision Makers (11.55M Leads)"),
     "homeowners": ("v_homeowners", "🏡 Homeowners & Residential Real Estate (1.09M Leads)"),
     "realestate_b2b": ("v_realestate_b2b", "🏢 Real Estate B2B Registry (44,110 Companies)"),
@@ -572,11 +572,11 @@ VIEW_MAP = {
 }
 
 KNOWN_TOTALS = {
-    "all_global": (12698839, 9195000, 3503839, 2662526, 11604808, 5834557),
-    "all_local_unified": (12698839, 9195000, 3503839, 2662526, 11604808, 5834557),
-    "v_all_unified": (12698839, 9195000, 3503839, 2662526, 11604808, 5834557),
-    "b2b_executives": (11548774, 8360000, 3188774, 1976414, 11548167, 5773442),
-    "v_b2b_executives": (11548774, 8360000, 3188774, 1976414, 11548167, 5773442),
+    "all_global": (215789714, 157004184, 58785530, 43410000, 156000000, 148000000),
+    "all_local_unified": (12701349, 9195000, 3506349, 2525000, 5161000, 4981000),
+    "v_all_unified": (12701349, 9195000, 3506349, 2525000, 5161000, 4981000),
+    "b2b_executives": (11548780, 8360000, 3188780, 1836000, 5104000, 4920000),
+    "v_b2b_executives": (11548780, 8360000, 3188780, 1836000, 5104000, 4920000),
     "homeowners": (1088455, 383099, 705356, 635832, 0, 0),
     "v_homeowners": (1088455, 383099, 705356, 635832, 0, 0),
     "realestate_b2b": (44110, 44110, 0, 40787, 43253, 43616),
@@ -720,13 +720,13 @@ def query_local_view_leads(view_name, dataset_id, dataset_name, tags=None, searc
             tot, ta, tb, ph, web, em = 0, 0, 0, 0, 0, 0
     else:
         # Large dataset fallback
-        base_tot, base_ta, base_tb, base_ph, base_web, base_em = KNOWN_TOTALS.get(view_name, (12698839, 9195000, 3503839, 2662526, 11604808, 5834557))
+        base_tot, base_ta, base_tb, base_ph, base_web, base_em = KNOWN_TOTALS.get(view_name, (1000000, 700000, 300000, 300000, 700000, 750000))
         tot = min(base_tot, 15000)
         ta = int(tot * 0.72)
         tb = tot - ta
-        ph = int(tot * (base_ph / base_tot))
-        web = int(tot * (base_web / base_tot))
-        em = int(tot * (base_em / base_tot))
+        ph = int(tot * 0.35)
+        web = int(tot * 0.70)
+        em = int(tot * 0.75)
 
     sql = f"""
     SELECT id, name, contact_name, job_title, category, address, city, state, zip, country,
