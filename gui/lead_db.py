@@ -653,6 +653,12 @@ def query_local_view_leads(view_name, dataset_id, dataset_name, tags=None, searc
     tags_dict = tags or {}
     for r in rows:
         row_dict = dict(zip(cols, r))
+        raw_cat = row_dict.get("category", "")
+        row_dict["category"] = categories_service.infer_biz_category(
+            str(row_dict.get("name") or ""),
+            str(row_dict.get("job_title") or ""),
+            raw_cat
+        )
         lid = str(row_dict["id"])
         name = str(row_dict["name"])
         source_id = str(row_dict.get("source_id", dataset_id))

@@ -1503,30 +1503,32 @@ def generate_leads_export_csv(dataset_id, export_from=1, export_to=5000, search=
             where.append("(phone IS NOT NULL AND length(trim(phone)) > 0)")
         where_sql = " AND ".join(where)
         sql = f"""
-            SELECT id, name, contact_name, job_title, email, phone, website, address, city, state, country, socials
+            SELECT id, name, category, contact_name, job_title, email, phone, website, address, city, state, country, socials
             FROM {view_name}
             WHERE {where_sql}
             LIMIT {limit} OFFSET {offset}
         """
         rows = cur.execute(sql, params).fetchall()
         for i, r in enumerate(rows):
+            cat_inf = categories_service.infer_biz_category(str(r[1] or ""), str(r[4] or ""), str(r[2] or ""))
             leads.append({
                 "#": start_row + i,
                 "Business Name": str(r[1] or ""),
-                "Owner / Contact": str(r[2] or ""),
-                "Role & Notes": str(r[3] or ""),
-                "Email": str(r[4] or ""),
-                "Phone": str(r[5] or ""),
-                "Website": str(r[6] or ""),
-                "Address": str(r[7] or ""),
-                "City": str(r[8] or ""),
-                "State / Region": str(r[9] or ""),
-                "Country": str(r[10] or "United States"),
-                "Socials": str(r[11] or "")
+                "Category": cat_inf,
+                "Owner / Contact": str(r[3] or ""),
+                "Role & Notes": str(r[4] or ""),
+                "Email": str(r[5] or ""),
+                "Phone": str(r[6] or ""),
+                "Website": str(r[7] or ""),
+                "Address": str(r[8] or ""),
+                "City": str(r[9] or ""),
+                "State / Region": str(r[10] or ""),
+                "Country": str(r[11] or "United States"),
+                "Socials": str(r[12] or "")
             })
         out = io.StringIO()
         fields = [
-            "#", "Business Name", "Owner / Contact", "Role & Notes", "Email", "Phone",
+            "#", "Business Name", "Category", "Owner / Contact", "Role & Notes", "Email", "Phone",
             "Website", "Address", "City", "State / Region", "Country", "Socials"
         ]
         writer = csv.DictWriter(out, fieldnames=fields, extrasaction='ignore')
@@ -1772,9 +1774,11 @@ def generate_leads_export_csv(dataset_id, export_from=1, export_to=5000, search=
         if d and d.get("badge"):
             src_label = d["badge"]
         for i, l in enumerate(fallback_data.get("leads", [])):
+            cat_inf = categories_service.infer_biz_category(l.get("name", ""), l.get("job_title", ""), l.get("category", ""))
             leads.append({
                 "#": start_row + i,
                 "Business Name": l.get("name", ""),
+                "Category": cat_inf,
                 "Owner / Contact": l.get("contact_name", ""),
                 "Role & Notes": l.get("job_title", ""),
                 "Email": l.get("email", ""),
@@ -1789,7 +1793,7 @@ def generate_leads_export_csv(dataset_id, export_from=1, export_to=5000, search=
 
     out = io.StringIO()
     fields = [
-        "#", "Business Name", "Owner / Contact", "Role & Notes", "Email", "Phone",
+        "#", "Business Name", "Category", "Owner / Contact", "Role & Notes", "Email", "Phone",
         "Website", "Address", "City", "State / Region", "Country", "Socials"
     ]
     writer = csv.DictWriter(out, fieldnames=fields, extrasaction='ignore')
@@ -3175,10 +3179,87 @@ html[data-theme="light"] table.leads-table tr:hover {
   display: flex;
   align-items: center;
   gap: 6px;
+  flex-wrap: wrap;
+}
+.cat-input-group {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background: var(--bg-card);
+  border: 1px solid rgba(139, 92, 246, 0.4);
+  border-radius: var(--radius-sm);
+  padding: 0 4px 0 10px;
+  transition: all 0.2s ease;
+}
+.cat-input-group:focus-within {
+  border-color: #a855f7;
+  box-shadow: 0 0 12px rgba(168, 85, 247, 0.3);
+  background: var(--bg-elevated);
+}
+.cat-input-icon {
+  font-size: 13px;
+  color: #c084fc;
+  margin-right: 6px;
+}
+.cat-quick-input {
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text-main);
+  font-size: 12.5px;
+  font-family: var(--font-main);
+  width: 175px;
+  padding: 6px 0;
+}
+.cat-quick-input::placeholder {
+  color: var(--text-dim);
+  font-size: 11.5px;
+}
+.cat-add-btn {
+  background: rgba(139, 92, 246, 0.2);
+  border: 1px solid rgba(139, 92, 246, 0.45);
+  color: #e9d5ff;
+  border-radius: 4px;
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 3px 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+.cat-add-btn:hover {
+  background: #a855f7;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(168, 85, 247, 0.4);
+}
+.table-cat-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11.5px;
+  font-weight: 600;
+  background: rgba(139, 92, 246, 0.14);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  color: #c084fc;
+  padding: 2px 8px;
+  border-radius: 6px;
+  white-space: nowrap;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.table-cat-pill:hover {
+  background: rgba(139, 92, 246, 0.25);
+  border-color: #a855f7;
+  color: #f5f3ff;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(168, 85, 247, 0.25);
 }
 .cat-select {
-  min-width: 200px;
-  max-width: 260px;
+  min-width: 190px;
+  max-width: 250px;
 }
 .cat-browse-btn {
   display: inline-flex;
@@ -3648,13 +3729,18 @@ html[data-theme="light"] table.leads-table tr:hover {
           <option value="all">All States / Regions</option>
         </select>
 
-        <!-- Category Dropdown & Browse All Categories Button -->
+        <!-- Dedicated Category Filter & Add Section -->
         <div class="category-filter-wrap">
-          <select id="catFilter" class="filter-select cat-select" onchange="onCatChange(this.value)" title="Filter leads by category">
+          <div class="cat-input-group" title="Type any category and click Filter to see all rows in that category">
+            <span class="cat-input-icon">🏷️</span>
+            <input type="text" id="catQuickAddInput" class="cat-quick-input" placeholder="Type category to filter..." onkeydown="if(event.key==='Enter')applyCustomCategoryInput()">
+            <button type="button" class="cat-add-btn" onclick="applyCustomCategoryInput()" title="Filter rows by this category">Filter ↵</button>
+          </div>
+          <select id="catFilter" class="filter-select cat-select" onchange="onCatChange(this.value)" title="Choose from all 295 categories">
             <option value="all">🏷️ All Categories (295 Verticals)</option>
           </select>
           <button id="browseCategoriesBtn" type="button" class="cat-browse-btn" onclick="openCategoriesModal()" title="Browse & Search All 295 Categories">
-            <span>🏷️</span> <span class="browse-btn-text">Browse All (295)</span>
+            <span>📚</span> <span class="browse-btn-text">Browse All (295)</span>
           </button>
         </div>
 
@@ -3736,6 +3822,7 @@ html[data-theme="light"] table.leads-table tr:hover {
             <tr>
               <th style="width:45px;text-align:center;">#</th>
               <th onclick="setSort('Business Name')" style="min-width:180px;">Business Name ↕</th>
+              <th onclick="setSort('Category')" style="min-width:160px;">Category ↕</th>
               <th onclick="setSort('Owner / Contact')" style="min-width:150px;">Owner / Contact ↕</th>
               <th style="min-width:160px;">Role & Notes</th>
               <th style="min-width:180px;">Email</th>
@@ -4011,7 +4098,7 @@ html[data-theme="light"] table.leads-table tr:hover {
 <!-- Toast Message -->
 <div id="toast" class="toast-msg">Notification</div>
 
-<script src="/static/app.js?v=20261023_v3"></script>
+<script src="/static/app.js?v=20261023_v4"></script>
 </body>
 </html>
 """

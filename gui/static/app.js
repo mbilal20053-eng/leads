@@ -263,26 +263,24 @@ function renderTable(leads, total) {
       bizNameHtml = '<div class="biz-name" title="' + escapeHtml(nm) + '">' + escapeHtml(nm) + badgeHtml + '</div>';
     }
 
-    // 2. Owner / Contact
+    // 2. Category
+    let catHtml = '<span class="empty-box">-</span>';
+    const catVal = (lead.category && String(lead.category).trim() && String(lead.category) !== "None") ? String(lead.category).trim() : "";
+    if (catVal) {
+      catHtml = '<span class="table-cat-pill" title="Click to filter by category: ' + escapeHtml(catVal) + '" onclick="event.stopPropagation(); filterByCategory(\'' + escapeHtml(catVal).replace(/'/g, "\\'") + '\')">🏷️ ' + escapeHtml(catVal) + '</span>';
+    }
+
+    // 3. Owner / Contact
     let contactHtml = '<span class="empty-box">-</span>';
     if (lead.contact_name && String(lead.contact_name).trim() && String(lead.contact_name) !== "None") {
       contactHtml = '<div class="contact-name" title="' + escapeHtml(lead.contact_name) + '"><b>' + escapeHtml(lead.contact_name) + '</b></div>';
     }
 
-    // 3. Role & Notes
+    // 4. Role & Notes
     let roleHtml = '<span class="empty-box">-</span>';
-    const catVal = (lead.category && String(lead.category).trim() && String(lead.category) !== "None") ? String(lead.category).trim() : "";
     const roleVal = lead.job_title || lead.notes || "";
-    const roleClean = (roleVal && String(roleVal).trim() && String(roleVal) !== "None") ? String(roleVal).trim() : "";
-    if (catVal || roleClean) {
-      let parts = [];
-      if (catVal) {
-        parts.push('<span class="table-cat-badge" title="Filter by category: ' + escapeHtml(catVal) + '" onclick="event.stopPropagation(); filterByCategory(\'' + escapeHtml(catVal).replace(/'/g, "\\'") + '\')">🏷️ ' + escapeHtml(catVal) + '</span>');
-      }
-      if (roleClean) {
-        parts.push('<div class="role-text" title="' + escapeHtml(roleClean) + '">' + escapeHtml(roleClean) + '</div>');
-      }
-      roleHtml = '<div class="role-cell-wrap">' + parts.join('') + '</div>';
+    if (roleVal && String(roleVal).trim() && String(roleVal) !== "None") {
+      roleHtml = '<div class="role-text" title="' + escapeHtml(roleVal) + '">' + escapeHtml(roleVal) + '</div>';
     }
 
     // 4. Email
@@ -352,6 +350,7 @@ function renderTable(leads, total) {
     rowsHtml += '<tr id="row_' + safeId + '">' +
       '<td style="color:var(--text-dim);font-size:12px;text-align:center;">' + rowNum + '</td>' +
       '<td>' + bizNameHtml + '</td>' +
+      '<td>' + catHtml + '</td>' +
       '<td>' + contactHtml + '</td>' +
       '<td>' + roleHtml + '</td>' +
       '<td>' + emailHtml + '</td>' +
@@ -498,11 +497,49 @@ function updateActiveCategoryPill() {
   }
 }
 
+function applyCustomCategoryInput() {
+  const inp = document.getElementById("catQuickAddInput");
+  if (!inp) return;
+  const val = inp.value.trim();
+  if (!val) {
+    filterByCategory("all");
+    return;
+  }
+  filterByCategory(val);
+}
+
 function filterByCategory(val) {
   currentCategory = val || "all";
   currentPage = 1;
+  
+  const inp = document.getElementById("catQuickAddInput");
+  if (inp) {
+    inp.value = (val === "all" ? "" : val);
+  }
+  
   const select = document.getElementById("catFilter");
-  if (select) select.value = currentCategory;
+  if (select) {
+    if (val === "all") {
+      select.value = "all";
+    } else {
+      let matched = false;
+      for (let i = 0; i < select.options.length; i++) {
+        if (select.options[i].value.toLowerCase() === val.toLowerCase()) {
+          select.selectedIndex = i;
+          matched = true;
+          break;
+        }
+      }
+      if (!matched) {
+        const opt = document.createElement("option");
+        opt.value = val;
+        opt.textContent = "🏷️ " + val + " (Active Filter)";
+        opt.selected = true;
+        select.appendChild(opt);
+      }
+    }
+  }
+  
   updateActiveCategoryPill();
   loadLeads();
 }
@@ -728,6 +765,8 @@ function resetFilters() {
   
   const catSel = document.getElementById("catFilter");
   if (catSel) catSel.value = "all";
+  const catInp = document.getElementById("catQuickAddInput");
+  if (catInp) catInp.value = "";
   
   const oppSel = document.getElementById("oppFilter");
   if (oppSel) oppSel.value = "all";
