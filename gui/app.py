@@ -4701,7 +4701,7 @@ html[data-theme="light"] table.leads-table tr:hover {
 <!-- Toast Message -->
 <div id="toast" class="toast-msg">Notification</div>
 
-<script src="/static/app.js?v=20261024_v1"></script>
+<script src="/static/app.js?v=20261024_v2"></script>
 </body>
 </html>
 """

@@ -1136,12 +1136,225 @@ function copyDrawerPitch() {
   if (activeLead && activeLead.pitch) copyText(activeLead.pitch, "Cold pitch script copied!");
 }
 
-// ==================== Export Range Controls & CSV Engine ====================
+// ==================== Pipeline Status & Multi-Category Filters ====================
+function onPipelineStatusChange(status) {
+  currentCrmStatus = status || "all";
+  currentPage = 1;
+  loadLeads();
+}
+
+function addCategoryTag(catName) {
+  if (!catName || catName.toLowerCase() === "all") return;
+  const clean = catName.trim();
+  if (!activeCategoriesList.includes(clean)) {
+    activeCategoriesList.push(clean);
+  }
+  currentCategory = "all";
+  const catSel = document.getElementById("catFilter");
+  if (catSel) catSel.value = "all";
+  renderActiveCategoryTags();
+  currentPage = 1;
+  loadLeads();
+}
+
+function removeCategoryTag(catName) {
+  activeCategoriesList = activeCategoriesList.filter(function (c) { return c !== catName; });
+  renderActiveCategoryTags();
+  currentPage = 1;
+  loadLeads();
+}
+
+function clearAllCategoryTags() {
+  activeCategoriesList = [];
+  renderActiveCategoryTags();
+  currentPage = 1;
+  loadLeads();
+}
+
+function renderActiveCategoryTags() {
+  const container = document.getElementById("activeCatTagsRow");
+  if (!container) return;
+  if (activeCategoriesList.length === 0) {
+    container.style.display = "none";
+    container.innerHTML = "";
+    return;
+  }
+  container.style.display = "flex";
+  let html = '<span style="font-size:11px;font-weight:700;color:var(--text-dim);margin-right:4px;">Active Tags (' + activeCategoriesList.length + '):</span>';
+  for (let i = 0; i < activeCategoriesList.length; i++) {
+    const cat = activeCategoriesList[i];
+    html += '<span class="cat-tag-chip">' +
+      '<span>🏷️ ' + escapeHtml(cat) + '</span>' +
+      '<span class="cat-tag-chip-x" onclick="removeCategoryTag(\'' + escapeHtml(cat).replace(/'/g, "\\'") + '\')" title="Remove ' + escapeHtml(cat) + '">✕</span>' +
+      '</span>';
+  }
+  html += '<button type="button" class="btn btn-secondary" style="padding:2px 8px;font-size:11px;border-radius:12px;margin-left:6px;" onclick="clearAllCategoryTags()">Clear All Tags</button>';
+  container.innerHTML = html;
+}
+
+// ==================== Checkbox Selection & Bulk Actions ====================
+function toggleSelectAllRows(checked) {
+  const checkboxes = document.querySelectorAll(".lead-row-checkbox");
+  checkboxes.forEach(function (cb) {
+    cb.checked = checked;
+    const lid = cb.dataset.id;
+    if (checked) {
+      selectedLeadIds.add(lid);
+    } else {
+      selectedLeadIds.delete(lid);
+    }
+  });
+  updateBulkActionBar();
+}
+
+function onLeadCheckChange(lid, checked) {
+  if (checked) {
+    selectedLeadIds.add(lid);
+  } else {
+    selectedLeadIds.delete(lid);
+  }
+  syncMasterCheckbox();
+  updateBulkActionBar();
+}
+
+function syncMasterCheckbox() {
+  const master = document.getElementById("selectAllCheckbox");
+  if (!master) return;
+  const checkboxes = document.querySelectorAll(".lead-row-checkbox");
+  if (checkboxes.length === 0) {
+    master.checked = false;
+    return;
+  }
+  let allChecked = true;
+  checkboxes.forEach(function (cb) {
+    if (!cb.checked) allChecked = false;
+  });
+  master.checked = allChecked;
+}
+
+function updateBulkActionBar() {
+  const bar = document.getElementById("bulkActionBar");
+  const countBadge = document.getElementById("bulkCountBadge");
+  if (!bar) return;
+  const count = selectedLeadIds.size;
+  if (count > 0) {
+    if (countBadge) countBadge.textContent = count.toLocaleString();
+    bar.classList.add("visible");
+  } else {
+    bar.classList.remove("visible");
+  }
+}
+
+function clearSelection() {
+  selectedLeadIds.clear();
+  document.querySelectorAll(".lead-row-checkbox").forEach(function (cb) { cb.checked = false; });
+  const master = document.getElementById("selectAllCheckbox");
+  if (master) master.checked = false;
+  updateBulkActionBar();
+}
+
+function getSelectedLeadObjects() {
+  const list = [];
+  selectedLeadIds.forEach(function (lid) {
+    const l = window.leadDataMap[lid];
+    if (l) list.push(l);
+  });
+  return list;
+}
+
+function copySelectedEmails() {
+  const leads = getSelectedLeadObjects();
+  const emails = leads.map(function (l) { return (l.email || "").trim(); }).filter(function (e) { return e && e.indexOf("@") !== -1 && e !== "None"; });
+  if (emails.length === 0) {
+    toast("No valid emails found among selected leads");
+    return;
+  }
+  const text = emails.join(", ");
+  copyText(text, "Copied " + emails.length + " selected emails to clipboard!");
+}
+
+function copySelectedPhones() {
+  const leads = getSelectedLeadObjects();
+  const phones = leads.map(function (l) { return (l.phone || "").trim(); }).filter(function (p) { return p && p !== "None"; });
+  if (phones.length === 0) {
+    toast("No phone numbers found among selected leads");
+    return;
+  }
+  const text = phones.join(", ");
+  copyText(text, "Copied " + phones.length + " selected phone numbers to clipboard!");
+}
+
+async function batchTagSelected() {
+  const sel = document.getElementById("bulkTagStatusSelect");
+  const status = sel ? sel.value : "contacted";
+  const leads = getSelectedLeadObjects();
+  if (leads.length === 0) {
+    toast("Please select at least one lead");
+    return;
+  }
+  const tagKeys = leads.map(function (l) { return l.tag_key || (l.source_id + ":" + l.id + ":" + l.name); });
+  try {
+    const res = await fetch("/api/leads/batch_tag", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ tag_keys: tagKeys, status: status })
+    });
+    if (!res.ok) throw new Error("Failed to batch tag leads");
+    const data = await res.json();
+    toast("Successfully updated " + data.count + " leads to: " + status.toUpperCase());
+    loadLeads();
+  } catch (err) {
+    console.error("Batch tag error:", err);
+    toast("Error updating leads status: " + err.message);
+  }
+}
+
+async function exportSelectedLeads() {
+  const leads = getSelectedLeadObjects();
+  if (leads.length === 0) {
+    toast("Please select at least one lead to export");
+    return;
+  }
+  const fmtSelect = document.getElementById("bulkExportFormatSelect");
+  const fmt = fmtSelect ? fmtSelect.value : "xlsx";
+  toast("Exporting " + leads.length + " selected leads as " + fmt.toUpperCase() + "...");
+
+  try {
+    const res = await fetch("/api/export_selected", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ leads: leads, format: fmt })
+    });
+    if (!res.ok) throw new Error("Export failed");
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.style.display = "none";
+    a.href = url;
+    a.download = "selected_leads_" + leads.length + "_rows." + (fmt === "xlsx" ? "xlsx" : (fmt === "json" ? "json" : "csv"));
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    toast("Download complete: " + a.download);
+  } catch (err) {
+    console.error("Selected export error:", err);
+    toast("Error exporting selected leads: " + err.message);
+  }
+}
+
+// ==================== Export Range Controls & Multi-Format Engine ====================
+function onExportFormatChange(fmt) {
+  currentExportFormat = fmt;
+  updateExportRangePreview();
+}
+
 function updateExportRangePreview() {
   const fromInput = document.getElementById("exportFromInput");
   const toInput = document.getElementById("exportToInput");
   const badge = document.getElementById("exportCountBadge");
   const btn = document.getElementById("exportRangeBtn");
+  const fmtSelect = document.getElementById("exportFormatSelect");
+  if (fmtSelect) currentExportFormat = fmtSelect.value;
   if (!fromInput || !toInput) return;
 
   let fromVal = parseInt(fromInput.value, 10);
@@ -1152,7 +1365,8 @@ function updateExportRangePreview() {
 
   const count = toVal - fromVal + 1;
   if (badge) badge.textContent = count.toLocaleString();
-  if (btn) btn.innerHTML = '<span>📥</span> Download Range CSV (' + count.toLocaleString() + ' Leads)';
+  const fmtLabel = currentExportFormat === "xlsx" ? "Excel (.xlsx)" : (currentExportFormat === "json" ? "JSON (.json)" : "CSV (.csv)");
+  if (btn) btn.innerHTML = '<span>📥</span> Download Range ' + fmtLabel + ' (' + count.toLocaleString() + ' Leads)';
 }
 
 function setExportRange(fromNum, toNum) {
@@ -1209,6 +1423,8 @@ function triggerRangeExport() {
   }
 
   const count = toVal - fromVal + 1;
+  const fmtSelect = document.getElementById("exportFormatSelect");
+  const fmt = fmtSelect ? fmtSelect.value : currentExportFormat;
 
   if (btn) {
     btn.disabled = true;
@@ -1219,6 +1435,7 @@ function triggerRangeExport() {
     }, 3000);
   }
 
+  const catParam = (activeCategoriesList.length > 0) ? activeCategoriesList.join(",") : (currentCategory || "all");
   const params = new URLSearchParams({
     dataset: currentDataset || "all_global",
     search: currentSearch || "",
@@ -1226,16 +1443,16 @@ function triggerRangeExport() {
     state: currentState || "all",
     country: currentCountry || "all",
     major_category: currentMajorCategory || "all",
-    category: currentCategory || "all",
+    category: catParam,
     opportunity: currentOpportunity || "all",
     has_phone: currentHasPhone ? "true" : "false",
-    export: "csv",
+    format: fmt,
     export_from: String(fromVal),
     export_to: String(toVal)
   });
 
-  const exportUrl = "/api/leads?" + params.toString();
-  toast("Downloading " + count.toLocaleString() + " leads (" + currentDataset + ")...");
+  const exportUrl = "/api/export?" + params.toString();
+  toast("Downloading " + count.toLocaleString() + " leads as " + fmt.toUpperCase() + " (" + currentDataset + ")...");
 
   // Direct native browser download - leaves page intact while downloading file
   window.location.href = exportUrl;
