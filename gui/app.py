@@ -1313,8 +1313,20 @@ def query_duckdb_leads(file_path, dataset_id, search=None, tier=None, state=None
             stats_tier_a = total
 
         if phone_col:
-            ph_sql = f'SELECT count(*) FROM read_csv_auto(\'{clean_p}\') WHERE ("{phone_col}" IS NOT NULL AND TRIM(CAST("{phone_col}" AS VARCHAR)) != \'\')'
+            ph_sql = f'SELECT count(*) FROM read_csv_auto(\'{clean_p}\') WHERE ("{phone_col}" IS NOT NULL AND length(trim(CAST("{phone_col}" AS VARCHAR))) > 6 AND lower(trim(CAST("{phone_col}" AS VARCHAR))) NOT IN (\'null\', \'none\', \'nan\', \'n/a\', \'\', \'0\'))'
             stats_with_phone = duckdb.execute(ph_sql).fetchone()[0]
+
+        website_col = next((c for c in cols if c.lower() in ["website", "web", "url", "domain", "email-domain", "company website"]), None)
+        stats_with_website = 0
+        if website_col:
+            web_sql = f'SELECT count(*) FROM read_csv_auto(\'{clean_p}\') WHERE ("{website_col}" IS NOT NULL AND length(trim(CAST("{website_col}" AS VARCHAR))) > 3 AND lower(trim(CAST("{website_col}" AS VARCHAR))) NOT IN (\'null\', \'none\', \'nan\', \'n/a\', \'\') AND CAST("{website_col}" AS VARCHAR) LIKE \'%.%\')'
+            stats_with_website = duckdb.execute(web_sql).fetchone()[0]
+
+        email_col = next((c for c in cols if c.lower() in ["email", "emails", "e-mail", "mail"]), None)
+        stats_with_email = 0
+        if email_col:
+            em_sql = f'SELECT count(*) FROM read_csv_auto(\'{clean_p}\') WHERE ("{email_col}" IS NOT NULL AND length(trim(CAST("{email_col}" AS VARCHAR))) > 5 AND lower(trim(CAST("{email_col}" AS VARCHAR))) NOT IN (\'null\', \'none\', \'nan\', \'n/a\', \'\') AND CAST("{email_col}" AS VARCHAR) LIKE \'%@%\')'
+            stats_with_email = duckdb.execute(em_sql).fetchone()[0]
 
         states_list = []
         if state_col:
@@ -1352,7 +1364,10 @@ def query_duckdb_leads(file_path, dataset_id, search=None, tier=None, state=None
             "tier_a": stats_tier_a,
             "tier_b": stats_tier_b,
             "tier_c": stats_tier_c,
-            "with_phone": stats_with_phone
+            "with_phone": stats_with_phone,
+            "with_website": stats_with_website,
+            "with_email": stats_with_email,
+            "no_website": max(0, total - stats_with_website)
         },
         "states": states_list,
         "categories": cats,
@@ -1420,8 +1435,22 @@ def query_combined_leads(dataset_id, search=None, tier=None, state=None, categor
 
     stats_with_phone = 0
     try:
-        ph_sql = f"""SELECT count(*) FROM ({union_sql}) as u WHERE ("Phone" IS NOT NULL AND length(trim(CAST("Phone" AS VARCHAR))) > 0)"""
+        ph_sql = f"""SELECT count(*) FROM ({union_sql}) as u WHERE ("Phone" IS NOT NULL AND length(trim(CAST("Phone" AS VARCHAR))) > 6 AND lower(trim(CAST("Phone" AS VARCHAR))) NOT IN ('null', 'none', 'nan', 'n/a', '', '0'))"""
         stats_with_phone = duckdb.execute(ph_sql).fetchone()[0]
+    except Exception:
+        pass
+
+    stats_with_website = 0
+    try:
+        web_sql = f"""SELECT count(*) FROM ({union_sql}) as u WHERE ("Website" IS NOT NULL AND length(trim(CAST("Website" AS VARCHAR))) > 3 AND lower(trim(CAST("Website" AS VARCHAR))) NOT IN ('null', 'none', 'nan', 'n/a', '') AND CAST("Website" AS VARCHAR) LIKE '%.%')"""
+        stats_with_website = duckdb.execute(web_sql).fetchone()[0]
+    except Exception:
+        pass
+
+    stats_with_email = 0
+    try:
+        em_sql = f"""SELECT count(*) FROM ({union_sql}) as u WHERE ("Email" IS NOT NULL AND length(trim(CAST("Email" AS VARCHAR))) > 5 AND lower(trim(CAST("Email" AS VARCHAR))) NOT IN ('null', 'none', 'nan', 'n/a', '') AND CAST("Email" AS VARCHAR) LIKE '%@%')"""
+        stats_with_email = duckdb.execute(em_sql).fetchone()[0]
     except Exception:
         pass
         
@@ -1454,7 +1483,10 @@ def query_combined_leads(dataset_id, search=None, tier=None, state=None, categor
             "tier_a": total,
             "tier_b": 0,
             "tier_c": 0,
-            "with_phone": stats_with_phone
+            "with_phone": stats_with_phone,
+            "with_website": stats_with_website,
+            "with_email": stats_with_email,
+            "no_website": max(0, total - stats_with_website)
         },
         "states": states_list,
         "leads": normalized
@@ -1463,7 +1495,7 @@ def query_combined_leads(dataset_id, search=None, tier=None, state=None, categor
 def query_live_job_leads(job_id, dataset_id, search=None, tier=None, state=None, has_phone=None, page=1, page_size=50):
     job = JOBS.get(job_id)
     if not job or not job.get("leads"):
-        return {"total": 0, "page": page, "page_size": page_size, "stats": {"total": 0, "tier_a": 0, "tier_b": 0, "tier_c": 0, "with_phone": 0}, "states": [], "leads": []}
+        return {"total": 0, "page": page, "page_size": page_size, "stats": {"total": 0, "tier_a": 0, "tier_b": 0, "tier_c": 0, "with_phone": 0, "with_website": 0, "with_email": 0}, "states": [], "leads": []}
         
     all_raw = job["leads"]
     filtered = []
@@ -4725,7 +4757,7 @@ html[data-theme="light"] table.leads-table tr:hover {
 <!-- Toast Message -->
 <div id="toast" class="toast-msg">Notification</div>
 
-<script src="/static/app.js?v=20261024_v3"></script>
+<script src="/static/app.js?v=20261024_v4"></script>
 </body>
 </html>
 """

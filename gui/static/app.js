@@ -117,11 +117,11 @@ function renderKPIs(stats, breakdown, datasetName) {
 
   if (kTotal) kTotal.textContent = total.toLocaleString();
 
-  const tierAPct = total > 0 ? ((tierA / total) * 100).toFixed(1) : "0.0";
-  const tierBPct = total > 0 ? ((tierB / total) * 100).toFixed(1) : "0.0";
-  const phonePct = total > 0 ? ((phone / total) * 100).toFixed(1) : "0.0";
-  const websitePct = total > 0 ? ((website / total) * 100).toFixed(1) : "0.0";
-  const emailPct = total > 0 ? ((email / total) * 100).toFixed(1) : "0.0";
+  const tierAPct = total > 0 ? Math.min(100, (tierA / total) * 100).toFixed(1) : "0.0";
+  const tierBPct = total > 0 ? Math.min(100, (tierB / total) * 100).toFixed(1) : "0.0";
+  const phonePct = total > 0 ? Math.min(100, (phone / total) * 100).toFixed(1) : "0.0";
+  const websitePct = total > 0 ? Math.min(100, (website / total) * 100).toFixed(1) : "0.0";
+  const emailPct = total > 0 ? Math.min(100, (email / total) * 100).toFixed(1) : "0.0";
 
   if (kPhone) {
     kPhone.innerHTML = phone.toLocaleString() + ' <span style="font-size:12px;font-weight:700;padding:2px 8px;border-radius:12px;background:rgba(99,102,241,0.18);color:#818cf8;border:1px solid rgba(99,102,241,0.35);vertical-align:middle;margin-left:6px;">' + phonePct + '%</span>';
