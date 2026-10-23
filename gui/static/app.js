@@ -9,6 +9,10 @@ let currentState = "all";
 let currentCountry = "all";
 let currentMajorCategory = "all";
 let currentCategory = "all";
+let currentCrmStatus = "all";
+let currentExportFormat = "xlsx";
+let selectedLeadIds = new Set();
+let activeCategoriesList = [];
 let currentOpportunity = "all";
 let currentHasPhone = false;
 let currentSortCol = "";
@@ -21,9 +25,9 @@ window.leadDataMap = {};
 
 // Tab Switching
 function switchTab(tabId) {
-  document.querySelectorAll(".tab-btn").forEach(function(b) { b.classList.remove("active"); });
-  document.querySelectorAll(".tab-panel").forEach(function(p) { p.classList.remove("active"); });
-  
+  document.querySelectorAll(".tab-btn").forEach(function (b) { b.classList.remove("active"); });
+  document.querySelectorAll(".tab-panel").forEach(function (p) { p.classList.remove("active"); });
+
   const buttons = document.querySelectorAll(".tab-btn");
   for (let i = 0; i < buttons.length; i++) {
     const attr = buttons[i].getAttribute("onclick");
@@ -32,7 +36,7 @@ function switchTab(tabId) {
       break;
     }
   }
-  
+
   const targetPanel = document.getElementById("tab-" + tabId);
   if (targetPanel) targetPanel.classList.add("active");
 
@@ -44,11 +48,12 @@ function switchTab(tabId) {
 async function loadLeads() {
   const tbody = document.getElementById("leadsTbody");
   if (!tbody) return;
-  
-  tbody.innerHTML = '<tr><td colspan="13" style="text-align:center;padding:48px 20px;"><div class="skeleton" style="width:260px;margin:0 auto 12px;height:18px;"></div><span style="color:var(--text-dim);font-weight:500;">Loading leads database...</span></td></tr>';
+
+  tbody.innerHTML = '<tr><td colspan="14" style="text-align:center;padding:48px 20px;"><div class="skeleton" style="width:260px;margin:0 auto 12px;height:18px;"></div><span style="color:var(--text-dim);font-weight:500;">Loading leads database...</span></td></tr>';
   const metaStatus = document.getElementById("metaStatus");
   if (metaStatus) metaStatus.textContent = "Loading...";
 
+  const catParam = (activeCategoriesList.length > 0) ? activeCategoriesList.join(",") : currentCategory;
   const params = new URLSearchParams({
     dataset: currentDataset,
     page: currentPage,
@@ -58,7 +63,8 @@ async function loadLeads() {
     state: currentState,
     country: currentCountry,
     major_category: currentMajorCategory,
-    category: currentCategory,
+    category: catParam,
+    crm_status: currentCrmStatus,
     opportunity: currentOpportunity,
     has_phone: currentHasPhone ? "true" : "false",
     sort_by: currentSortCol,
@@ -71,7 +77,7 @@ async function loadLeads() {
       throw new Error("Failed to load leads (HTTP " + res.status + ")");
     }
     const data = await res.json();
-    
+
     if (data.sources_breakdown && data.sources_breakdown.length > 0) { window.cachedBreakdown = data.sources_breakdown; }
     renderKPIs(data.stats, data.sources_breakdown || window.cachedBreakdown, data.dataset_name);
     renderTable(data.leads, data.total);
@@ -85,7 +91,7 @@ async function loadLeads() {
     if (metaStatus) metaStatus.textContent = "Up to date";
   } catch (err) {
     console.error("Error loading leads:", err);
-    tbody.innerHTML = '<tr><td colspan="13" style="text-align:center;padding:40px;color:var(--accent-rose);font-size:14px;">' +
+    tbody.innerHTML = '<tr><td colspan="14" style="text-align:center;padding:40px;color:var(--accent-rose);font-size:14px;">' +
       '<div>⚠️ Error loading leads: ' + escapeHtml(err.message) + '</div>' +
       '<button class="btn btn-secondary" style="margin-top:12px;" onclick="loadLeads()">Try Again</button>' +
       '</td></tr>';
@@ -143,7 +149,7 @@ function renderKPIs(stats, breakdown, datasetName) {
     if (currentDataset === "all_global") {
       bannerShare.textContent = "100% (All Sources - 215.7M Leads)";
     } else if (breakdown) {
-      const item = breakdown.find(function(b) { return b.id === currentDataset; });
+      const item = breakdown.find(function (b) { return b.id === currentDataset; });
       if (item) {
         bannerShare.textContent = item.pct + "% of Total (" + Number(item.count).toLocaleString() + " leads)";
       }
@@ -194,7 +200,7 @@ function selectSourceChip(id) {
   if (sInput) sInput.value = "";
 
   // 1. Immediately highlight clicked chip visually
-  document.querySelectorAll(".source-chip").forEach(function(b) {
+  document.querySelectorAll(".source-chip").forEach(function (b) {
     b.classList.remove("active");
   });
   const chips = document.querySelectorAll(".source-chip");
@@ -222,7 +228,7 @@ function selectSourceChip(id) {
   // 3. Immediately display skeleton in table
   const tbody = document.getElementById("leadsTbody");
   if (tbody) {
-    tbody.innerHTML = '<tr><td colspan="13" style="text-align:center;padding:48px 20px;"><div class="skeleton" style="width:260px;margin:0 auto 12px;height:18px;"></div><span style="color:var(--text-dim);font-weight:500;">Loading ' + escapeHtml(id) + ' leads database...</span></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="14" style="text-align:center;padding:48px 20px;"><div class="skeleton" style="width:260px;margin:0 auto 12px;height:18px;"></div><span style="color:var(--text-dim);font-weight:500;">Loading ' + escapeHtml(id) + ' leads database...</span></td></tr>';
   }
 
   // 4. Fetch the leads for this source
@@ -243,16 +249,19 @@ function renderTable(leads, total) {
   const metaCount = document.getElementById("metaCount");
   if (metaCount) metaCount.textContent = Number(total || 0).toLocaleString();
   window.leadDataMap = {};
-  
+
   if (!leads || leads.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="13" style="text-align:center;padding:60px 20px;color:var(--text-dim);font-size:14px;">' +
+    tbody.innerHTML = '<tr><td colspan="14" style="text-align:center;padding:60px 20px;color:var(--text-dim);font-size:14px;">' +
       '<div style="font-size:32px;margin-bottom:12px;">🔍</div>' +
       '<div>No matching leads found for current search/filters.</div>' +
       '<button class="btn btn-secondary" style="margin-top:14px;" onclick="resetFilters()">Reset All Filters</button>' +
       '</td></tr>';
+    syncMasterCheckbox();
+    updateBulkActionBar();
     return;
   }
 
+  const freeWebmails = ["gmail.com", "yahoo.com", "hotmail.com", "outlook.com", "aol.com", "icloud.com", "mail.com", "zoho.com", "protonmail.com", "yandex.com", "gmx.com", "live.com"];
   let rowsHtml = "";
   for (let idx = 0; idx < leads.length; idx++) {
     const lead = leads[idx];
@@ -260,12 +269,14 @@ function renderTable(leads, total) {
     window.leadDataMap[safeId] = lead;
 
     const rowNum = (currentPage - 1) * currentPageSize + idx + 1;
+    const isChecked = selectedLeadIds.has(safeId) ? ' checked' : '';
+    const checkboxHtml = '<input type="checkbox" class="lead-checkbox lead-row-checkbox" data-id="' + safeId + '" onchange="onLeadCheckChange(\'' + safeId + '\', this.checked)"' + isChecked + '>';
 
     // 1. Business Name
     let bizNameHtml = '<span class="empty-box">-</span>';
     if (lead.name && String(lead.name).trim() && String(lead.name) !== "None") {
       const nm = String(lead.name).trim();
-      const badgeHtml = lead.source_badge ? ' <span style="font-size:10px;font-weight:600;opacity:0.85;background:' + (lead.source_color||'#3b82f6') + '20;color:' + (lead.source_color||'#3b82f6') + ';padding:1px 6px;border-radius:10px;margin-left:4px;">' + escapeHtml(lead.source_badge) + '</span>' : '';
+      const badgeHtml = lead.source_badge ? ' <span style="font-size:10px;font-weight:600;opacity:0.85;background:' + (lead.source_color || '#3b82f6') + '20;color:' + (lead.source_color || '#3b82f6') + ';padding:1px 6px;border-radius:10px;margin-left:4px;">' + escapeHtml(lead.source_badge) + '</span>' : '';
       bizNameHtml = '<div class="biz-name" title="' + escapeHtml(nm) + '">' + escapeHtml(nm) + badgeHtml + '</div>';
     }
 
@@ -282,9 +293,9 @@ function renderTable(leads, total) {
         parts += '<span class="table-major-badge" title="Filter by Major Group: ' + escapeHtml(majorVal) + '" onclick="event.stopPropagation(); filterByMajorCategory(\'' + escapeHtml(majorId || majorVal).replace(/'/g, "\\'") + '\')">' + majorIcon + ' ' + escapeHtml(majorVal) + '</span>';
       }
       if (catVal && catVal.toLowerCase() !== majorVal.toLowerCase()) {
-        parts += '<span class="table-cat-pill" title="Filter by Minor Category: ' + escapeHtml(catVal) + '" onclick="event.stopPropagation(); filterByCategory(\'' + escapeHtml(catVal).replace(/'/g, "\\'") + '\')">🏷️ ' + escapeHtml(catVal) + '</span>';
+        parts += '<span class="table-cat-pill" title="Add Minor Category Filter: ' + escapeHtml(catVal) + '" onclick="event.stopPropagation(); addCategoryTag(\'' + escapeHtml(catVal).replace(/'/g, "\\'") + '\')">🏷️ ' + escapeHtml(catVal) + '</span>';
       } else if (!majorVal && catVal) {
-        parts += '<span class="table-cat-pill" title="Filter by Minor Category: ' + escapeHtml(catVal) + '" onclick="event.stopPropagation(); filterByCategory(\'' + escapeHtml(catVal).replace(/'/g, "\\'") + '\')">🏷️ ' + escapeHtml(catVal) + '</span>';
+        parts += '<span class="table-cat-pill" title="Add Minor Category Filter: ' + escapeHtml(catVal) + '" onclick="event.stopPropagation(); addCategoryTag(\'' + escapeHtml(catVal).replace(/'/g, "\\'") + '\')">🏷️ ' + escapeHtml(catVal) + '</span>';
       }
       parts += '</div>';
       catHtml = parts;
@@ -303,27 +314,34 @@ function renderTable(leads, total) {
       roleHtml = '<div class="role-text" title="' + escapeHtml(roleVal) + '">' + escapeHtml(roleVal) + '</div>';
     }
 
-    // 4. Email
+    // 5. Email + Deliverability Badge
     let emailHtml = '<span class="empty-box">-</span>';
     if (lead.email && String(lead.email).trim() && String(lead.email).indexOf("@") !== -1 && String(lead.email) !== "None") {
       const em = String(lead.email).trim();
-      emailHtml = '<div style="display:flex;align-items:center;gap:4px;">' +
+      const emDomain = (em.split("@")[1] || "").toLowerCase();
+      const isFree = freeWebmails.indexOf(emDomain) !== -1;
+      const deliverBadge = isFree
+        ? '<span class="badge-webmail" title="Free Webmail Provider (gmail/yahoo/etc)">📧 Webmail</span>'
+        : '<span class="badge-corp-mail" title="Verified Corporate Domain: High Value Deliverability">🏢 Corporate</span>';
+      emailHtml = '<div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;">' +
         '<a href="mailto:' + escapeHtml(em) + '" class="email-link" title="' + escapeHtml(em) + '">✉️ ' + escapeHtml(em) + '</a>' +
+        deliverBadge +
         '<button class="copy-cell-btn" data-val="' + escapeHtml(em) + '" onclick="copyDirectVal(this.dataset.val, \'Email copied!\')" title="Copy email">📋</button>' +
         '</div>';
     }
 
-    // 5. Phone
+    // 6. Phone + Direct Dial Badge
     let phoneHtml = '<span class="empty-box">-</span>';
     if (lead.phone && String(lead.phone).trim() && String(lead.phone) !== "None") {
       const ph = String(lead.phone).trim();
-      phoneHtml = '<div style="display:flex;align-items:center;gap:4px;">' +
+      phoneHtml = '<div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;">' +
         '<a href="tel:' + escapeHtml(ph) + '" class="phone-link" title="' + escapeHtml(ph) + '">📞 ' + escapeHtml(ph) + '</a>' +
+        '<span class="badge-direct-dial" title="Direct Phone Line Available">Direct</span>' +
         '<button class="copy-cell-btn" data-val="' + escapeHtml(ph) + '" onclick="copyDirectVal(this.dataset.val, \'Phone copied!\')" title="Copy phone">📋</button>' +
         '</div>';
     }
 
-    // 6. Website
+    // 7. Website
     let webHtml = '<span class="empty-box">-</span>';
     if (lead.website && String(lead.website).indexOf("None") === -1 && String(lead.website).trim() !== "") {
       const rawWeb = String(lead.website).trim();
@@ -331,32 +349,32 @@ function renderTable(leads, total) {
       webHtml = '<a href="' + escapeHtml(url) + '" target="_blank" rel="noopener noreferrer" class="web-badge has-site" title="' + escapeHtml(url) + '">🌐 Visit</a>';
     }
 
-    // 7. Address
+    // 8. Address
     let addrHtml = '<span class="empty-box">-</span>';
     if (lead.address && String(lead.address).trim() && String(lead.address) !== "None") {
       addrHtml = '<div class="cell-text" title="' + escapeHtml(lead.address) + '">' + escapeHtml(lead.address) + '</div>';
     }
 
-    // 8. City
+    // 9. City
     let cityHtml = '<span class="empty-box">-</span>';
     if (lead.city && String(lead.city).trim() && String(lead.city) !== "None") {
       cityHtml = '<span class="cell-text" title="' + escapeHtml(lead.city) + '">' + escapeHtml(lead.city) + '</span>';
     }
 
-    // 9. State / Region
+    // 10. State / Region
     let stateHtml = '<span class="empty-box">-</span>';
     if (lead.state && String(lead.state).trim() && String(lead.state) !== "None") {
       stateHtml = '<span class="cell-text" title="' + escapeHtml(lead.state) + '">' + escapeHtml(lead.state) + '</span>';
     }
 
-    // 10. Country
+    // 11. Country
     let countryHtml = '<span class="empty-box">-</span>';
     const ctry = lead.country || (lead.city || lead.state ? "United States" : "");
     if (ctry && String(ctry).trim() && String(ctry) !== "None") {
       countryHtml = '<span class="cell-text" title="' + escapeHtml(ctry) + '">' + escapeHtml(ctry) + '</span>';
     }
 
-    // 11. Socials
+    // 12. Socials
     let socialsHtml = '<span class="empty-box">-</span>';
     if (lead.socials && String(lead.socials).trim() && String(lead.socials).indexOf("None") === -1) {
       const rawSoc = String(lead.socials).trim();
@@ -364,10 +382,11 @@ function renderTable(leads, total) {
       socialsHtml = '<a href="' + escapeHtml(socUrl) + '" target="_blank" rel="noopener noreferrer" class="social-badge" title="' + escapeHtml(socUrl) + '">🔗 LinkedIn</a>';
     }
 
-    // 12. Actions
+    // 13. Actions
     const actionHtml = '<button class="btn btn-secondary" style="padding:4px 10px;font-size:11px;" data-id="' + safeId + '" onclick="openDrawerById(this.dataset.id)">View</button>';
 
     rowsHtml += '<tr id="row_' + safeId + '">' +
+      '<td style="text-align:center;">' + checkboxHtml + '</td>' +
       '<td style="color:var(--text-dim);font-size:12px;text-align:center;">' + rowNum + '</td>' +
       '<td>' + bizNameHtml + '</td>' +
       '<td>' + catHtml + '</td>' +
@@ -382,9 +401,11 @@ function renderTable(leads, total) {
       '<td>' + countryHtml + '</td>' +
       '<td>' + socialsHtml + '</td>' +
       '<td style="text-align:center;">' + actionHtml + '</td>' +
-    '</tr>';
+      '</tr>';
   }
   tbody.innerHTML = rowsHtml;
+  syncMasterCheckbox();
+  updateBulkActionBar();
 }
 
 function copyPhoneById(id) {
@@ -427,7 +448,7 @@ function renderPagination(total, page, pageSize) {
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const start = Math.min(total, (page - 1) * pageSize + 1);
   const end = Math.min(total, page * pageSize);
-  
+
   if (infoEl) {
     infoEl.textContent = "Showing " + start.toLocaleString() + " to " + end.toLocaleString() + " of " + total.toLocaleString() + " leads";
   }
@@ -444,7 +465,7 @@ function renderPagination(total, page, pageSize) {
 
   html += '<button class="page-btn" ' + (page >= totalPages ? "disabled" : "") + ' onclick="goToPage(' + (page + 1) + ')">›</button>';
   html += '<button class="page-btn" ' + (page >= totalPages ? "disabled" : "") + ' onclick="goToPage(' + totalPages + ')">»</button>';
-  
+
   container.innerHTML = html;
 }
 
@@ -490,13 +511,13 @@ function updateCategoriesFilter(categories) {
   if (!categories || categories.length === 0) return;
   allCategoriesCache = categories;
   updateMinorCategoryDropdown();
-  
+
   const browseBtn = document.getElementById("browseCategoriesBtn");
   if (browseBtn) {
     const textEl = browseBtn.querySelector(".browse-btn-text");
     if (textEl) textEl.textContent = 'Browse All (' + categories.length + ')';
   }
-  
+
   updateActiveCategoryPill();
   updateActiveMajorPill();
 }
@@ -508,7 +529,7 @@ function updateMinorCategoryDropdown() {
   let cats = allCategoriesCache;
   if (currentMajorCategory && currentMajorCategory !== "all") {
     const normM = currentMajorCategory.toLowerCase();
-    cats = allCategoriesCache.filter(function(c) {
+    cats = allCategoriesCache.filter(function (c) {
       const mid = (c.major_id || "").toLowerCase();
       const mname = (c.major_name || "").toLowerCase();
       return mid === normM || mname === normM;
@@ -516,10 +537,10 @@ function updateMinorCategoryDropdown() {
   }
 
   const curr = currentCategory || "all";
-  let title = currentMajorCategory !== "all" 
-    ? '🏷️ All in Selected Major (' + cats.length + ' Minors)' 
+  let title = currentMajorCategory !== "all"
+    ? '🏷️ All in Selected Major (' + cats.length + ' Minors)'
     : '🏷️ All Categories (' + allCategoriesCache.length + ' Verticals)';
-    
+
   let html = '<option value="all">' + escapeHtml(title) + '</option>';
   for (let i = 0; i < cats.length; i++) {
     const c = cats[i];
@@ -562,7 +583,7 @@ function updateActiveMajorPill() {
 
   if (currentMajorCategory && currentMajorCategory !== "all") {
     let displayName = currentMajorCategory;
-    const found = majorCategoriesCache.find(function(m) {
+    const found = majorCategoriesCache.find(function (m) {
       return m.id.toLowerCase() === currentMajorCategory.toLowerCase() || m.name.toLowerCase() === currentMajorCategory.toLowerCase();
     });
     if (found) {
@@ -579,10 +600,10 @@ function updateActiveCategoryPill() {
   const pill = document.getElementById("activeCatPill");
   const text = document.getElementById("activeCatText");
   if (!pill) return;
-  
+
   if (currentCategory && currentCategory !== "all") {
     let displayName = currentCategory;
-    const found = allCategoriesCache.find(function(c) {
+    const found = allCategoriesCache.find(function (c) {
       const id = typeof c === 'object' ? c.id.toLowerCase() : c.toLowerCase();
       return id === currentCategory.toLowerCase();
     });
@@ -610,12 +631,12 @@ function applyCustomCategoryInput() {
 function filterByCategory(val) {
   currentCategory = val || "all";
   currentPage = 1;
-  
+
   const inp = document.getElementById("catQuickAddInput");
   if (inp) {
     inp.value = (val === "all" ? "" : val);
   }
-  
+
   const select = document.getElementById("catFilter");
   if (select) {
     if (val === "all") {
@@ -638,11 +659,11 @@ function filterByCategory(val) {
       }
     }
   }
-  
+
   // If minor category belongs to a major category, sync it if needed
   if (val !== "all") {
     const norm = val.toLowerCase();
-    const found = allCategoriesCache.find(function(c) {
+    const found = allCategoriesCache.find(function (c) {
       return (typeof c === 'object' && c.id && c.id.toLowerCase() === norm);
     });
     if (found && found.major_id && currentMajorCategory !== "all" && currentMajorCategory !== found.major_id) {
@@ -652,7 +673,7 @@ function filterByCategory(val) {
       updateActiveMajorPill();
     }
   }
-  
+
   updateActiveCategoryPill();
   loadLeads();
 }
@@ -682,15 +703,15 @@ function openCategoriesModal() {
   const modal = document.getElementById("categoriesModal");
   if (!modal) return;
   modal.style.display = "flex";
-  
+
   const pills = document.querySelectorAll("#catQuickPills .cat-quick-pill");
-  pills.forEach(function(p, i) { p.classList.toggle("active", i === 0); });
+  pills.forEach(function (p, i) { p.classList.toggle("active", i === 0); });
 
   renderCategoriesHierarchyInModal(categoriesHierarchyCache);
   const searchInput = document.getElementById("catModalSearch");
   if (searchInput) {
     searchInput.value = "";
-    setTimeout(function() { searchInput.focus(); }, 80);
+    setTimeout(function () { searchInput.focus(); }, 80);
   }
 }
 
@@ -714,13 +735,13 @@ function filterCategoriesInModal(query) {
     return;
   }
   const q = query.toLowerCase().trim();
-  
+
   // Filter hierarchy by checking minor categories or major names
   const filtered = [];
   for (let i = 0; i < categoriesHierarchyCache.length; i++) {
     const node = categoriesHierarchyCache[i];
     const majorMatches = (node.name.toLowerCase().indexOf(q) !== -1 || node.id.toLowerCase().indexOf(q) !== -1);
-    const matchingMinors = (node.minors || []).filter(function(c) {
+    const matchingMinors = (node.minors || []).filter(function (c) {
       const id = typeof c === 'object' ? c.id.toLowerCase() : c.toLowerCase();
       const lbl = typeof c === 'object' ? c.label.toLowerCase() : c.toLowerCase();
       return id.indexOf(q) !== -1 || lbl.indexOf(q) !== -1;
@@ -738,7 +759,7 @@ function filterCategoriesInModal(query) {
 
 function quickFilterMajorModal(majorId) {
   const pills = document.querySelectorAll("#catQuickPills .cat-quick-pill");
-  pills.forEach(function(p) { p.classList.remove("active"); });
+  pills.forEach(function (p) { p.classList.remove("active"); });
   if (window.event && window.event.target) {
     window.event.target.classList.add("active");
   }
@@ -749,7 +770,7 @@ function quickFilterMajorModal(majorId) {
   if (majorId === 'all') {
     renderCategoriesHierarchyInModal(categoriesHierarchyCache);
   } else {
-    const filtered = categoriesHierarchyCache.filter(function(m) {
+    const filtered = categoriesHierarchyCache.filter(function (m) {
       return m.id.toLowerCase() === majorId.toLowerCase();
     });
     renderCategoriesHierarchyInModal(filtered);
@@ -798,14 +819,14 @@ function renderCategoriesHierarchyInModal(hierarchyList, searchQuery) {
 
     html += '<div class="major-cat-section">' +
       '<div class="major-section-header">' +
-        '<div class="major-section-title" onclick="selectMajorFromModal(\'' + escapeHtml(node.id).replace(/'/g, "\\'") + '\')">' +
-          '<span style="font-size:18px;">' + (node.icon || '🏢') + '</span>' +
-          '<span>' + escapeHtml(node.name) + '</span>' +
-          '<span class="major-section-badge">' + (node.badge || node.total_count_str) + ' leads</span>' +
-        '</div>' +
-        '<button type="button" class="major-filter-btn" onclick="selectMajorFromModal(\'' + escapeHtml(node.id).replace(/'/g, "\\'") + '\')">' +
-          (isMajorActive ? '✓ Group Active' : 'Filter Major Group →') +
-        '</button>' +
+      '<div class="major-section-title" onclick="selectMajorFromModal(\'' + escapeHtml(node.id).replace(/'/g, "\\'") + '\')">' +
+      '<span style="font-size:18px;">' + (node.icon || '🏢') + '</span>' +
+      '<span>' + escapeHtml(node.name) + '</span>' +
+      '<span class="major-section-badge">' + (node.badge || node.total_count_str) + ' leads</span>' +
+      '</div>' +
+      '<button type="button" class="major-filter-btn" onclick="selectMajorFromModal(\'' + escapeHtml(node.id).replace(/'/g, "\\'") + '\')">' +
+      (isMajorActive ? '✓ Group Active' : 'Filter Major Group →') +
+      '</button>' +
       '</div>' +
       '<div class="minor-chips-grid">';
 
@@ -819,7 +840,7 @@ function renderCategoriesHierarchyInModal(hierarchyList, searchQuery) {
       html += '<div class="minor-chip ' + (isMinorActive ? 'active' : '') + '" onclick="selectCategoryFromModal(\'' + escapeHtml(val).replace(/'/g, "\\'") + '\')" title="Filter leads by ' + escapeHtml(label) + '">' +
         '<span>' + escapeHtml(label) + '</span>' +
         (countBadge ? '<span class="minor-chip-count">' + escapeHtml(countBadge) + '</span>' : '') +
-      '</div>';
+        '</div>';
     }
 
     html += '</div></div>';
@@ -846,7 +867,7 @@ function handleSearchInput(val) {
   const clearBtn = document.getElementById("searchClear");
   if (clearBtn) clearBtn.style.display = val ? "block" : "none";
   clearTimeout(searchTimer);
-  searchTimer = setTimeout(function() {
+  searchTimer = setTimeout(function () {
     currentSearch = val.trim();
     currentPage = 1;
     loadLeads();
@@ -861,7 +882,7 @@ function clearSearch() {
 
 function setTierFilter(tier) {
   currentTier = tier;
-  document.querySelectorAll(".tier-pill-btn").forEach(function(b) {
+  document.querySelectorAll(".tier-pill-btn").forEach(function (b) {
     b.classList.toggle("active", b.getAttribute("data-tier") === tier);
   });
   currentPage = 1;
@@ -927,33 +948,33 @@ function resetFilters() {
   currentSortCol = "";
   currentSortDir = "asc";
   currentPage = 1;
-  
+
   const inp = document.getElementById("searchInput");
   if (inp) inp.value = "";
   const clr = document.getElementById("searchClear");
   if (clr) clr.style.display = "none";
-  
-  document.querySelectorAll(".tier-pill-btn").forEach(function(b) {
+
+  document.querySelectorAll(".tier-pill-btn").forEach(function (b) {
     b.classList.toggle("active", b.getAttribute("data-tier") === "all");
   });
-  
+
   const phoneBtn = document.getElementById("hasPhoneToggle");
   if (phoneBtn) phoneBtn.classList.remove("active");
-  
+
   const stateSel = document.getElementById("stateFilter");
   if (stateSel) stateSel.value = "all";
 
   const majorSel = document.getElementById("majorCatFilter");
   if (majorSel) majorSel.value = "all";
-  
+
   const catSel = document.getElementById("catFilter");
   if (catSel) catSel.value = "all";
   const catInp = document.getElementById("catQuickAddInput");
   if (catInp) catInp.value = "";
-  
+
   const oppSel = document.getElementById("oppFilter");
   if (oppSel) oppSel.value = "all";
-  
+
   updateMinorCategoryDropdown();
   updateActiveMajorPill();
   updateActiveCategoryPill();
@@ -967,7 +988,7 @@ function copyDirectVal(val, msg) {
 // Slide-Out Drawer
 function openDrawer(lead) {
   activeLead = lead;
-  
+
   document.getElementById("drawerName").textContent = lead.name || "Unknown Business";
   const catEl = document.getElementById("drawerCat");
   if (catEl) {
@@ -975,25 +996,25 @@ function openDrawer(lead) {
     catEl.textContent = cName;
     catEl.title = "Click to filter leads by " + cName;
     catEl.style.cursor = "pointer";
-    catEl.onclick = function() {
+    catEl.onclick = function () {
       if (lead.category) {
         filterByCategory(lead.category);
         closeDrawer();
       }
     };
   }
-  
+
   const tierBadge = document.getElementById("drawerTier");
   if (tierBadge) {
     tierBadge.textContent = "Tier " + (lead.tier || "A");
     tierBadge.className = "tier-badge tier-" + (lead.tier || "A");
   }
-  
+
   document.getElementById("drawerPitch").textContent = lead.pitch || "No pitch script available.";
   document.getElementById("drawerWhy").textContent = lead.why || "Active business lead identified.";
 
   // Populate the 11 Verified Columns in Drawer
-  const setDrawerFld = function(id, valHtml) {
+  const setDrawerFld = function (id, valHtml) {
     const el = document.getElementById(id);
     if (el) el.innerHTML = valHtml || '<span class="empty-box">-</span>';
   };
@@ -1001,7 +1022,7 @@ function openDrawer(lead) {
   setDrawerFld("drawerBizName", lead.name ? escapeHtml(lead.name) : "");
   setDrawerFld("drawerContact", lead.contact_name ? escapeHtml(lead.contact_name) : "");
   setDrawerFld("drawerRoleNotes", (lead.job_title || lead.notes) ? escapeHtml(lead.job_title || lead.notes) : "");
-  
+
   let emVal = "";
   if (lead.email && String(lead.email).trim() && String(lead.email).indexOf("@") !== -1 && String(lead.email) !== "None") {
     emVal = '<a href="mailto:' + escapeHtml(lead.email) + '" style="color:var(--accent-blue);font-family:var(--font-mono);">' + escapeHtml(lead.email) + '</a>';
@@ -1072,7 +1093,7 @@ function openDrawer(lead) {
 
   const statusSel = document.getElementById("drawerStatusSelect");
   if (statusSel) statusSel.value = lead.status || "new";
-  
+
   const notesArea = document.getElementById("drawerNotes");
   if (notesArea) notesArea.value = lead.notes || "";
 
@@ -1141,7 +1162,7 @@ function setExportRange(fromNum, toNum) {
   if (toInput) toInput.value = toNum;
 
   // Highlight active preset button
-  document.querySelectorAll(".btn-preset").forEach(function(btn) {
+  document.querySelectorAll(".btn-preset").forEach(function (btn) {
     btn.classList.remove("active");
     const txt = btn.textContent.trim();
     if (toNum === 1000 && txt.indexOf("1K") !== -1) btn.classList.add("active");
@@ -1169,7 +1190,7 @@ function setExportNextBatch() {
   fromInput.value = newFrom;
   toInput.value = newTo;
 
-  document.querySelectorAll(".btn-preset").forEach(function(b) { b.classList.remove("active"); });
+  document.querySelectorAll(".btn-preset").forEach(function (b) { b.classList.remove("active"); });
   updateExportRangePreview();
 
   toast("Export range advanced: Lead #" + newFrom.toLocaleString() + " to #" + newTo.toLocaleString());
@@ -1192,7 +1213,7 @@ function triggerRangeExport() {
   if (btn) {
     btn.disabled = true;
     btn.innerHTML = '<span>⏳</span> Downloading ' + count.toLocaleString() + ' Leads...';
-    setTimeout(function() {
+    setTimeout(function () {
       btn.disabled = false;
       updateExportRangePreview();
     }, 3000);
@@ -1233,7 +1254,7 @@ async function startProspecting(e) {
     runBtn.textContent = "⏳ Running Prospecting Engine...";
   }
 
-  const sources = Array.from(document.querySelectorAll("input[name='src']:checked")).map(function(c) { return c.value; });
+  const sources = Array.from(document.querySelectorAll("input[name='src']:checked")).map(function (c) { return c.value; });
   const payload = {
     vertical: document.getElementById("runVertical").value,
     city: document.getElementById("runCity").value.trim(),
@@ -1246,7 +1267,7 @@ async function startProspecting(e) {
 
   const term = document.getElementById("terminal");
   if (term) term.textContent = "[" + new Date().toLocaleTimeString() + "] Initializing Lead Engine pipeline for " + payload.vertical + "...\n";
-  
+
   const statusBadge = document.getElementById("runStatusBadge");
   if (statusBadge) {
     statusBadge.textContent = "PROSPECTING";
@@ -1263,7 +1284,7 @@ async function startProspecting(e) {
     });
     const d = await res.json();
     if (!res.ok) throw new Error(d.error || "Failed to start run");
-    
+
     currentJobId = d.job_id;
     pollJob(currentJobId);
   } catch (err) {
@@ -1281,7 +1302,7 @@ async function startProspecting(e) {
 
 function pollJob(jid) {
   clearInterval(pollTimer);
-  pollTimer = setInterval(async function() {
+  pollTimer = setInterval(async function () {
     try {
       const res = await fetch("/progress/" + jid);
       const d = await res.json();
@@ -1328,7 +1349,7 @@ async function refreshDatasetsList() {
     const datasets = await res.json();
     const sel = document.getElementById("datasetSelect");
     if (sel) {
-      sel.innerHTML = datasets.map(function(d) {
+      sel.innerHTML = datasets.map(function (d) {
         return '<option value="' + d.id + '">' + escapeHtml(d.name) + ' (' + Number(d.count).toLocaleString() + ' leads)</option>';
       }).join("");
     }
@@ -1362,17 +1383,17 @@ async function runConnectivityCheck() {
   try {
     const res = await fetch("/check");
     const data = await res.json();
-    container.innerHTML = Object.entries(data).map(function(entry) {
+    container.innerHTML = Object.entries(data).map(function (entry) {
       const src = entry[0];
       const status = entry[1];
       const isOk = status.ok;
       return '<div style="background:var(--bg-secondary);border:1px solid ' + (isOk ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)') + ';padding:14px;border-radius:var(--radius-md);">' +
         '<div style="display:flex;align-items:center;justify-content:space-between;">' +
-          '<b style="font-size:14px;">' + escapeHtml(src) + '</b>' +
-          '<span class="tier-badge ' + (isOk ? 'tier-A' : 'tier-C') + '">' + (isOk ? 'ONLINE' : 'OFFLINE') + '</span>' +
+        '<b style="font-size:14px;">' + escapeHtml(src) + '</b>' +
+        '<span class="tier-badge ' + (isOk ? 'tier-A' : 'tier-C') + '">' + (isOk ? 'ONLINE' : 'OFFLINE') + '</span>' +
         '</div>' +
         '<div style="font-size:12px;color:var(--text-dim);margin-top:4px;">' + escapeHtml(status.detail || (isOk ? 'Available and responding' : 'Unreachable')) + '</div>' +
-      '</div>';
+        '</div>';
     }).join("");
   } catch (e) {
     container.innerHTML = '<div style="color:var(--accent-rose);">Failed to probe data sources: ' + escapeHtml(e.message) + '</div>';
@@ -1386,21 +1407,21 @@ async function loadDatasetCatalog() {
   try {
     const res = await fetch("/api/datasets");
     const datasets = await res.json();
-    grid.innerHTML = datasets.map(function(d) {
+    grid.innerHTML = datasets.map(function (d) {
       return '<div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-md);padding:18px;">' +
         '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">' +
-          '<b style="font-size:14px;color:var(--text-main);">' + escapeHtml(d.name) + '</b>' +
-          '<span class="tier-badge tier-A">' + escapeHtml(d.badge || 'DATA') + '</span>' +
+        '<b style="font-size:14px;color:var(--text-main);">' + escapeHtml(d.name) + '</b>' +
+        '<span class="tier-badge tier-A">' + escapeHtml(d.badge || 'DATA') + '</span>' +
         '</div>' +
         '<div style="font-size:22px;font-family:var(--font-heading);font-weight:800;color:var(--accent-blue);margin:8px 0;">' +
-          Number(d.count).toLocaleString() + ' <span style="font-size:12px;color:var(--text-dim);font-weight:400;">leads</span>' +
+        Number(d.count).toLocaleString() + ' <span style="font-size:12px;color:var(--text-dim);font-weight:400;">leads</span>' +
         '</div>' +
         '<div style="display:flex;gap:8px;margin-top:12px;">' +
-          '<button class="btn btn-primary" style="flex:1;font-size:12px;padding:6px 12px;" data-id="' + escapeHtml(d.id) + '" onclick="selectDatasetAndExplore(this.dataset.id)">' +
-            'Explore in Table →' +
-          '</button>' +
+        '<button class="btn btn-primary" style="flex:1;font-size:12px;padding:6px 12px;" data-id="' + escapeHtml(d.id) + '" onclick="selectDatasetAndExplore(this.dataset.id)">' +
+        'Explore in Table →' +
+        '</button>' +
         '</div>' +
-      '</div>';
+        '</div>';
     }).join("");
   } catch (e) {
     grid.innerHTML = '<div style="color:var(--accent-rose);">Error loading datasets: ' + escapeHtml(e.message) + '</div>';
@@ -1436,7 +1457,7 @@ function copyText(txt, msg) {
   const textToCopy = String(txt || "");
   const feedbackMsg = msg || "Copied to clipboard!";
   if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(textToCopy).then(function() { toast(feedbackMsg); });
+    navigator.clipboard.writeText(textToCopy).then(function () { toast(feedbackMsg); });
   } else {
     const ta = document.createElement("textarea");
     ta.value = textToCopy;
@@ -1463,7 +1484,7 @@ function toast(msg) {
   el.textContent = msg;
   el.style.display = "block";
   clearTimeout(el.timer);
-  el.timer = setTimeout(function() { el.style.display = "none"; }, 2500);
+  el.timer = setTimeout(function () { el.style.display = "none"; }, 2500);
 }
 
 function toggleTheme() {
@@ -1486,12 +1507,12 @@ function escapeHtml(str) {
 }
 
 // Initialize on Load
-document.addEventListener("DOMContentLoaded", function() {
+document.addEventListener("DOMContentLoaded", function () {
   const savedTheme = localStorage.getItem("theme") || "dark";
   document.documentElement.setAttribute("data-theme", savedTheme);
   const icon = document.getElementById("themeIcon");
   if (icon) icon.textContent = savedTheme === "dark" ? "☀️" : "🌙";
-  
+
   const sel = document.getElementById("datasetSelect");
   if (sel) {
     if (sel.value) currentDataset = sel.value;
@@ -1501,6 +1522,6 @@ document.addEventListener("DOMContentLoaded", function() {
       if (lbl) lbl.textContent = opt.text;
     }
   }
-  
+
   loadLeads();
 });

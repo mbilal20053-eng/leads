@@ -30,6 +30,9 @@ from leadgen.pipeline import load_crm_names, ensure_location_columns
 from leadgen.diagnostics import check_connectivity, friendly_error, explain_empty_result
 
 import duckdb
+import openpyxl
+from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+from openpyxl.utils import get_column_letter
 
 GUI_DIR = os.path.dirname(os.path.abspath(__file__))
 STATIC_DIR = os.path.join(GUI_DIR, "static")
@@ -1543,7 +1546,7 @@ def api_categories():
     })
 
 
-def generate_leads_export_csv(dataset_id, export_from=1, export_to=5000, search=None, category=None, major_category=None, tier=None, state=None, country=None, opportunity=None, has_phone=False):
+def fetch_export_leads(dataset_id, export_from=1, export_to=5000, search=None, category=None, major_category=None, tier=None, state=None, country=None, opportunity=None, has_phone=False):
     """Generates streaming CSV data for custom row ranges (From lead X to lead Y) across all databases."""
     start_row = max(1, int(export_from))
     end_row = max(start_row, int(export_to))
@@ -1576,8 +1579,11 @@ def generate_leads_export_csv(dataset_id, export_from=1, export_to=5000, search=
             where.append("(state ILIKE ? OR city ILIKE ?)")
             params.extend([f"%{state}%", f"%{state}%"])
         if category and category.lower() != "all":
-            where.append("category ILIKE ?")
-            params.append(f"%{category}%")
+            cat_tokens = [c.strip() for c in category.split(",") if c.strip() and c.strip().lower() != "all"]
+            if cat_tokens:
+                cat_clauses = ["category ILIKE ?" for _ in cat_tokens]
+                where.append("(" + " OR ".join(cat_clauses) + ")")
+                params.extend([f"%{c}%" for c in cat_tokens])
         if major_category and major_category.lower() not in ["all", ""]:
             norm_major = major_category.lower().strip()
             matched_m = next((m for m in categories_service.MAJOR_CATEGORIES if m["id"] == norm_major or m["name"].lower() == norm_major), None)
@@ -1613,15 +1619,7 @@ def generate_leads_export_csv(dataset_id, export_from=1, export_to=5000, search=
                 "Country": str(r[11] or "United States"),
                 "Socials": str(r[12] or "")
             })
-        out = io.StringIO()
-        fields = [
-            "#", "Business Name", "Category", "Owner / Contact", "Role & Notes", "Email", "Phone",
-            "Website", "Address", "City", "State / Region", "Country", "Socials"
-        ]
-        writer = csv.DictWriter(out, fieldnames=fields, extrasaction='ignore')
-        writer.writeheader()
-        writer.writerows(leads)
-        return out.getvalue()
+        return leads
 
     d = resolve_dataset(dataset_id)
     file_path = d.get("file") if d else None
@@ -1852,6 +1850,9 @@ def generate_leads_export_csv(dataset_id, export_from=1, export_to=5000, search=
                 "Socials": l.get("socials", "")
             })
 
+    return leads
+
+def generate_leads_export_csv_from_leads(leads):
     out = io.StringIO()
     fields = [
         "#", "Business Name", "Category", "Owner / Contact", "Role & Notes", "Email", "Phone",
@@ -1861,6 +1862,106 @@ def generate_leads_export_csv(dataset_id, export_from=1, export_to=5000, search=
     writer.writeheader()
     writer.writerows(leads)
     return out.getvalue()
+
+def generate_leads_export_csv(dataset_id, export_from=1, export_to=5000, search=None, category=None, major_category=None, tier=None, state=None, country=None, opportunity=None, has_phone=False):
+    leads = fetch_export_leads(dataset_id, export_from=export_from, export_to=export_to, search=search, category=category, major_category=major_category, tier=tier, state=state, country=country, opportunity=opportunity, has_phone=has_phone)
+    return generate_leads_export_csv_from_leads(leads)
+
+def generate_leads_export_excel(leads):
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Verified Leads PRO"
+    
+    headers = [
+        "#", "Business Name", "Category", "Owner / Contact", "Role & Notes",
+        "Email", "Phone", "Website", "Address", "City", "State / Region", "Country", "Socials"
+    ]
+    ws.append(headers)
+    
+    header_font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
+    header_fill = PatternFill(start_color="1E293B", end_color="1E293B", fill_type="solid")
+    header_align = Alignment(horizontal="center", vertical="center", wrap_text=True)
+    thin_border = Border(
+        left=Side(style='thin', color='CBD5E1'),
+        right=Side(style='thin', color='CBD5E1'),
+        top=Side(style='thin', color='CBD5E1'),
+        bottom=Side(style='thin', color='CBD5E1')
+    )
+    
+    for col_num in range(1, len(headers) + 1):
+        cell = ws.cell(row=1, column=col_num)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = header_align
+        cell.border = thin_border
+    
+    ws.row_dimensions[1].height = 28
+    
+    alt_fill = PatternFill(start_color="F8FAFC", end_color="F8FAFC", fill_type="solid")
+    data_font = Font(name="Calibri", size=10, color="0F172A")
+    
+    for row_idx, lead in enumerate(leads, start=2):
+        row_data = [
+            lead.get("#", row_idx - 1),
+            lead.get("Business Name", ""),
+            lead.get("Category", ""),
+            lead.get("Owner / Contact", ""),
+            lead.get("Role & Notes", ""),
+            lead.get("Email", ""),
+            lead.get("Phone", ""),
+            lead.get("Website", ""),
+            lead.get("Address", ""),
+            lead.get("City", ""),
+            lead.get("State / Region", ""),
+            lead.get("Country", "United States"),
+            lead.get("Socials", "")
+        ]
+        ws.append(row_data)
+        ws.row_dimensions[row_idx].height = 20
+        is_even = (row_idx % 2 == 0)
+        for col_idx in range(1, len(headers) + 1):
+            cell = ws.cell(row=row_idx, column=col_idx)
+            cell.font = data_font
+            cell.border = thin_border
+            if is_even:
+                cell.fill = alt_fill
+            if col_idx in [1, 7, 8, 12]:
+                cell.alignment = Alignment(horizontal="center", vertical="center")
+            else:
+                cell.alignment = Alignment(horizontal="left", vertical="center")
+
+    for col in ws.columns:
+        max_len = 0
+        col_letter = get_column_letter(col[0].column)
+        for cell in col:
+            val_str = str(cell.value or "")
+            if len(val_str) > max_len:
+                max_len = len(val_str)
+        ws.column_dimensions[col_letter].width = max(12, min(max_len + 3, 50))
+        
+    out = io.BytesIO()
+    wb.save(out)
+    return out.getvalue()
+
+def generate_leads_export_json(leads):
+    formatted = []
+    for lead in leads:
+        formatted.append({
+            "lead_id": lead.get("#"),
+            "company_name": lead.get("Business Name", ""),
+            "industry_category": lead.get("Category", ""),
+            "contact_person": lead.get("Owner / Contact", ""),
+            "title_or_role": lead.get("Role & Notes", ""),
+            "email_address": lead.get("Email", ""),
+            "phone_number": lead.get("Phone", ""),
+            "website_url": lead.get("Website", ""),
+            "street_address": lead.get("Address", ""),
+            "city": lead.get("City", ""),
+            "state_region": lead.get("State / Region", ""),
+            "country": lead.get("Country", ""),
+            "social_profiles": lead.get("Socials", "")
+        })
+    return json.dumps(formatted, indent=2)
 
 
 
@@ -1875,6 +1976,7 @@ def api_leads():
     major_category = request.args.get("major_category", "all").strip()
     opportunity = request.args.get("opportunity", "all").strip()
     has_phone = request.args.get("has_phone", "false").lower() == "true"
+    crm_status = request.args.get("crm_status", "all").strip()
     page = max(1, int(request.args.get("page", 1)))
     page_size = min(500, max(10, int(request.args.get("page_size", 50))))
     sort_col = request.args.get("sort_by", "").strip() or None
@@ -1907,7 +2009,7 @@ def api_leads():
         res = query_local_view_leads(
             view_name, dataset_id, view_title, tags=tags,
             search=search, tier=tier, state=state, country=country,
-            category=category, major_category=major_category, opportunity=opportunity, has_phone=has_phone,
+            category=category, major_category=major_category, crm_status=crm_status, opportunity=opportunity, has_phone=has_phone,
             page=page, page_size=page_size, sort_col=sort_col, sort_dir=sort_dir
         )
         if not res.get("categories") or len(res.get("categories", [])) < 10:
@@ -1978,6 +2080,15 @@ def api_leads():
             norm_m = major_category.lower()
             if lead["major_id"].lower() != norm_m and lead["major_category"].lower() != norm_m:
                 continue
+        # If crm_status is active, ensure lead matches
+        if crm_status and crm_status.lower() not in ["all", ""]:
+            lead_status = lead.get("status", "new")
+            if crm_status.lower() == "new":
+                if lead_status != "new":
+                    continue
+            elif lead_status != crm_status.lower():
+                continue
+
         filtered_leads.append(lead)
 
     if major_category and major_category.lower() not in ["all", ""]:
@@ -2013,19 +2124,115 @@ def api_export_range():
     major_category = request.args.get("major_category", "all").strip()
     opportunity = request.args.get("opportunity", "all").strip()
     has_phone = request.args.get("has_phone", "false").lower() == "true"
+    fmt = request.args.get("format", "csv").lower().strip()
     export_from = max(1, int(request.args.get("export_from", 1)))
     export_to = max(export_from, int(request.args.get("export_to", export_from + 4999)))
-    csv_text = generate_leads_export_csv(
+
+    leads = fetch_export_leads(
         dataset_id, export_from=export_from, export_to=export_to,
         search=search, category=category, major_category=major_category, tier=tier, state=state, country=country,
         opportunity=opportunity, has_phone=has_phone
     )
-    fname = f"leads_export_{dataset_id}_rows_{export_from}_to_{export_to}.csv"
-    return Response(
-        csv_text,
-        mimetype="text/csv",
-        headers={"Content-Disposition": f"attachment; filename={fname}"}
-    )
+
+    if fmt in ["xlsx", "excel"]:
+        excel_bytes = generate_leads_export_excel(leads)
+        fname = f"leads_export_{dataset_id}_rows_{export_from}_to_{export_to}.xlsx"
+        return Response(
+            excel_bytes,
+            mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f"attachment; filename={fname}"}
+        )
+    elif fmt == "json":
+        json_str = generate_leads_export_json(leads)
+        fname = f"leads_export_{dataset_id}_rows_{export_from}_to_{export_to}.json"
+        return Response(
+            json_str,
+            mimetype="application/json",
+            headers={"Content-Disposition": f"attachment; filename={fname}"}
+        )
+    else:
+        csv_text = generate_leads_export_csv_from_leads(leads)
+        fname = f"leads_export_{dataset_id}_rows_{export_from}_to_{export_to}.csv"
+        return Response(
+            csv_text,
+            mimetype="text/csv",
+            headers={"Content-Disposition": f"attachment; filename={fname}"}
+        )
+
+@app.route("/api/export_selected", methods=["POST"])
+def api_export_selected():
+    data = request.get_json(force=True)
+    raw_leads = data.get("leads", [])
+    fmt = (data.get("format") or "xlsx").lower().strip()
+    if not raw_leads:
+        return jsonify({"error": "No leads provided"}), 400
+
+    leads = []
+    for i, r in enumerate(raw_leads, 1):
+        major_val = r.get("major_category", "")
+        cat_val = r.get("category", "")
+        cat_display = f"{major_val} - {cat_val}" if major_val and major_val != cat_val else (cat_val or major_val)
+        leads.append({
+            "#": i,
+            "Business Name": str(r.get("name") or ""),
+            "Category": cat_display,
+            "Owner / Contact": str(r.get("contact_name") or ""),
+            "Role & Notes": str(r.get("job_title") or r.get("notes") or ""),
+            "Email": str(r.get("email") or ""),
+            "Phone": str(r.get("phone") or ""),
+            "Website": str(r.get("website") or ""),
+            "Address": str(r.get("address") or ""),
+            "City": str(r.get("city") or ""),
+            "State / Region": str(r.get("state") or ""),
+            "Country": str(r.get("country") or "United States"),
+            "Socials": str(r.get("socials") or "")
+        })
+
+    if fmt in ["xlsx", "excel"]:
+        excel_bytes = generate_leads_export_excel(leads)
+        fname = f"selected_leads_export_{len(leads)}_rows.xlsx"
+        return Response(
+            excel_bytes,
+            mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f"attachment; filename={fname}"}
+        )
+    elif fmt == "json":
+        json_str = generate_leads_export_json(leads)
+        fname = f"selected_leads_export_{len(leads)}_rows.json"
+        return Response(
+            json_str,
+            mimetype="application/json",
+            headers={"Content-Disposition": f"attachment; filename={fname}"}
+        )
+    else:
+        csv_text = generate_leads_export_csv_from_leads(leads)
+        fname = f"selected_leads_export_{len(leads)}_rows.csv"
+        return Response(
+            csv_text,
+            mimetype="text/csv",
+            headers={"Content-Disposition": f"attachment; filename={fname}"}
+        )
+
+@app.route("/api/leads/batch_tag", methods=["POST"])
+def api_batch_tag_leads():
+    data = request.get_json(force=True)
+    tag_keys = data.get("tag_keys", [])
+    status = data.get("status", "contacted")
+    notes = data.get("notes", "")
+    if not tag_keys:
+        return jsonify({"error": "tag_keys list is required"}), 400
+
+    tags = load_tags()
+    now_str = datetime.now().isoformat()
+    for tk in tag_keys:
+        existing = tags.get(tk, {})
+        tags[tk] = {
+            "status": status,
+            "notes": notes if notes else existing.get("notes", ""),
+            "updated_at": now_str
+        }
+    save_tags(tags)
+    return jsonify({"success": True, "count": len(tag_keys), "status": status})
 
 @app.route("/api/leads/tag", methods=["POST"])
 def api_tag_lead():
@@ -3754,6 +3961,155 @@ html[data-theme="light"] table.leads-table tr:hover {
   font-size: 14px;
 }
 
+/* Checkbox styling */
+.lead-checkbox {
+  width: 17px;
+  height: 17px;
+  accent-color: var(--accent-blue);
+  cursor: pointer;
+  border-radius: 4px;
+  vertical-align: middle;
+}
+
+/* Floating Bulk Actions Bar */
+.bulk-actions-toolbar {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(100px);
+  background: rgba(18, 26, 45, 0.96);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(59, 130, 246, 0.45);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7), 0 0 24px rgba(59, 130, 246, 0.25);
+  border-radius: var(--radius-lg);
+  padding: 10px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  z-index: 1000;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease;
+  opacity: 0;
+  pointer-events: none;
+}
+.bulk-actions-toolbar.visible {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+.bulk-count-badge {
+  background: var(--accent-blue);
+  color: #fff;
+  font-weight: 700;
+  font-size: 12px;
+  padding: 3px 9px;
+  border-radius: var(--radius-full);
+  box-shadow: 0 0 10px var(--accent-blue-glow);
+}
+.bulk-btn {
+  padding: 6px 13px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  border: 1px solid var(--border-strong);
+  background: var(--bg-card);
+  color: var(--text-main);
+  transition: all 0.15s ease;
+}
+.bulk-btn:hover {
+  background: var(--bg-elevated);
+  border-color: var(--accent-blue);
+  transform: translateY(-1px);
+}
+.bulk-btn-primary {
+  background: var(--accent-blue);
+  color: #fff;
+  border-color: var(--accent-blue);
+}
+.bulk-btn-primary:hover {
+  background: #2563eb;
+  box-shadow: 0 0 12px var(--accent-blue-glow);
+}
+.bulk-btn-emerald {
+  background: var(--accent-emerald);
+  color: #fff;
+  border-color: var(--accent-emerald);
+}
+.bulk-btn-emerald:hover {
+  background: #059669;
+  box-shadow: 0 0 12px var(--accent-emerald-glow);
+}
+
+/* Quality & Deliverability Badges */
+.badge-corp-mail {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  margin-left: 4px;
+  white-space: nowrap;
+}
+.badge-webmail {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(148, 163, 184, 0.12);
+  color: #94a3b8;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  margin-left: 4px;
+  white-space: nowrap;
+}
+.badge-direct-dial {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  margin-left: 4px;
+  white-space: nowrap;
+}
+
+/* Multi-Category Chips Container */
+.multi-cat-container {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  width: 100%;
+}
+.cat-tag-chip {
+  background: rgba(59, 130, 246, 0.15);
+  border: 1px solid rgba(59, 130, 246, 0.35);
+  color: #93c5fd;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.cat-tag-chip-x {
+  cursor: pointer;
+  font-weight: 800;
+  color: #f87171;
+  transition: color 0.15s ease;
+}
+.cat-tag-chip-x:hover {
+  color: #ef4444;
+}
+
 </style>
 </head>
 <body>
@@ -3927,6 +4283,17 @@ html[data-theme="light"] table.leads-table tr:hover {
           <option value="Audit">Audit Opportunity</option>
         </select>
 
+        <!-- Pipeline Status Filter -->
+        <select id="pipelineStatusFilter" class="filter-select" onchange="onPipelineStatusChange(this.value)">
+          <option value="all">Pipeline: All Leads</option>
+          <option value="new">Fresh / Uncontacted</option>
+          <option value="contacted">Contacted</option>
+          <option value="interested">Interested</option>
+          <option value="meeting">Meeting Scheduled</option>
+          <option value="won">Deal Won</option>
+          <option value="not_interested">Not Interested</option>
+        </select>
+
         <!-- Has Phone Toggle -->
         <button id="hasPhoneToggle" class="toggle-btn" onclick="toggleHasPhone()">
           <span>📞</span> Has Phone
@@ -3957,6 +4324,9 @@ html[data-theme="light"] table.leads-table tr:hover {
           <span id="activeCatText" class="pill-val"></span>
           <span class="pill-clear-x">✕</span>
         </div>
+
+        <!-- Multi-Category Active Tags Container -->
+        <div id="activeCatTagsRow" class="multi-cat-container" style="display:none;"></div>
       </div>
         <!-- Row 2: Export Range Filter (From Lead # to Lead #) -->
         <div class="toolbar-export-row">
@@ -3981,11 +4351,16 @@ html[data-theme="light"] table.leads-table tr:hover {
           </div>
 
           <div style="display:flex;align-items:center;gap:10px;">
+            <select id="exportFormatSelect" class="filter-select" style="max-width:135px;font-weight:700;" onchange="onExportFormatChange(this.value)">
+              <option value="xlsx" selected>Excel (.xlsx)</option>
+              <option value="csv">Standard (.csv)</option>
+              <option value="json">CRM (.json)</option>
+            </select>
             <div style="font-size:12px;color:var(--text-dim);">
               Ready to Export: <b style="color:var(--accent-emerald);font-weight:700;" id="exportCountBadge">5,000</b> leads
             </div>
             <button class="btn btn-emerald" id="exportRangeBtn" onclick="triggerRangeExport()" style="padding:6px 16px;font-size:13px;font-weight:700;display:flex;align-items:center;gap:6px;">
-              <span>📥</span> Download Range CSV
+              <span>📥</span> Download Range Excel
             </button>
           </div>
         </div>
@@ -4002,6 +4377,7 @@ html[data-theme="light"] table.leads-table tr:hover {
         <table class="leads-table">
           <thead>
             <tr>
+              <th style="width:36px;text-align:center;"><input type="checkbox" id="selectAllCheckbox" class="lead-checkbox" onchange="toggleSelectAllRows(this.checked)" title="Select all leads on current page"></th>
               <th style="width:45px;text-align:center;">#</th>
               <th onclick="setSort('Business Name')" style="min-width:180px;">Business Name ↕</th>
               <th onclick="setSort('Category')" style="min-width:160px;">Category ↕</th>
@@ -4029,6 +4405,47 @@ html[data-theme="light"] table.leads-table tr:hover {
         <div id="paginationInfo" style="font-size:13px;color:var(--text-muted);">Showing 1 to 50</div>
         <div class="page-btn-group" id="pageBtnGroup"></div>
       </div>
+    </div>
+
+    <!-- Floating Bulk Actions Toolbar -->
+    <div id="bulkActionBar" class="bulk-actions-toolbar">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span class="bulk-count-badge" id="bulkCountBadge">0</span>
+        <span style="font-size:12px;font-weight:600;color:var(--text-main);">Selected</span>
+      </div>
+      <div style="height:20px;width:1px;background:var(--border-strong);"></div>
+      <button type="button" class="bulk-btn" onclick="copySelectedEmails()" title="Copy all selected emails to clipboard">
+        <span>✉️</span> Copy Emails
+      </button>
+      <button type="button" class="bulk-btn" onclick="copySelectedPhones()" title="Copy all selected phones to clipboard">
+        <span>📞</span> Copy Phones
+      </button>
+      <div style="display:flex;align-items:center;gap:4px;">
+        <select id="bulkTagStatusSelect" class="filter-select" style="padding:4px 8px;font-size:11px;">
+          <option value="contacted">Mark: Contacted</option>
+          <option value="interested">Mark: Interested</option>
+          <option value="meeting">Mark: Meeting</option>
+          <option value="won">Mark: Deal Won</option>
+          <option value="not_interested">Mark: Not Interested</option>
+          <option value="new">Mark: Fresh</option>
+        </select>
+        <button type="button" class="bulk-btn bulk-btn-primary" onclick="batchTagSelected()" title="Batch update CRM status for selected leads">
+          Apply Status
+        </button>
+      </div>
+      <div style="display:flex;align-items:center;gap:4px;">
+        <select id="bulkExportFormatSelect" class="filter-select" style="padding:4px 8px;font-size:11px;">
+          <option value="xlsx">Excel (.xlsx)</option>
+          <option value="csv">CSV (.csv)</option>
+          <option value="json">JSON (.json)</option>
+        </select>
+        <button type="button" class="bulk-btn bulk-btn-emerald" onclick="exportSelectedLeads()" title="Export only selected leads">
+          <span>📥</span> Export Selected
+        </button>
+      </div>
+      <button type="button" class="bulk-btn" onclick="clearSelection()" title="Clear selection" style="color:var(--text-dim);border:none;background:transparent;">
+        ✕ Deselect
+      </button>
     </div>
   </div>
 

@@ -73,8 +73,9 @@ def init_lead_views(con, data_dir):
         FROM read_csv_auto('{f_restaurants}', ignore_errors=true, sample_size=1000)
         """)
 
-    realtor_paths = [p for p in [f_realtors_1, f_realtors_2] if os.path.exists(p)]
-    if realtor_paths:
+    # Duplicate elimination: Load only primary realtors CSV (eliminates 2,500 duplicate records)
+    realtor_path = f_realtors_1 if os.path.exists(f_realtors_1) else (f_realtors_2 if os.path.exists(f_realtors_2) else None)
+    if realtor_path:
         con.execute(f"""
         CREATE OR REPLACE VIEW v_realtors AS
         SELECT 
@@ -100,7 +101,7 @@ def init_lead_views(con, data_dir):
             '🏠 Realtors' as source_badge,
             'realtors' as source_id,
             '#8b5cf6' as source_color
-        FROM read_csv_auto({realtor_paths}, ignore_errors=true, sample_size=1000)
+        FROM read_csv_auto('{realtor_path}', ignore_errors=true, sample_size=1000)
         """)
 
     if os.path.exists(f_coaches):
@@ -425,14 +426,14 @@ LOCAL_SOURCES = [
         "id": "realtors",
         "label": "Licensed Realtors",
         "badge": "🏠 Realtors",
-        "name": "🏠 Licensed Realtors & Real Estate Agencies (5,000 Leads)",
-        "count": 5000,
-        "pct": 0.04,
+        "name": "🏠 Licensed Realtors & Real Estate Agencies (2,500 Leads)",
+        "count": 2500,
+        "pct": 0.02,
         "color": "#8b5cf6",
-        "tier_a": 3900,
-        "tier_b": 1100,
-        "with_phone": 4200,
-        "no_website": 1100,
+        "tier_a": 1950,
+        "tier_b": 550,
+        "with_phone": 2100,
+        "no_website": 550,
         "type": "category_csv"
     },
     {
@@ -540,7 +541,7 @@ VIEW_MAP = {
     "homeowners": ("v_homeowners", "🏡 Homeowners & Residential Real Estate (1.09M Leads)"),
     "realestate_b2b": ("v_realestate_b2b", "🏢 Real Estate B2B Registry (44,110 Companies)"),
     "restaurants": ("v_restaurants", "🍽️ Restaurants & Culinary Establishments (2,500 Leads)"),
-    "realtors": ("v_realtors", "🏠 Licensed Realtors & Real Estate Agencies (5,000 Leads)"),
+    "realtors": ("v_realtors", "🏠 Licensed Realtors & Real Estate Agencies (2,500 Leads)"),
     "coaches": ("v_coaches", "🎯 Executive Coaches & Consultants (2,500 Leads)"),
     "designers": ("v_designers", "🎨 Designers & Creative Studios (2,500 Leads)"),
     "entrepreneurs": ("v_entrepreneurs", "🚀 Entrepreneurs & Founders (2,502 Leads)"),
@@ -555,7 +556,7 @@ KNOWN_TOTALS = {
     "v_homeowners": (1088456, 780000, 308456, 320000),
     "v_realestate_b2b": (44110, 32000, 12110, 40000),
     "v_restaurants": (2500, 1850, 650, 1920),
-    "v_realtors": (5000, 3900, 1100, 4200),
+    "v_realtors": (2500, 1950, 550, 2100),
     "v_coaches": (2500, 1950, 550, 1800),
     "v_designers": (2500, 1820, 680, 1750),
     "v_entrepreneurs": (2502, 1980, 522, 1820),
@@ -563,7 +564,7 @@ KNOWN_TOTALS = {
     "v_musicians": (2501, 1740, 761, 1650)
 }
 
-def query_local_view_leads(view_name, dataset_id, dataset_name, tags=None, search=None, tier=None, state=None, country=None, category=None, major_category=None, opportunity=None, has_phone=False, page=1, page_size=50, sort_col=None, sort_dir="asc"):
+def query_local_view_leads(view_name, dataset_id, dataset_name, tags=None, search=None, tier=None, state=None, country=None, category=None, major_category=None, crm_status=None, opportunity=None, has_phone=False, page=1, page_size=50, sort_col=None, sort_dir="asc"):
     where = ["1=1"]
     params = []
     
@@ -581,8 +582,12 @@ def query_local_view_leads(view_name, dataset_id, dataset_name, tags=None, searc
         params.extend([f"%{state}%", f"%{state}%"])
         
     if category and category.lower() != "all":
-        where.append("category ILIKE ?")
-        params.append(f"%{category}%")
+        # Support multi-category filtering (comma-separated categories)
+        cat_tokens = [c.strip() for c in category.split(",") if c.strip() and c.strip().lower() != "all"]
+        if cat_tokens:
+            cat_clauses = ["category ILIKE ?" for _ in cat_tokens]
+            where.append("(" + " OR ".join(cat_clauses) + ")")
+            params.extend([f"%{c}%" for c in cat_tokens])
 
     if major_category and major_category.lower() not in ["all", ""]:
         norm_major = major_category.lower().strip()
@@ -591,6 +596,40 @@ def query_local_view_leads(view_name, dataset_id, dataset_name, tags=None, searc
             kw_pattern = "(?i)" + "|".join(matched_m["keywords"])
             where.append("regexp_matches(category || ' ' || name || ' ' || job_title, ?)")
             params.append(kw_pattern)
+
+    # CRM Pipeline Status Filter
+    if crm_status and crm_status.lower() not in ["all", ""]:
+        crm_status_clean = crm_status.lower().strip()
+        tags_dict = tags or {}
+        if crm_status_clean == "new":
+            # Fresh / Uncontacted: exclude all leads that have an explicit status other than 'new'
+            tagged_non_new_ids = []
+            for k, val in tags_dict.items():
+                if val.get("status") and val.get("status") != "new":
+                    parts = k.split(":")
+                    if len(parts) >= 2:
+                        tagged_non_new_ids.append(parts[1])
+            if tagged_non_new_ids:
+                # Limit in-clause size for safety
+                tagged_sample = tagged_non_new_ids[:1000]
+                placeholders = ",".join(["?" for _ in tagged_sample])
+                where.append(f"id NOT IN ({placeholders})")
+                params.extend(tagged_sample)
+        else:
+            # Specific tagged status (contacted, interested, meeting, won, not_interested)
+            tagged_matching_ids = []
+            for k, val in tags_dict.items():
+                if val.get("status") == crm_status_clean:
+                    parts = k.split(":")
+                    if len(parts) >= 2:
+                        tagged_matching_ids.append(parts[1])
+            if tagged_matching_ids:
+                tagged_sample = tagged_matching_ids[:1000]
+                placeholders = ",".join(["?" for _ in tagged_sample])
+                where.append(f"id IN ({placeholders})")
+                params.extend(tagged_sample)
+            else:
+                where.append("1=0")  # No leads tagged with this status yet
         
     if opportunity and opportunity.lower() != "all":
         where.append("opportunity ILIKE ?")
