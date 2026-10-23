@@ -296,6 +296,47 @@ function renderTable(leads, total) {
     return;
   }
 
+  const listLen = leads ? leads.length : 0;
+  let listPhoneCount = 0;
+  let listWebCount = 0;
+  let listEmailCount = 0;
+
+  if (listLen > 0) {
+    for (let i = 0; i < listLen; i++) {
+      const l = leads[i];
+      const p = l.phone ? String(l.phone).trim() : "";
+      if (p && p.length > 5 && !["null", "none", "nan", "n/a", "0", "-"].includes(p.toLowerCase())) {
+        listPhoneCount++;
+      }
+      const w = l.website ? String(l.website).trim() : "";
+      if (w && w.length > 3 && !["null", "none", "nan", "n/a", "-"].includes(w.toLowerCase()) && w.indexOf(".") !== -1) {
+        listWebCount++;
+      }
+      const e = l.email ? String(l.email).trim() : "";
+      if (e && e.length > 5 && !["null", "none", "nan", "n/a", "-"].includes(e.toLowerCase()) && e.indexOf("@") !== -1) {
+        listEmailCount++;
+      }
+    }
+  }
+
+  const listPhonePct = listLen > 0 ? ((listPhoneCount / listLen) * 100).toFixed(1) : "0.0";
+  const listWebPct = listLen > 0 ? ((listWebCount / listLen) * 100).toFixed(1) : "0.0";
+  const listEmailPct = listLen > 0 ? ((listEmailCount / listLen) * 100).toFixed(1) : "0.0";
+
+  // Update table header meta badges to explicitly display the active list coverage
+  const metaPhone = document.getElementById("metaPhoneCoverage");
+  if (metaPhone) {
+    metaPhone.innerHTML = listPhonePct + '% <span style="font-weight:500;opacity:0.85;font-size:11px;">(' + listPhoneCount + '/' + listLen + ' in list)</span>';
+  }
+  const metaWebsite = document.getElementById("metaWebsiteCoverage");
+  if (metaWebsite) {
+    metaWebsite.innerHTML = listWebPct + '% <span style="font-weight:500;opacity:0.85;font-size:11px;">(' + listWebCount + '/' + listLen + ' in list)</span>';
+  }
+  const metaEmail = document.getElementById("metaEmailCoverage");
+  if (metaEmail) {
+    metaEmail.innerHTML = listEmailPct + '% <span style="font-weight:500;opacity:0.85;font-size:11px;">(' + listEmailCount + '/' + listLen + ' in list)</span>';
+  }
+
   const freeWebmails = ["gmail.com", "yahoo.com", "hotmail.com", "outlook.com", "aol.com", "icloud.com", "mail.com", "zoho.com", "protonmail.com", "yandex.com", "gmx.com", "live.com"];
   let rowsHtml = "";
   for (let idx = 0; idx < leads.length; idx++) {

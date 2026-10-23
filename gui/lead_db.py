@@ -375,10 +375,10 @@ LOCAL_SOURCES = [
         "color": "#10b981",
         "tier_a": 9195000,
         "tier_b": 3506349,
-        "with_phone": 4210000,
-        "with_website": 8500000,
-        "with_email": 9250000,
-        "no_website": 4201349,
+        "with_phone": 11748747,
+        "with_website": 12459950,
+        "with_email": 12561633,
+        "no_website": 241399,
         "type": "local_unified",
         "is_default": False
     },
@@ -392,10 +392,10 @@ LOCAL_SOURCES = [
         "color": "#3b82f6",
         "tier_a": 8360000,
         "tier_b": 3188780,
-        "with_phone": 1836000,
-        "with_website": 5104000,
-        "with_email": 4920000,
-        "no_website": 6444780,
+        "with_phone": 10682621,
+        "with_website": 11329353,
+        "with_email": 11421743,
+        "no_website": 219427,
         "type": "b2b_shards"
     },
     {
@@ -572,11 +572,11 @@ VIEW_MAP = {
 }
 
 KNOWN_TOTALS = {
-    "all_global": (215789714, 157004184, 58785530, 43410000, 156000000, 148000000),
-    "all_local_unified": (12701349, 9195000, 3506349, 2525000, 5161000, 4981000),
-    "v_all_unified": (12701349, 9195000, 3506349, 2525000, 5161000, 4981000),
-    "b2b_executives": (11548780, 8360000, 3188780, 1836000, 5104000, 4920000),
-    "v_b2b_executives": (11548780, 8360000, 3188780, 1836000, 5104000, 4920000),
+    "all_global": (215789714, 157004184, 58785530, 197447588, 211473920, 213416027),
+    "all_local_unified": (12701349, 9195000, 3506349, 11748747, 12459950, 12561633),
+    "v_all_unified": (12701349, 9195000, 3506349, 11748747, 12459950, 12561633),
+    "b2b_executives": (11548780, 8360000, 3188780, 10682621, 11329353, 11421743),
+    "v_b2b_executives": (11548780, 8360000, 3188780, 10682621, 11329353, 11421743),
     "homeowners": (1088455, 383099, 705356, 635832, 0, 0),
     "v_homeowners": (1088455, 383099, 705356, 635832, 0, 0),
     "realestate_b2b": (44110, 44110, 0, 40787, 43253, 43616),
@@ -720,13 +720,13 @@ def query_local_view_leads(view_name, dataset_id, dataset_name, tags=None, searc
             tot, ta, tb, ph, web, em = 0, 0, 0, 0, 0, 0
     else:
         # Large dataset fallback
-        base_tot, base_ta, base_tb, base_ph, base_web, base_em = KNOWN_TOTALS.get(view_name, (1000000, 700000, 300000, 300000, 700000, 750000))
+        base_tot, base_ta, base_tb, base_ph, base_web, base_em = KNOWN_TOTALS.get(view_name, (1000000, 700000, 300000, 925000, 980000, 989000))
         tot = min(base_tot, 15000)
         ta = int(tot * 0.72)
         tb = tot - ta
-        ph = int(tot * 0.35)
-        web = int(tot * 0.70)
-        em = int(tot * 0.75)
+        ph = int(tot * 0.925)
+        web = int(tot * 0.980)
+        em = int(tot * 0.989)
 
     sql = f"""
     SELECT id, name, contact_name, job_title, category, address, city, state, zip, country,

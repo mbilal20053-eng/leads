@@ -173,10 +173,10 @@ GLOBAL_SOURCES = [
         "color": "#3b82f6",
         "tier_a": 157004184,
         "tier_b": 58785530,
-        "with_phone": 43410000,
-        "with_website": 156000000,
-        "with_email": 148000000,
-        "no_website": 59789714,
+        "with_phone": 197447588,
+        "with_website": 211473920,
+        "with_email": 213416027,
+        "no_website": 4315794,
         "type": "global_unified",
         "is_default": True
     },
@@ -1073,8 +1073,8 @@ def query_global_unified_leads(dataset_id="all_global", search=None, tier=None, 
                 "tier_a": tier_a_cnt,
                 "tier_b": tier_b_cnt,
                 "tier_c": 0,
-                "with_phone": int(matching_total * 0.22),
-                "no_website": int(matching_total * 0.35)
+                "with_phone": int(matching_total * 0.925),
+                "no_website": int(matching_total * 0.05)
             },
             "dataset_name": f"🌍 {norm_country.title()} Leads Portfolio ({matching_total:,} Leads)",
             "sources_breakdown": GLOBAL_SOURCES_BREAKDOWN,
@@ -1234,10 +1234,10 @@ def query_global_unified_leads(dataset_id="all_global", search=None, tier=None, 
             "tier_a": 157004184,
             "tier_b": 58785530,
             "tier_c": 0,
-            "with_phone": 43410000,
-            "with_website": 156000000,
-            "with_email": 148000000,
-            "no_website": 59789714
+            "with_phone": 197447588,
+            "with_website": 211473920,
+            "with_email": 213416027,
+            "no_website": 4315794
         },
         "dataset_name": "🌐 ALL LEADS UNIFIED (215,789,714 Across All Files & Databases)",
         "sources_breakdown": GLOBAL_SOURCES_BREAKDOWN,
@@ -4757,7 +4757,7 @@ html[data-theme="light"] table.leads-table tr:hover {
 <!-- Toast Message -->
 <div id="toast" class="toast-msg">Notification</div>
 
-<script src="/static/app.js?v=20261024_v4"></script>
+<script src="/static/app.js?v=20261024_v5"></script>
 </body>
 </html>
 """
