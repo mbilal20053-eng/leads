@@ -7,6 +7,7 @@ let currentSearch = "";
 let currentTier = "all";
 let currentState = "all";
 let currentCountry = "all";
+let currentMajorCategory = "all";
 let currentCategory = "all";
 let currentOpportunity = "all";
 let currentHasPhone = false;
@@ -56,6 +57,7 @@ async function loadLeads() {
     tier: currentTier,
     state: currentState,
     country: currentCountry,
+    major_category: currentMajorCategory,
     category: currentCategory,
     opportunity: currentOpportunity,
     has_phone: currentHasPhone ? "true" : "false",
@@ -75,7 +77,11 @@ async function loadLeads() {
     renderTable(data.leads, data.total);
     renderPagination(data.total, data.page, data.page_size);
     if (data.states) updateStatesFilter(data.states);
+    if (data.major_categories) updateMajorCategoriesDropdown(data.major_categories);
+    if (data.categories_hierarchy) categoriesHierarchyCache = data.categories_hierarchy;
     if (data.categories) updateCategoriesFilter(data.categories);
+    updateActiveMajorPill();
+    updateActiveCategoryPill();
     if (metaStatus) metaStatus.textContent = "Up to date";
   } catch (err) {
     console.error("Error loading leads:", err);
@@ -263,11 +269,25 @@ function renderTable(leads, total) {
       bizNameHtml = '<div class="biz-name" title="' + escapeHtml(nm) + '">' + escapeHtml(nm) + badgeHtml + '</div>';
     }
 
-    // 2. Category
+    // 2. Category (Major Category + Minor Category)
     let catHtml = '<span class="empty-box">-</span>';
     const catVal = (lead.category && String(lead.category).trim() && String(lead.category) !== "None") ? String(lead.category).trim() : "";
-    if (catVal) {
-      catHtml = '<span class="table-cat-pill" title="Click to filter by category: ' + escapeHtml(catVal) + '" onclick="event.stopPropagation(); filterByCategory(\'' + escapeHtml(catVal).replace(/'/g, "\\'") + '\')">🏷️ ' + escapeHtml(catVal) + '</span>';
+    const majorVal = (lead.major_category && String(lead.major_category).trim() && String(lead.major_category) !== "None") ? String(lead.major_category).trim() : "";
+    const majorIcon = lead.major_icon || "🏢";
+    const majorId = lead.major_id || "";
+
+    if (catVal || majorVal) {
+      let parts = '<div class="table-category-cell">';
+      if (majorVal) {
+        parts += '<span class="table-major-badge" title="Filter by Major Group: ' + escapeHtml(majorVal) + '" onclick="event.stopPropagation(); filterByMajorCategory(\'' + escapeHtml(majorId || majorVal).replace(/'/g, "\\'") + '\')">' + majorIcon + ' ' + escapeHtml(majorVal) + '</span>';
+      }
+      if (catVal && catVal.toLowerCase() !== majorVal.toLowerCase()) {
+        parts += '<span class="table-cat-pill" title="Filter by Minor Category: ' + escapeHtml(catVal) + '" onclick="event.stopPropagation(); filterByCategory(\'' + escapeHtml(catVal).replace(/'/g, "\\'") + '\')">🏷️ ' + escapeHtml(catVal) + '</span>';
+      } else if (!majorVal && catVal) {
+        parts += '<span class="table-cat-pill" title="Filter by Minor Category: ' + escapeHtml(catVal) + '" onclick="event.stopPropagation(); filterByCategory(\'' + escapeHtml(catVal).replace(/'/g, "\\'") + '\')">🏷️ ' + escapeHtml(catVal) + '</span>';
+      }
+      parts += '</div>';
+      catHtml = parts;
     }
 
     // 3. Owner / Contact
@@ -447,25 +467,29 @@ function updateStatesFilter(states) {
 }
 
 let allCategoriesCache = [];
+let categoriesHierarchyCache = [];
+let majorCategoriesCache = [];
+
+function updateMajorCategoriesDropdown(majors) {
+  if (!majors || majors.length === 0) return;
+  majorCategoriesCache = majors;
+  const select = document.getElementById("majorCatFilter");
+  if (select) {
+    const curr = currentMajorCategory || "all";
+    let html = '<option value="all">🏢 All Major Groups (' + majors.length + ')</option>';
+    for (let i = 0; i < majors.length; i++) {
+      const m = majors[i];
+      const isSel = (m.id.toLowerCase() === curr.toLowerCase() || m.name.toLowerCase() === curr.toLowerCase());
+      html += '<option value="' + escapeHtml(m.id) + '"' + (isSel ? ' selected' : '') + '>' + (m.icon ? m.icon + ' ' : '') + escapeHtml(m.name) + '</option>';
+    }
+    select.innerHTML = html;
+  }
+}
 
 function updateCategoriesFilter(categories) {
   if (!categories || categories.length === 0) return;
   allCategoriesCache = categories;
-  
-  const select = document.getElementById("catFilter");
-  if (select) {
-    const curr = currentCategory || "all";
-    let html = '<option value="all">🏷️ All Categories (' + categories.length + ' Verticals)</option>';
-    for (let i = 0; i < categories.length; i++) {
-      const c = categories[i];
-      const val = typeof c === 'object' ? c.id : c;
-      const countSuffix = typeof c === 'object' ? ' (' + (c.badge || c.count_str) + ')' : '';
-      const label = typeof c === 'object' ? c.label : c;
-      const isSel = (val === curr || (curr !== "all" && val.toLowerCase() === curr.toLowerCase()));
-      html += '<option value="' + escapeHtml(val) + '"' + (isSel ? ' selected' : '') + '>' + escapeHtml(label + countSuffix) + '</option>';
-    }
-    select.innerHTML = html;
-  }
+  updateMinorCategoryDropdown();
   
   const browseBtn = document.getElementById("browseCategoriesBtn");
   if (browseBtn) {
@@ -474,6 +498,81 @@ function updateCategoriesFilter(categories) {
   }
   
   updateActiveCategoryPill();
+  updateActiveMajorPill();
+}
+
+function updateMinorCategoryDropdown() {
+  const select = document.getElementById("catFilter");
+  if (!select) return;
+
+  let cats = allCategoriesCache;
+  if (currentMajorCategory && currentMajorCategory !== "all") {
+    const normM = currentMajorCategory.toLowerCase();
+    cats = allCategoriesCache.filter(function(c) {
+      const mid = (c.major_id || "").toLowerCase();
+      const mname = (c.major_name || "").toLowerCase();
+      return mid === normM || mname === normM;
+    });
+  }
+
+  const curr = currentCategory || "all";
+  let title = currentMajorCategory !== "all" 
+    ? '🏷️ All in Selected Major (' + cats.length + ' Minors)' 
+    : '🏷️ All Categories (' + allCategoriesCache.length + ' Verticals)';
+    
+  let html = '<option value="all">' + escapeHtml(title) + '</option>';
+  for (let i = 0; i < cats.length; i++) {
+    const c = cats[i];
+    const val = typeof c === 'object' ? c.id : c;
+    const countSuffix = typeof c === 'object' ? ' (' + (c.badge || c.count_str) + ')' : '';
+    const label = typeof c === 'object' ? c.label : c;
+    const isSel = (val === curr || (curr !== "all" && val.toLowerCase() === curr.toLowerCase()));
+    html += '<option value="' + escapeHtml(val) + '"' + (isSel ? ' selected' : '') + '>' + escapeHtml(label + countSuffix) + '</option>';
+  }
+  select.innerHTML = html;
+}
+
+function onMajorCatChange(val) {
+  filterByMajorCategory(val);
+}
+
+function filterByMajorCategory(val) {
+  currentMajorCategory = val || "all";
+  currentPage = 1;
+
+  const select = document.getElementById("majorCatFilter");
+  if (select) {
+    select.value = currentMajorCategory;
+  }
+
+  // Update minor categories dropdown to reflect this major category
+  updateMinorCategoryDropdown();
+  updateActiveMajorPill();
+  loadLeads();
+}
+
+function clearMajorCategoryFilter() {
+  filterByMajorCategory("all");
+}
+
+function updateActiveMajorPill() {
+  const pill = document.getElementById("activeMajorPill");
+  const text = document.getElementById("activeMajorText");
+  if (!pill) return;
+
+  if (currentMajorCategory && currentMajorCategory !== "all") {
+    let displayName = currentMajorCategory;
+    const found = majorCategoriesCache.find(function(m) {
+      return m.id.toLowerCase() === currentMajorCategory.toLowerCase() || m.name.toLowerCase() === currentMajorCategory.toLowerCase();
+    });
+    if (found) {
+      displayName = (found.icon ? found.icon + " " : "") + found.name;
+    }
+    if (text) text.textContent = displayName;
+    pill.style.display = "inline-flex";
+  } else {
+    pill.style.display = "none";
+  }
 }
 
 function updateActiveCategoryPill() {
@@ -540,6 +639,20 @@ function filterByCategory(val) {
     }
   }
   
+  // If minor category belongs to a major category, sync it if needed
+  if (val !== "all") {
+    const norm = val.toLowerCase();
+    const found = allCategoriesCache.find(function(c) {
+      return (typeof c === 'object' && c.id && c.id.toLowerCase() === norm);
+    });
+    if (found && found.major_id && currentMajorCategory !== "all" && currentMajorCategory !== found.major_id) {
+      currentMajorCategory = found.major_id;
+      const mSel = document.getElementById("majorCatFilter");
+      if (mSel) mSel.value = currentMajorCategory;
+      updateActiveMajorPill();
+    }
+  }
+  
   updateActiveCategoryPill();
   loadLeads();
 }
@@ -552,12 +665,28 @@ function onCatChange(val) {
   filterByCategory(val);
 }
 
+function resetAllCategoryFilters() {
+  currentMajorCategory = "all";
+  currentCategory = "all";
+  const mSel = document.getElementById("majorCatFilter"); if (mSel) mSel.value = "all";
+  const cSel = document.getElementById("catFilter"); if (cSel) cSel.value = "all";
+  const cInp = document.getElementById("catQuickAddInput"); if (cInp) cInp.value = "";
+  updateMinorCategoryDropdown();
+  updateActiveMajorPill();
+  updateActiveCategoryPill();
+  loadLeads();
+}
+
 // Categories Browser Modal
 function openCategoriesModal() {
   const modal = document.getElementById("categoriesModal");
   if (!modal) return;
   modal.style.display = "flex";
-  renderCategoriesGrid(allCategoriesCache);
+  
+  const pills = document.querySelectorAll("#catQuickPills .cat-quick-pill");
+  pills.forEach(function(p, i) { p.classList.toggle("active", i === 0); });
+
+  renderCategoriesHierarchyInModal(categoriesHierarchyCache);
   const searchInput = document.getElementById("catModalSearch");
   if (searchInput) {
     searchInput.value = "";
@@ -574,37 +703,56 @@ function clearCatModalSearch() {
   const searchInput = document.getElementById("catModalSearch");
   if (searchInput) {
     searchInput.value = "";
-    filterCategoriesInModal("");
+    renderCategoriesHierarchyInModal(categoriesHierarchyCache);
     searchInput.focus();
   }
 }
 
 function filterCategoriesInModal(query) {
   if (!query) {
-    renderCategoriesGrid(allCategoriesCache);
+    renderCategoriesHierarchyInModal(categoriesHierarchyCache);
     return;
   }
   const q = query.toLowerCase().trim();
-  const filtered = allCategoriesCache.filter(function(c) {
-    const id = typeof c === 'object' ? c.id.toLowerCase() : c.toLowerCase();
-    const lbl = typeof c === 'object' ? c.label.toLowerCase() : c.toLowerCase();
-    return id.indexOf(q) !== -1 || lbl.indexOf(q) !== -1;
-  });
-  renderCategoriesGrid(filtered);
+  
+  // Filter hierarchy by checking minor categories or major names
+  const filtered = [];
+  for (let i = 0; i < categoriesHierarchyCache.length; i++) {
+    const node = categoriesHierarchyCache[i];
+    const majorMatches = (node.name.toLowerCase().indexOf(q) !== -1 || node.id.toLowerCase().indexOf(q) !== -1);
+    const matchingMinors = (node.minors || []).filter(function(c) {
+      const id = typeof c === 'object' ? c.id.toLowerCase() : c.toLowerCase();
+      const lbl = typeof c === 'object' ? c.label.toLowerCase() : c.toLowerCase();
+      return id.indexOf(q) !== -1 || lbl.indexOf(q) !== -1;
+    });
+
+    if (majorMatches || matchingMinors.length > 0) {
+      filtered.push({
+        ...node,
+        minors: majorMatches && matchingMinors.length === 0 ? node.minors : matchingMinors
+      });
+    }
+  }
+  renderCategoriesHierarchyInModal(filtered, q);
 }
 
-function quickFilterCategory(catId) {
+function quickFilterMajorModal(majorId) {
   const pills = document.querySelectorAll("#catQuickPills .cat-quick-pill");
   pills.forEach(function(p) { p.classList.remove("active"); });
   if (window.event && window.event.target) {
     window.event.target.classList.add("active");
   }
-  
-  if (catId === 'all') {
-    filterCategoriesInModal("");
+
+  const searchInput = document.getElementById("catModalSearch");
+  if (searchInput) searchInput.value = "";
+
+  if (majorId === 'all') {
+    renderCategoriesHierarchyInModal(categoriesHierarchyCache);
   } else {
-    filterByCategory(catId);
-    closeCategoriesModal();
+    const filtered = categoriesHierarchyCache.filter(function(m) {
+      return m.id.toLowerCase() === majorId.toLowerCase();
+    });
+    renderCategoriesHierarchyInModal(filtered);
   }
 }
 
@@ -613,39 +761,70 @@ function selectCategoryFromModal(val) {
   closeCategoriesModal();
 }
 
-function renderCategoriesGrid(list) {
+function selectMajorFromModal(val) {
+  filterByMajorCategory(val);
+  closeCategoriesModal();
+}
+
+function renderCategoriesHierarchyInModal(hierarchyList, searchQuery) {
   const grid = document.getElementById("categoriesGrid");
   const countEl = document.getElementById("catResultsCount");
   if (!grid) return;
-  
-  const items = list || [];
-  if (countEl) {
-    countEl.textContent = "Showing " + items.length + " categories";
+
+  const nodes = hierarchyList || [];
+  let totalMinors = 0;
+  for (let i = 0; i < nodes.length; i++) {
+    totalMinors += (nodes[i].minors ? nodes[i].minors.length : 0);
   }
-  
-  if (items.length === 0) {
-    grid.innerHTML = '<div class="no-categories-found">No categories matching your search. Try searching for "health", "real estate", "tech", "food", or "construction".</div>';
+
+  if (countEl) {
+    if (searchQuery) {
+      countEl.textContent = 'Found ' + totalMinors + ' minor categories matching "' + searchQuery + '" across ' + nodes.length + ' Major Groups';
+    } else {
+      countEl.textContent = 'Showing ' + nodes.length + ' Major Groups with ' + totalMinors + ' Minor Verticals';
+    }
+  }
+
+  if (nodes.length === 0 || totalMinors === 0) {
+    grid.innerHTML = '<div class="no-categories-found">No categories matching your search. Try searching for "hotel", "cafe", "restaurant", "health", "tech", or "construction".</div>';
     return;
   }
-  
+
   let html = '';
-  for (let i = 0; i < items.length; i++) {
-    const c = items[i];
-    const val = typeof c === 'object' ? c.id : c;
-    const label = typeof c === 'object' ? c.label : c;
-    const countBadge = typeof c === 'object' ? (c.badge || c.count_str) : '';
-    const isActive = (val === currentCategory || (currentCategory !== 'all' && val.toLowerCase() === currentCategory.toLowerCase()));
-    
-    html += '<div class="cat-card ' + (isActive ? 'active' : '') + '" onclick="selectCategoryFromModal(\'' + escapeHtml(val).replace(/'/g, "\\'") + '\')">' +
-      '<div class="cat-card-header">' +
-        '<span class="cat-card-name">' + escapeHtml(label) + '</span>' +
-        (countBadge ? '<span class="cat-card-badge">' + escapeHtml(countBadge) + '</span>' : '') +
+  for (let i = 0; i < nodes.length; i++) {
+    const node = nodes[i];
+    const isMajorActive = (currentMajorCategory && (currentMajorCategory.toLowerCase() === node.id.toLowerCase() || currentMajorCategory.toLowerCase() === node.name.toLowerCase()));
+    const minors = node.minors || [];
+
+    html += '<div class="major-cat-section">' +
+      '<div class="major-section-header">' +
+        '<div class="major-section-title" onclick="selectMajorFromModal(\'' + escapeHtml(node.id).replace(/'/g, "\\'") + '\')">' +
+          '<span style="font-size:18px;">' + (node.icon || '🏢') + '</span>' +
+          '<span>' + escapeHtml(node.name) + '</span>' +
+          '<span class="major-section-badge">' + (node.badge || node.total_count_str) + ' leads</span>' +
+        '</div>' +
+        '<button type="button" class="major-filter-btn" onclick="selectMajorFromModal(\'' + escapeHtml(node.id).replace(/'/g, "\\'") + '\')">' +
+          (isMajorActive ? '✓ Group Active' : 'Filter Major Group →') +
+        '</button>' +
       '</div>' +
-      '<div class="cat-card-action">' +
-        '<span>' + (isActive ? '✓ Selected' : 'Filter by this →') + '</span>' +
-      '</div>' +
-    '</div>';
+      '<div class="minor-chips-grid">';
+
+    for (let j = 0; j < minors.length; j++) {
+      const c = minors[j];
+      const val = typeof c === 'object' ? c.id : c;
+      const label = typeof c === 'object' ? c.label : c;
+      const countBadge = typeof c === 'object' ? (c.badge || c.count_str) : '';
+      const isMinorActive = (val === currentCategory || (currentCategory !== 'all' && val.toLowerCase() === currentCategory.toLowerCase()));
+
+      html += '<div class="minor-chip ' + (isMinorActive ? 'active' : '') + '" onclick="selectCategoryFromModal(\'' + escapeHtml(val).replace(/'/g, "\\'") + '\')" title="Filter leads by ' + escapeHtml(label) + '">' +
+        '<span>' + escapeHtml(label) + '</span>' +
+        (countBadge ? '<span class="minor-chip-count">' + escapeHtml(countBadge) + '</span>' : '') +
+      '</div>';
+    }
+
+    html += '</div></div>';
   }
+
   grid.innerHTML = html;
 }
 
@@ -741,6 +920,7 @@ function resetFilters() {
   currentState = "all";
   currentCountry = "all";
   const cSel = document.getElementById("countryFilter"); if (cSel) cSel.value = "all";
+  currentMajorCategory = "all";
   currentCategory = "all";
   currentOpportunity = "all";
   currentHasPhone = false;
@@ -762,6 +942,9 @@ function resetFilters() {
   
   const stateSel = document.getElementById("stateFilter");
   if (stateSel) stateSel.value = "all";
+
+  const majorSel = document.getElementById("majorCatFilter");
+  if (majorSel) majorSel.value = "all";
   
   const catSel = document.getElementById("catFilter");
   if (catSel) catSel.value = "all";
@@ -771,6 +954,8 @@ function resetFilters() {
   const oppSel = document.getElementById("oppFilter");
   if (oppSel) oppSel.value = "all";
   
+  updateMinorCategoryDropdown();
+  updateActiveMajorPill();
   updateActiveCategoryPill();
   loadLeads();
 }
@@ -1019,6 +1204,7 @@ function triggerRangeExport() {
     tier: currentTier || "all",
     state: currentState || "all",
     country: currentCountry || "all",
+    major_category: currentMajorCategory || "all",
     category: currentCategory || "all",
     opportunity: currentOpportunity || "all",
     has_phone: currentHasPhone ? "true" : "false",

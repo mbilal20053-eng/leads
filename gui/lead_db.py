@@ -563,7 +563,7 @@ KNOWN_TOTALS = {
     "v_musicians": (2501, 1740, 761, 1650)
 }
 
-def query_local_view_leads(view_name, dataset_id, dataset_name, tags=None, search=None, tier=None, state=None, country=None, category=None, opportunity=None, has_phone=False, page=1, page_size=50, sort_col=None, sort_dir="asc"):
+def query_local_view_leads(view_name, dataset_id, dataset_name, tags=None, search=None, tier=None, state=None, country=None, category=None, major_category=None, opportunity=None, has_phone=False, page=1, page_size=50, sort_col=None, sort_dir="asc"):
     where = ["1=1"]
     params = []
     
@@ -583,6 +583,14 @@ def query_local_view_leads(view_name, dataset_id, dataset_name, tags=None, searc
     if category and category.lower() != "all":
         where.append("category ILIKE ?")
         params.append(f"%{category}%")
+
+    if major_category and major_category.lower() not in ["all", ""]:
+        norm_major = major_category.lower().strip()
+        matched_m = next((m for m in categories_service.MAJOR_CATEGORIES if m["id"] == norm_major or m["name"].lower() == norm_major), None)
+        if matched_m:
+            kw_pattern = "(?i)" + "|".join(matched_m["keywords"])
+            where.append("regexp_matches(category || ' ' || name || ' ' || job_title, ?)")
+            params.append(kw_pattern)
         
     if opportunity and opportunity.lower() != "all":
         where.append("opportunity ILIKE ?")
@@ -654,11 +662,17 @@ def query_local_view_leads(view_name, dataset_id, dataset_name, tags=None, searc
     for r in rows:
         row_dict = dict(zip(cols, r))
         raw_cat = row_dict.get("category", "")
-        row_dict["category"] = categories_service.infer_biz_category(
+        major_name, minor_name, major_icon, major_id = categories_service.infer_lead_categories(
             str(row_dict.get("name") or ""),
             str(row_dict.get("job_title") or ""),
             raw_cat
         )
+        row_dict["category"] = minor_name
+        row_dict["vertical"] = minor_name
+        row_dict["major_category"] = major_name
+        row_dict["major_id"] = major_id
+        row_dict["major_icon"] = major_icon
+
         lid = str(row_dict["id"])
         name = str(row_dict["name"])
         source_id = str(row_dict.get("source_id", dataset_id))
@@ -694,6 +708,8 @@ def query_local_view_leads(view_name, dataset_id, dataset_name, tags=None, searc
         },
         "states": states_list,
         "categories": categories_list,
+        "major_categories": categories_service.get_major_categories_list(),
+        "categories_hierarchy": categories_service.get_categories_hierarchy(dataset_id),
         "leads": leads,
         "dataset_name": dataset_name,
         "dataset_id": dataset_id,

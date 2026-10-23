@@ -1531,15 +1531,19 @@ def api_datasets():
 def api_categories():
     dataset_id = request.args.get("dataset", "all_global")
     query = request.args.get("q", "")
-    cats = categories_service.search_categories(query, dataset_id)
+    major = request.args.get("major", "all")
+    cats = categories_service.search_categories(query, dataset_id, major_category=major)
+    hierarchy = categories_service.get_categories_hierarchy(dataset_id)
     return jsonify({
         "dataset": dataset_id,
         "total": len(cats),
-        "categories": cats
+        "categories": cats,
+        "major_categories": categories_service.get_major_categories_list(),
+        "hierarchy": hierarchy
     })
 
 
-def generate_leads_export_csv(dataset_id, export_from=1, export_to=5000, search=None, category=None, tier=None, state=None, country=None, opportunity=None, has_phone=False):
+def generate_leads_export_csv(dataset_id, export_from=1, export_to=5000, search=None, category=None, major_category=None, tier=None, state=None, country=None, opportunity=None, has_phone=False):
     """Generates streaming CSV data for custom row ranges (From lead X to lead Y) across all databases."""
     start_row = max(1, int(export_from))
     end_row = max(start_row, int(export_to))
@@ -1574,6 +1578,13 @@ def generate_leads_export_csv(dataset_id, export_from=1, export_to=5000, search=
         if category and category.lower() != "all":
             where.append("category ILIKE ?")
             params.append(f"%{category}%")
+        if major_category and major_category.lower() not in ["all", ""]:
+            norm_major = major_category.lower().strip()
+            matched_m = next((m for m in categories_service.MAJOR_CATEGORIES if m["id"] == norm_major or m["name"].lower() == norm_major), None)
+            if matched_m:
+                kw_pattern = "(?i)" + "|".join(matched_m["keywords"])
+                where.append("regexp_matches(category || ' ' || name || ' ' || job_title, ?)")
+                params.append(kw_pattern)
         if has_phone:
             where.append("(phone IS NOT NULL AND length(trim(phone)) > 0)")
         where_sql = " AND ".join(where)
@@ -1585,11 +1596,12 @@ def generate_leads_export_csv(dataset_id, export_from=1, export_to=5000, search=
         """
         rows = cur.execute(sql, params).fetchall()
         for i, r in enumerate(rows):
-            cat_inf = categories_service.infer_biz_category(str(r[1] or ""), str(r[4] or ""), str(r[2] or ""))
+            major_name, minor_name, major_icon, major_id = categories_service.infer_lead_categories(str(r[1] or ""), str(r[4] or ""), str(r[2] or ""))
+            cat_display = f"{major_name} - {minor_name}" if major_name != minor_name else minor_name
             leads.append({
                 "#": start_row + i,
                 "Business Name": str(r[1] or ""),
-                "Category": cat_inf,
+                "Category": cat_display,
                 "Owner / Contact": str(r[3] or ""),
                 "Role & Notes": str(r[4] or ""),
                 "Email": str(r[5] or ""),
@@ -1860,6 +1872,7 @@ def api_leads():
     state = request.args.get("state", "all").strip()
     country = request.args.get("country", "all").strip()
     category = request.args.get("category", "all").strip()
+    major_category = request.args.get("major_category", "all").strip()
     opportunity = request.args.get("opportunity", "all").strip()
     has_phone = request.args.get("has_phone", "false").lower() == "true"
     page = max(1, int(request.args.get("page", 1)))
@@ -1875,7 +1888,7 @@ def api_leads():
         export_to = max(export_from, int(request.args.get("export_to", default_to)))
         csv_text = generate_leads_export_csv(
             dataset_id, export_from=export_from, export_to=export_to,
-            search=search, category=category, tier=tier, state=state, country=country,
+            search=search, category=category, major_category=major_category, tier=tier, state=state, country=country,
             opportunity=opportunity, has_phone=has_phone
         )
         fname = f"leads_export_{dataset_id}_rows_{export_from}_to_{export_to}.csv"
@@ -1894,13 +1907,15 @@ def api_leads():
         res = query_local_view_leads(
             view_name, dataset_id, view_title, tags=tags,
             search=search, tier=tier, state=state, country=country,
-            category=category, opportunity=opportunity, has_phone=has_phone,
+            category=category, major_category=major_category, opportunity=opportunity, has_phone=has_phone,
             page=page, page_size=page_size, sort_col=sort_col, sort_dir=sort_dir
         )
         if not res.get("categories") or len(res.get("categories", [])) < 10:
             res["categories"] = categories_service.get_categories_for_dataset(dataset_id)
             if not res["categories"] or len(res["categories"]) < 10:
                 res["categories"] = categories_service.get_all_categories()
+        res["major_categories"] = categories_service.get_major_categories_list()
+        res["categories_hierarchy"] = categories_service.get_categories_hierarchy(dataset_id)
         res["sources_breakdown"] = GLOBAL_SOURCES_BREAKDOWN
         res["dataset_id"] = dataset_id
         src_info = next((s for s in GLOBAL_SOURCES if s["id"] == dataset_id), None)
@@ -1944,20 +1959,38 @@ def api_leads():
         res = query_source_dataset_fallback(dataset_id, search=search, category=category, tier=tier, state=state, country=country, has_phone=has_phone, page=page, page_size=page_size, sort_col=sort_col, sort_dir=sort_dir)
 
     # Universal category post-processing for EVERY returned lead across all datasets
+    filtered_leads = []
     for lead in res.get("leads", []):
         raw_cat = lead.get("category") or lead.get("vertical") or ""
-        lead["category"] = categories_service.infer_biz_category(
+        major_name, minor_name, major_icon, major_id = categories_service.infer_lead_categories(
             lead.get("name", ""),
             lead.get("job_title", "") or lead.get("notes", ""),
             raw_cat
         )
-        lead["vertical"] = lead["category"]
+        lead["category"] = minor_name
+        lead["vertical"] = minor_name
+        lead["major_category"] = major_name
+        lead["major_id"] = major_id
+        lead["major_icon"] = major_icon
+        
+        # If major_category is active, ensure lead matches
+        if major_category and major_category.lower() not in ["all", ""]:
+            norm_m = major_category.lower()
+            if lead["major_id"].lower() != norm_m and lead["major_category"].lower() != norm_m:
+                continue
+        filtered_leads.append(lead)
 
-    # Guarantee full category list for UI filter & modal
+    if major_category and major_category.lower() not in ["all", ""]:
+        res["leads"] = filtered_leads
+
+    # Guarantee full category list and major categories for UI filter & modal
     if not res.get("categories") or len(res.get("categories", [])) < 10:
         res["categories"] = categories_service.get_categories_for_dataset(dataset_id)
         if not res["categories"] or len(res["categories"]) < 10:
             res["categories"] = categories_service.get_all_categories()
+
+    res["major_categories"] = categories_service.get_major_categories_list()
+    res["categories_hierarchy"] = categories_service.get_categories_hierarchy(dataset_id)
 
     # Guaranteed metadata injection in every response
     res["sources_breakdown"] = GLOBAL_SOURCES_BREAKDOWN
@@ -1977,13 +2010,14 @@ def api_export_range():
     state = request.args.get("state", "all").strip()
     country = request.args.get("country", "all").strip()
     category = request.args.get("category", "all").strip()
+    major_category = request.args.get("major_category", "all").strip()
     opportunity = request.args.get("opportunity", "all").strip()
     has_phone = request.args.get("has_phone", "false").lower() == "true"
     export_from = max(1, int(request.args.get("export_from", 1)))
     export_to = max(export_from, int(request.args.get("export_to", export_from + 4999)))
     csv_text = generate_leads_export_csv(
         dataset_id, export_from=export_from, export_to=export_to,
-        search=search, category=category, tier=tier, state=state, country=country,
+        search=search, category=category, major_category=major_category, tier=tier, state=state, country=country,
         opportunity=opportunity, has_phone=has_phone
     )
     fname = f"leads_export_{dataset_id}_rows_{export_from}_to_{export_to}.csv"
@@ -3326,6 +3360,18 @@ html[data-theme="light"] table.leads-table tr:hover {
   transform: translateY(-1px);
   box-shadow: 0 2px 8px rgba(168, 85, 247, 0.25);
 }
+.major-cat-select {
+  min-width: 210px;
+  max-width: 260px;
+  background: var(--bg-card);
+  border: 1px solid rgba(59, 130, 246, 0.45);
+  color: #93c5fd;
+  font-weight: 700;
+}
+.major-cat-select:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.35);
+}
 .cat-select {
   min-width: 190px;
   max-width: 250px;
@@ -3368,6 +3414,14 @@ html[data-theme="light"] table.leads-table tr:hover {
 .active-filter-pill:hover {
   background: rgba(16, 185, 129, 0.25);
 }
+.active-filter-pill.major-pill {
+  background: rgba(59, 130, 246, 0.15);
+  border-color: rgba(59, 130, 246, 0.45);
+  color: #60a5fa;
+}
+.active-filter-pill.major-pill .pill-val {
+  color: #93c5fd;
+}
 .pill-label {
   color: var(--text-dim);
   font-size: 11px;
@@ -3393,7 +3447,35 @@ html[data-theme="light"] table.leads-table tr:hover {
   color: #fff;
 }
 
-/* Category Badge in Table */
+/* Category Badge & Major Hierarchy in Table */
+.table-category-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  align-items: flex-start;
+}
+.table-major-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  background: rgba(59, 130, 246, 0.12);
+  border: 1px solid rgba(59, 130, 246, 0.28);
+  color: #60a5fa;
+  padding: 1px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+.table-major-badge:hover {
+  background: rgba(59, 130, 246, 0.25);
+  border-color: #3b82f6;
+  color: #fff;
+}
 .role-cell-wrap {
   display: flex;
   flex-direction: column;
@@ -3798,17 +3880,41 @@ html[data-theme="light"] table.leads-table tr:hover {
           <option value="all">All States / Regions</option>
         </select>
 
-        <!-- Dedicated Category Filter & Add Section -->
+        <!-- Dedicated Major & Minor Category Filter Section -->
         <div class="category-filter-wrap">
-          <div class="cat-input-group" title="Type any category and click Filter to see all rows in that category">
+          <!-- Major Category Dropdown -->
+          <select id="majorCatFilter" class="filter-select major-cat-select" onchange="onMajorCatChange(this.value)" title="Filter by Major Category (e.g. Restaurants & Hospitality, Real Estate, Healthcare, Tech...)">
+            <option value="all">🏢 All Major Categories (14)</option>
+            <option value="restaurants_hospitality">🍽️ Restaurants & Hospitality</option>
+            <option value="real_estate">🏢 Real Estate & Property</option>
+            <option value="healthcare_medical">🏥 Healthcare & Medical</option>
+            <option value="tech_software">💻 Tech, Software & IT</option>
+            <option value="construction_trades">🔨 Construction & Trades</option>
+            <option value="corporate_professional">👔 Corporate & Professional</option>
+            <option value="financial_banking">💳 Financial & Banking</option>
+            <option value="legal_government">⚖️ Legal & Government</option>
+            <option value="automotive_transport">🚗 Automotive & Transport</option>
+            <option value="retail_consumer">🛍️ Retail & Consumer Goods</option>
+            <option value="creative_media">🎨 Creative, Media & Entertainment</option>
+            <option value="fitness_beauty">💇 Fitness, Sports & Beauty</option>
+            <option value="education_nonprofit">🎓 Education & Non-Profit</option>
+            <option value="manufacturing_industrial">🏭 Manufacturing & Industrial</option>
+          </select>
+
+          <!-- Minor Category Quick Add / Search Filter -->
+          <div class="cat-input-group" title="Type any minor category (e.g. hotel, cafe, dentist, luxury hotel) and click Filter">
             <span class="cat-input-icon">🏷️</span>
-            <input type="text" id="catQuickAddInput" class="cat-quick-input" placeholder="Type category to filter..." onkeydown="if(event.key==='Enter')applyCustomCategoryInput()">
-            <button type="button" class="cat-add-btn" onclick="applyCustomCategoryInput()" title="Filter rows by this category">Filter ↵</button>
+            <input type="text" id="catQuickAddInput" class="cat-quick-input" placeholder="Search minor category..." onkeydown="if(event.key==='Enter')applyCustomCategoryInput()">
+            <button type="button" class="cat-add-btn" onclick="applyCustomCategoryInput()" title="Filter rows by this minor category">Filter ↵</button>
           </div>
+
+          <!-- Minor Category Dropdown -->
           <select id="catFilter" class="filter-select cat-select" onchange="onCatChange(this.value)" title="Choose from all 295 categories">
             <option value="all">🏷️ All Categories (295 Verticals)</option>
           </select>
-          <button id="browseCategoriesBtn" type="button" class="cat-browse-btn" onclick="openCategoriesModal()" title="Browse & Search All 295 Categories">
+
+          <!-- Browse Hierarchy Modal Button -->
+          <button id="browseCategoriesBtn" type="button" class="cat-browse-btn" onclick="openCategoriesModal()" title="Browse & Search All 14 Major Categories and 295 Minor Categories">
             <span>📚</span> <span class="browse-btn-text">Browse All (295)</span>
           </button>
         </div>
@@ -3838,8 +3944,15 @@ html[data-theme="light"] table.leads-table tr:hover {
         <!-- Clear All Filters -->
         <button class="btn btn-secondary" onclick="resetFilters()">Reset</button>
 
-        <!-- Active Category Pill -->
-        <div id="activeCatPill" class="active-filter-pill" style="display:none;" onclick="clearCategoryFilter()" title="Click to clear active category filter">
+        <!-- Active Major Category Pill -->
+        <div id="activeMajorPill" class="active-filter-pill major-pill" style="display:none;" onclick="clearMajorCategoryFilter()" title="Click to clear active major category filter">
+          <span class="pill-label">Major:</span>
+          <span id="activeMajorText" class="pill-val"></span>
+          <span class="pill-clear-x">✕</span>
+        </div>
+
+        <!-- Active Minor Category Pill -->
+        <div id="activeCatPill" class="active-filter-pill" style="display:none;" onclick="clearCategoryFilter()" title="Click to clear active minor category filter">
           <span class="pill-label">Category:</span>
           <span id="activeCatText" class="pill-val"></span>
           <span class="pill-clear-x">✕</span>
@@ -4121,8 +4234,8 @@ html[data-theme="light"] table.leads-table tr:hover {
   <div class="categories-modal-content">
     <div class="modal-header">
       <div class="modal-title-wrap">
-        <h3 class="modal-title">🏷️ Browse All Lead Categories</h3>
-        <span class="modal-subtitle">Filter by any of the 295 business verticals across 215,789,714 leads</span>
+        <h3 class="modal-title">🏷️ Major & Minor Categories Directory</h3>
+        <span class="modal-subtitle">14 Major Business Groups encompassing 295 Minor Verticals across 215,789,714 leads</span>
       </div>
       <button class="modal-close-btn" onclick="closeCategoriesModal()">✕</button>
     </div>
@@ -4131,29 +4244,33 @@ html[data-theme="light"] table.leads-table tr:hover {
       <!-- Search input for categories -->
       <div class="cat-search-box">
         <span class="cat-search-icon">🔍</span>
-        <input type="text" id="catModalSearch" class="cat-search-input" placeholder="Search 295 categories (e.g. Healthcare, Real Estate, Tech, Construction, Chef, Cafe)..." oninput="filterCategoriesInModal(this.value)">
+        <input type="text" id="catModalSearch" class="cat-search-input" placeholder="Search any minor or major category (e.g. hotel, cafe, luxury hotels, restaurant, dentist, real estate)..." oninput="filterCategoriesInModal(this.value)">
         <button id="catModalClear" class="cat-search-clear" onclick="clearCatModalSearch()">✕</button>
       </div>
 
-      <!-- Quick Category Filter Pills -->
+      <!-- Quick Major Category Filter Pills -->
       <div class="cat-quick-pills" id="catQuickPills">
-        <button type="button" class="cat-quick-pill active" onclick="quickFilterCategory('all')">All (295)</button>
-        <button type="button" class="cat-quick-pill" onclick="quickFilterCategory('hospital & health care')">🏥 Healthcare (1.03M)</button>
-        <button type="button" class="cat-quick-pill" onclick="quickFilterCategory('Single family dwelling')">🏡 Homeowners (938K)</button>
-        <button type="button" class="cat-quick-pill" onclick="quickFilterCategory('information technology and services')">💻 IT & Services (542K)</button>
-        <button type="button" class="cat-quick-pill" onclick="quickFilterCategory('construction')">🏗️ Construction (524K)</button>
-        <button type="button" class="cat-quick-pill" onclick="quickFilterCategory('financial services')">💰 Finance (533K)</button>
-        <button type="button" class="cat-quick-pill" onclick="quickFilterCategory('real estate')">🏢 Real Estate (430K)</button>
-        <button type="button" class="cat-quick-pill" onclick="quickFilterCategory('automotive')">🚗 Automotive (296K)</button>
-        <button type="button" class="cat-quick-pill" onclick="quickFilterCategory('restaurants')">🍽️ Restaurants & Dining (154K)</button>
-        <button type="button" class="cat-quick-pill" onclick="quickFilterCategory('law practice')">⚖️ Legal Practice (187K)</button>
-        <button type="button" class="cat-quick-pill" onclick="quickFilterCategory('higher education')">🎓 Higher Education (568K)</button>
+        <button type="button" class="cat-quick-pill active" onclick="quickFilterMajorModal('all')">All Groups (14)</button>
+        <button type="button" class="cat-quick-pill" onclick="quickFilterMajorModal('restaurants_hospitality')">🍽️ Restaurants & Hospitality</button>
+        <button type="button" class="cat-quick-pill" onclick="quickFilterMajorModal('real_estate')">🏢 Real Estate & Property</button>
+        <button type="button" class="cat-quick-pill" onclick="quickFilterMajorModal('healthcare_medical')">🏥 Healthcare & Medical</button>
+        <button type="button" class="cat-quick-pill" onclick="quickFilterMajorModal('tech_software')">💻 Tech & Software</button>
+        <button type="button" class="cat-quick-pill" onclick="quickFilterMajorModal('construction_trades')">🔨 Construction & Trades</button>
+        <button type="button" class="cat-quick-pill" onclick="quickFilterMajorModal('financial_banking')">💳 Financial & Banking</button>
+        <button type="button" class="cat-quick-pill" onclick="quickFilterMajorModal('corporate_professional')">👔 Corporate Services</button>
+        <button type="button" class="cat-quick-pill" onclick="quickFilterMajorModal('automotive_transport')">🚗 Automotive & Transport</button>
+        <button type="button" class="cat-quick-pill" onclick="quickFilterMajorModal('retail_consumer')">🛍️ Retail & Wholesale</button>
+        <button type="button" class="cat-quick-pill" onclick="quickFilterMajorModal('creative_media')">🎨 Creative & Media</button>
+        <button type="button" class="cat-quick-pill" onclick="quickFilterMajorModal('legal_government')">⚖️ Legal & Government</button>
+        <button type="button" class="cat-quick-pill" onclick="quickFilterMajorModal('fitness_beauty')">💇 Fitness & Beauty</button>
+        <button type="button" class="cat-quick-pill" onclick="quickFilterMajorModal('education_nonprofit')">🎓 Education & Non-Profit</button>
+        <button type="button" class="cat-quick-pill" onclick="quickFilterMajorModal('manufacturing_industrial')">🏭 Manufacturing & Industrial</button>
       </div>
 
       <!-- Results Header -->
       <div class="cat-results-header">
-        <span id="catResultsCount" class="cat-results-count">Showing 295 categories</span>
-        <button type="button" class="btn-text-action" onclick="filterByCategory('all');closeCategoriesModal();">Select All (Reset Category Filter)</button>
+        <span id="catResultsCount" class="cat-results-count">Showing 14 Major Categories and 295 Minor Verticals</span>
+        <button type="button" class="btn-text-action" onclick="resetAllCategoryFilters();closeCategoriesModal();">Reset All Category Filters</button>
       </div>
 
       <!-- Category Cards Grid -->
@@ -4167,7 +4284,7 @@ html[data-theme="light"] table.leads-table tr:hover {
 <!-- Toast Message -->
 <div id="toast" class="toast-msg">Notification</div>
 
-<script src="/static/app.js?v=20261023_v4"></script>
+<script src="/static/app.js?v=20261024_v1"></script>
 </body>
 </html>
 """
