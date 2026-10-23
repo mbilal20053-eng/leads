@@ -26,6 +26,7 @@ gui/_output/*
 *.xlsx
 *.jsonl
 *.json
+!gui/data/*.json
 *.parquet
 *.sqlite
 *.vcf

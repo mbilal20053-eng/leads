@@ -44,7 +44,7 @@ async function loadLeads() {
   const tbody = document.getElementById("leadsTbody");
   if (!tbody) return;
   
-  tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:48px 20px;"><div class="skeleton" style="width:260px;margin:0 auto 12px;height:18px;"></div><span style="color:var(--text-dim);font-weight:500;">Loading leads database...</span></td></tr>';
+  tbody.innerHTML = '<tr><td colspan="13" style="text-align:center;padding:48px 20px;"><div class="skeleton" style="width:260px;margin:0 auto 12px;height:18px;"></div><span style="color:var(--text-dim);font-weight:500;">Loading leads database...</span></td></tr>';
   const metaStatus = document.getElementById("metaStatus");
   if (metaStatus) metaStatus.textContent = "Loading...";
 
@@ -79,7 +79,7 @@ async function loadLeads() {
     if (metaStatus) metaStatus.textContent = "Up to date";
   } catch (err) {
     console.error("Error loading leads:", err);
-    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--accent-rose);font-size:14px;">' +
+    tbody.innerHTML = '<tr><td colspan="13" style="text-align:center;padding:40px;color:var(--accent-rose);font-size:14px;">' +
       '<div>⚠️ Error loading leads: ' + escapeHtml(err.message) + '</div>' +
       '<button class="btn btn-secondary" style="margin-top:12px;" onclick="loadLeads()">Try Again</button>' +
       '</td></tr>';
@@ -135,7 +135,7 @@ function renderKPIs(stats, breakdown, datasetName) {
   const bannerShare = document.getElementById("bannerSharePct");
   if (bannerShare) {
     if (currentDataset === "all_global") {
-      bannerShare.textContent = "100% (All Sources)";
+      bannerShare.textContent = "100% (All Sources - 215.7M Leads)";
     } else if (breakdown) {
       const item = breakdown.find(function(b) { return b.id === currentDataset; });
       if (item) {
@@ -216,7 +216,7 @@ function selectSourceChip(id) {
   // 3. Immediately display skeleton in table
   const tbody = document.getElementById("leadsTbody");
   if (tbody) {
-    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:48px 20px;"><div class="skeleton" style="width:260px;margin:0 auto 12px;height:18px;"></div><span style="color:var(--text-dim);font-weight:500;">Loading ' + escapeHtml(id) + ' leads database...</span></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="13" style="text-align:center;padding:48px 20px;"><div class="skeleton" style="width:260px;margin:0 auto 12px;height:18px;"></div><span style="color:var(--text-dim);font-weight:500;">Loading ' + escapeHtml(id) + ' leads database...</span></td></tr>';
   }
 
   // 4. Fetch the leads for this source
@@ -239,7 +239,7 @@ function renderTable(leads, total) {
   window.leadDataMap = {};
   
   if (!leads || leads.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:60px 20px;color:var(--text-dim);font-size:14px;">' +
+    tbody.innerHTML = '<tr><td colspan="13" style="text-align:center;padding:60px 20px;color:var(--text-dim);font-size:14px;">' +
       '<div style="font-size:32px;margin-bottom:12px;">🔍</div>' +
       '<div>No matching leads found for current search/filters.</div>' +
       '<button class="btn btn-secondary" style="margin-top:14px;" onclick="resetFilters()">Reset All Filters</button>' +
@@ -254,65 +254,115 @@ function renderTable(leads, total) {
     window.leadDataMap[safeId] = lead;
 
     const rowNum = (currentPage - 1) * currentPageSize + idx + 1;
-    const tier = lead.tier || "A";
-    const tierClass = tier === "A" ? "tier-A" : (tier === "B" ? "tier-B" : "tier-C");
-    
-    let phoneHtml = '<span style="color:var(--text-dim);font-size:12px;">No phone</span>';
-    if (lead.phone) {
-      phoneHtml = '<a href="tel:' + escapeHtml(lead.phone) + '" class="phone-link">📞 ' + escapeHtml(lead.phone) + '</a>' +
-        '<button class="copy-btn" data-id="' + safeId + '" onclick="copyPhoneById(this.dataset.id)" title="Copy phone">Copy</button>';
+
+    // 1. Business Name
+    let bizNameHtml = '<span class="empty-box">-</span>';
+    if (lead.name && String(lead.name).trim() && String(lead.name) !== "None") {
+      const nm = String(lead.name).trim();
+      const badgeHtml = lead.source_badge ? ' <span style="font-size:10px;font-weight:600;opacity:0.85;background:' + (lead.source_color||'#3b82f6') + '20;color:' + (lead.source_color||'#3b82f6') + ';padding:1px 6px;border-radius:10px;margin-left:4px;">' + escapeHtml(lead.source_badge) + '</span>' : '';
+      bizNameHtml = '<div class="biz-name" title="' + escapeHtml(nm) + '">' + escapeHtml(nm) + badgeHtml + '</div>';
     }
 
-    let webHtml = '<span class="web-badge no-site">⚠️ No Website</span>';
+    // 2. Owner / Contact
+    let contactHtml = '<span class="empty-box">-</span>';
+    if (lead.contact_name && String(lead.contact_name).trim() && String(lead.contact_name) !== "None") {
+      contactHtml = '<div class="contact-name" title="' + escapeHtml(lead.contact_name) + '"><b>' + escapeHtml(lead.contact_name) + '</b></div>';
+    }
+
+    // 3. Role & Notes
+    let roleHtml = '<span class="empty-box">-</span>';
+    const catVal = (lead.category && String(lead.category).trim() && String(lead.category) !== "None") ? String(lead.category).trim() : "";
+    const roleVal = lead.job_title || lead.notes || "";
+    const roleClean = (roleVal && String(roleVal).trim() && String(roleVal) !== "None") ? String(roleVal).trim() : "";
+    if (catVal || roleClean) {
+      let parts = [];
+      if (catVal) {
+        parts.push('<span class="table-cat-badge" title="Filter by category: ' + escapeHtml(catVal) + '" onclick="event.stopPropagation(); filterByCategory(\'' + escapeHtml(catVal).replace(/'/g, "\\'") + '\')">🏷️ ' + escapeHtml(catVal) + '</span>');
+      }
+      if (roleClean) {
+        parts.push('<div class="role-text" title="' + escapeHtml(roleClean) + '">' + escapeHtml(roleClean) + '</div>');
+      }
+      roleHtml = '<div class="role-cell-wrap">' + parts.join('') + '</div>';
+    }
+
+    // 4. Email
+    let emailHtml = '<span class="empty-box">-</span>';
+    if (lead.email && String(lead.email).trim() && String(lead.email).indexOf("@") !== -1 && String(lead.email) !== "None") {
+      const em = String(lead.email).trim();
+      emailHtml = '<div style="display:flex;align-items:center;gap:4px;">' +
+        '<a href="mailto:' + escapeHtml(em) + '" class="email-link" title="' + escapeHtml(em) + '">✉️ ' + escapeHtml(em) + '</a>' +
+        '<button class="copy-cell-btn" data-val="' + escapeHtml(em) + '" onclick="copyDirectVal(this.dataset.val, \'Email copied!\')" title="Copy email">📋</button>' +
+        '</div>';
+    }
+
+    // 5. Phone
+    let phoneHtml = '<span class="empty-box">-</span>';
+    if (lead.phone && String(lead.phone).trim() && String(lead.phone) !== "None") {
+      const ph = String(lead.phone).trim();
+      phoneHtml = '<div style="display:flex;align-items:center;gap:4px;">' +
+        '<a href="tel:' + escapeHtml(ph) + '" class="phone-link" title="' + escapeHtml(ph) + '">📞 ' + escapeHtml(ph) + '</a>' +
+        '<button class="copy-cell-btn" data-val="' + escapeHtml(ph) + '" onclick="copyDirectVal(this.dataset.val, \'Phone copied!\')" title="Copy phone">📋</button>' +
+        '</div>';
+    }
+
+    // 6. Website
+    let webHtml = '<span class="empty-box">-</span>';
     if (lead.website && String(lead.website).indexOf("None") === -1 && String(lead.website).trim() !== "") {
       const rawWeb = String(lead.website).trim();
       const url = rawWeb.indexOf("http") === 0 ? rawWeb : "https://" + rawWeb;
-      webHtml = '<a href="' + escapeHtml(url) + '" target="_blank" rel="noopener noreferrer" class="web-badge has-site">🌐 Visit Site</a>';
+      webHtml = '<a href="' + escapeHtml(url) + '" target="_blank" rel="noopener noreferrer" class="web-badge has-site" title="' + escapeHtml(url) + '">🌐 Visit</a>';
     }
 
-    let locText = "";
-    if (lead.city && lead.state) {
-      locText = lead.city + ", " + lead.state;
-    } else if (lead.city) {
-      locText = lead.city;
-    } else if (lead.state) {
-      locText = lead.state;
+    // 7. Address
+    let addrHtml = '<span class="empty-box">-</span>';
+    if (lead.address && String(lead.address).trim() && String(lead.address) !== "None") {
+      addrHtml = '<div class="cell-text" title="' + escapeHtml(lead.address) + '">' + escapeHtml(lead.address) + '</div>';
     }
 
-    const leadStatus = lead.status || "new";
+    // 8. City
+    let cityHtml = '<span class="empty-box">-</span>';
+    if (lead.city && String(lead.city).trim() && String(lead.city) !== "None") {
+      cityHtml = '<span class="cell-text" title="' + escapeHtml(lead.city) + '">' + escapeHtml(lead.city) + '</span>';
+    }
 
-    const srcBadge = lead.source_badge || "🌟 Curated";
-    const srcColor = lead.source_color || "#3b82f6";
-    const sourceHtml = '<span class="source-pill" style="background:' + srcColor + '18;color:' + srcColor + ';border:1px solid ' + srcColor + '40;">' + escapeHtml(srcBadge) + '</span>';
+    // 9. State / Region
+    let stateHtml = '<span class="empty-box">-</span>';
+    if (lead.state && String(lead.state).trim() && String(lead.state) !== "None") {
+      stateHtml = '<span class="cell-text" title="' + escapeHtml(lead.state) + '">' + escapeHtml(lead.state) + '</span>';
+    }
+
+    // 10. Country
+    let countryHtml = '<span class="empty-box">-</span>';
+    const ctry = lead.country || (lead.city || lead.state ? "United States" : "");
+    if (ctry && String(ctry).trim() && String(ctry) !== "None") {
+      countryHtml = '<span class="cell-text" title="' + escapeHtml(ctry) + '">' + escapeHtml(ctry) + '</span>';
+    }
+
+    // 11. Socials
+    let socialsHtml = '<span class="empty-box">-</span>';
+    if (lead.socials && String(lead.socials).trim() && String(lead.socials).indexOf("None") === -1) {
+      const rawSoc = String(lead.socials).trim();
+      const socUrl = rawSoc.indexOf("http") === 0 ? rawSoc : "https://" + rawSoc;
+      socialsHtml = '<a href="' + escapeHtml(socUrl) + '" target="_blank" rel="noopener noreferrer" class="social-badge" title="' + escapeHtml(socUrl) + '">🔗 LinkedIn</a>';
+    }
+
+    // 12. Actions
+    const actionHtml = '<button class="btn btn-secondary" style="padding:4px 10px;font-size:11px;" data-id="' + safeId + '" onclick="openDrawerById(this.dataset.id)">View</button>';
 
     rowsHtml += '<tr id="row_' + safeId + '">' +
       '<td style="color:var(--text-dim);font-size:12px;text-align:center;">' + rowNum + '</td>' +
-      '<td style="white-space:nowrap;">' + sourceHtml + '</td>' +
-      '<td><span class="tier-badge ' + tierClass + '">Tier ' + escapeHtml(tier) + '</span></td>' +
-      '<td>' +
-        '<div class="biz-name">' + escapeHtml(lead.name || "Unknown Business") + '</div>' +
-        '<div class="cat-pill" title="' + escapeHtml(lead.category || "") + '">' + escapeHtml(lead.category || "General") + '</div>' +
-        (locText ? '<div class="loc-pill">📍 ' + escapeHtml(locText) + '</div>' : '') +
-      '</td>' +
+      '<td>' + bizNameHtml + '</td>' +
+      '<td>' + contactHtml + '</td>' +
+      '<td>' + roleHtml + '</td>' +
+      '<td>' + emailHtml + '</td>' +
       '<td>' + phoneHtml + '</td>' +
       '<td>' + webHtml + '</td>' +
-      '<td>' +
-        '<div class="pitch-snippet" title="' + escapeHtml(lead.pitch || "") + '">' + escapeHtml(lead.pitch || "Ready for outreach.") + '</div>' +
-        '<button class="copy-btn" data-id="' + safeId + '" onclick="copyPitchById(this.dataset.id)">Copy Script</button>' +
-      '</td>' +
-      '<td>' +
-        '<select class="status-select ' + leadStatus + '" data-id="' + safeId + '" onchange="updateRowStatusById(this.dataset.id, this.value, this)">' +
-          '<option value="new"' + (leadStatus === 'new' ? ' selected' : '') + '>New</option>' +
-          '<option value="contacted"' + (leadStatus === 'contacted' ? ' selected' : '') + '>Contacted</option>' +
-          '<option value="interested"' + (leadStatus === 'interested' ? ' selected' : '') + '>Interested</option>' +
-          '<option value="meeting"' + (leadStatus === 'meeting' ? ' selected' : '') + '>Meeting</option>' +
-          '<option value="won"' + (leadStatus === 'won' ? ' selected' : '') + '>Won</option>' +
-          '<option value="not_interested"' + (leadStatus === 'not_interested' ? ' selected' : '') + '>Not Int.</option>' +
-        '</select>' +
-      '</td>' +
-      '<td style="text-align:center;">' +
-        '<button class="btn btn-secondary" style="padding:5px 12px;font-size:12px;" data-id="' + safeId + '" onclick="openDrawerById(this.dataset.id)">View</button>' +
-      '</td>' +
+      '<td>' + addrHtml + '</td>' +
+      '<td>' + cityHtml + '</td>' +
+      '<td>' + stateHtml + '</td>' +
+      '<td>' + countryHtml + '</td>' +
+      '<td>' + socialsHtml + '</td>' +
+      '<td style="text-align:center;">' + actionHtml + '</td>' +
     '</tr>';
   }
   tbody.innerHTML = rowsHtml;
@@ -397,17 +447,171 @@ function updateStatesFilter(states) {
   select.innerHTML = html;
 }
 
+let allCategoriesCache = [];
+
 function updateCategoriesFilter(categories) {
+  if (!categories || categories.length === 0) return;
+  allCategoriesCache = categories;
+  
   const select = document.getElementById("catFilter");
-  if (!select || !categories || categories.length === 0) return;
-  const curr = select.value;
-  let html = '<option value="all">All Categories</option>';
-  for (let i = 0; i < categories.length; i++) {
-    const c = categories[i];
-    html += '<option value="' + escapeHtml(c) + '"' + (c === curr ? ' selected' : '') + '>' + escapeHtml(c) + '</option>';
+  if (select) {
+    const curr = currentCategory || "all";
+    let html = '<option value="all">🏷️ All Categories (' + categories.length + ' Verticals)</option>';
+    for (let i = 0; i < categories.length; i++) {
+      const c = categories[i];
+      const val = typeof c === 'object' ? c.id : c;
+      const countSuffix = typeof c === 'object' ? ' (' + (c.badge || c.count_str) + ')' : '';
+      const label = typeof c === 'object' ? c.label : c;
+      const isSel = (val === curr || (curr !== "all" && val.toLowerCase() === curr.toLowerCase()));
+      html += '<option value="' + escapeHtml(val) + '"' + (isSel ? ' selected' : '') + '>' + escapeHtml(label + countSuffix) + '</option>';
+    }
+    select.innerHTML = html;
   }
-  select.innerHTML = html;
+  
+  const browseBtn = document.getElementById("browseCategoriesBtn");
+  if (browseBtn) {
+    const textEl = browseBtn.querySelector(".browse-btn-text");
+    if (textEl) textEl.textContent = 'Browse All (' + categories.length + ')';
+  }
+  
+  updateActiveCategoryPill();
 }
+
+function updateActiveCategoryPill() {
+  const pill = document.getElementById("activeCatPill");
+  const text = document.getElementById("activeCatText");
+  if (!pill) return;
+  
+  if (currentCategory && currentCategory !== "all") {
+    let displayName = currentCategory;
+    const found = allCategoriesCache.find(function(c) {
+      const id = typeof c === 'object' ? c.id.toLowerCase() : c.toLowerCase();
+      return id === currentCategory.toLowerCase();
+    });
+    if (found && typeof found === 'object') {
+      displayName = found.label;
+    }
+    if (text) text.textContent = displayName;
+    pill.style.display = "inline-flex";
+  } else {
+    pill.style.display = "none";
+  }
+}
+
+function filterByCategory(val) {
+  currentCategory = val || "all";
+  currentPage = 1;
+  const select = document.getElementById("catFilter");
+  if (select) select.value = currentCategory;
+  updateActiveCategoryPill();
+  loadLeads();
+}
+
+function clearCategoryFilter() {
+  filterByCategory("all");
+}
+
+function onCatChange(val) {
+  filterByCategory(val);
+}
+
+// Categories Browser Modal
+function openCategoriesModal() {
+  const modal = document.getElementById("categoriesModal");
+  if (!modal) return;
+  modal.style.display = "flex";
+  renderCategoriesGrid(allCategoriesCache);
+  const searchInput = document.getElementById("catModalSearch");
+  if (searchInput) {
+    searchInput.value = "";
+    setTimeout(function() { searchInput.focus(); }, 80);
+  }
+}
+
+function closeCategoriesModal() {
+  const modal = document.getElementById("categoriesModal");
+  if (modal) modal.style.display = "none";
+}
+
+function clearCatModalSearch() {
+  const searchInput = document.getElementById("catModalSearch");
+  if (searchInput) {
+    searchInput.value = "";
+    filterCategoriesInModal("");
+    searchInput.focus();
+  }
+}
+
+function filterCategoriesInModal(query) {
+  if (!query) {
+    renderCategoriesGrid(allCategoriesCache);
+    return;
+  }
+  const q = query.toLowerCase().trim();
+  const filtered = allCategoriesCache.filter(function(c) {
+    const id = typeof c === 'object' ? c.id.toLowerCase() : c.toLowerCase();
+    const lbl = typeof c === 'object' ? c.label.toLowerCase() : c.toLowerCase();
+    return id.indexOf(q) !== -1 || lbl.indexOf(q) !== -1;
+  });
+  renderCategoriesGrid(filtered);
+}
+
+function quickFilterCategory(catId) {
+  const pills = document.querySelectorAll("#catQuickPills .cat-quick-pill");
+  pills.forEach(function(p) { p.classList.remove("active"); });
+  if (window.event && window.event.target) {
+    window.event.target.classList.add("active");
+  }
+  
+  if (catId === 'all') {
+    filterCategoriesInModal("");
+  } else {
+    filterByCategory(catId);
+    closeCategoriesModal();
+  }
+}
+
+function selectCategoryFromModal(val) {
+  filterByCategory(val);
+  closeCategoriesModal();
+}
+
+function renderCategoriesGrid(list) {
+  const grid = document.getElementById("categoriesGrid");
+  const countEl = document.getElementById("catResultsCount");
+  if (!grid) return;
+  
+  const items = list || [];
+  if (countEl) {
+    countEl.textContent = "Showing " + items.length + " categories";
+  }
+  
+  if (items.length === 0) {
+    grid.innerHTML = '<div class="no-categories-found">No categories matching your search. Try searching for "health", "real estate", "tech", "food", or "construction".</div>';
+    return;
+  }
+  
+  let html = '';
+  for (let i = 0; i < items.length; i++) {
+    const c = items[i];
+    const val = typeof c === 'object' ? c.id : c;
+    const label = typeof c === 'object' ? c.label : c;
+    const countBadge = typeof c === 'object' ? (c.badge || c.count_str) : '';
+    const isActive = (val === currentCategory || (currentCategory !== 'all' && val.toLowerCase() === currentCategory.toLowerCase()));
+    
+    html += '<div class="cat-card ' + (isActive ? 'active' : '') + '" onclick="selectCategoryFromModal(\'' + escapeHtml(val).replace(/'/g, "\\'") + '\')">' +
+      '<div class="cat-card-header">' +
+        '<span class="cat-card-name">' + escapeHtml(label) + '</span>' +
+        (countBadge ? '<span class="cat-card-badge">' + escapeHtml(countBadge) + '</span>' : '') +
+      '</div>' +
+      '<div class="cat-card-action">' +
+        '<span>' + (isActive ? '✓ Selected' : 'Filter by this →') + '</span>' +
+      '</div>' +
+    '</div>';
+  }
+  grid.innerHTML = html;
+}
+
 
 // Handlers
 function onDatasetChange(val) {
@@ -463,11 +667,6 @@ function onCountryChange(val) {
   loadLeads();
 }
 
-function onCatChange(val) {
-  currentCategory = val;
-  currentPage = 1;
-  loadLeads();
-}
 
 function onOppChange(val) {
   currentOpportunity = val;
@@ -533,7 +732,12 @@ function resetFilters() {
   const oppSel = document.getElementById("oppFilter");
   if (oppSel) oppSel.value = "all";
   
+  updateActiveCategoryPill();
   loadLeads();
+}
+
+function copyDirectVal(val, msg) {
+  if (val) copyText(val, msg || "Copied to clipboard!");
 }
 
 // Slide-Out Drawer
@@ -541,7 +745,19 @@ function openDrawer(lead) {
   activeLead = lead;
   
   document.getElementById("drawerName").textContent = lead.name || "Unknown Business";
-  document.getElementById("drawerCat").textContent = lead.category || "General Business";
+  const catEl = document.getElementById("drawerCat");
+  if (catEl) {
+    const cName = lead.category || "General Business";
+    catEl.textContent = cName;
+    catEl.title = "Click to filter leads by " + cName;
+    catEl.style.cursor = "pointer";
+    catEl.onclick = function() {
+      if (lead.category) {
+        filterByCategory(lead.category);
+        closeDrawer();
+      }
+    };
+  }
   
   const tierBadge = document.getElementById("drawerTier");
   if (tierBadge) {
@@ -551,12 +767,47 @@ function openDrawer(lead) {
   
   document.getElementById("drawerPitch").textContent = lead.pitch || "No pitch script available.";
   document.getElementById("drawerWhy").textContent = lead.why || "Active business lead identified.";
-  document.getElementById("drawerPhone").textContent = lead.phone || "No phone listed";
-  document.getElementById("drawerAddress").textContent = lead.address || "Address not specified";
+
+  // Populate the 11 Verified Columns in Drawer
+  const setDrawerFld = function(id, valHtml) {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = valHtml || '<span class="empty-box">-</span>';
+  };
+
+  setDrawerFld("drawerBizName", lead.name ? escapeHtml(lead.name) : "");
+  setDrawerFld("drawerContact", lead.contact_name ? escapeHtml(lead.contact_name) : "");
+  setDrawerFld("drawerRoleNotes", (lead.job_title || lead.notes) ? escapeHtml(lead.job_title || lead.notes) : "");
   
-  const cityStateZip = [lead.city, lead.state, lead.zip].filter(Boolean).join(" ");
-  document.getElementById("drawerCityState").textContent = cityStateZip || "Location not specified";
-  document.getElementById("drawerOpp").textContent = lead.opportunity || "Standard Lead";
+  let emVal = "";
+  if (lead.email && String(lead.email).trim() && String(lead.email).indexOf("@") !== -1 && String(lead.email) !== "None") {
+    emVal = '<a href="mailto:' + escapeHtml(lead.email) + '" style="color:var(--accent-blue);font-family:var(--font-mono);">' + escapeHtml(lead.email) + '</a>';
+  }
+  setDrawerFld("drawerEmail", emVal);
+
+  let phVal = "";
+  if (lead.phone && String(lead.phone).trim() && String(lead.phone) !== "None") {
+    phVal = '<a href="tel:' + escapeHtml(lead.phone) + '" style="color:var(--accent-emerald);font-family:var(--font-mono);">' + escapeHtml(lead.phone) + '</a>';
+  }
+  setDrawerFld("drawerPhone", phVal);
+
+  let webVal = "";
+  if (lead.website && String(lead.website).indexOf("None") === -1 && String(lead.website).trim() !== "") {
+    const url = lead.website.indexOf("http") === 0 ? lead.website : "https://" + lead.website;
+    webVal = '<a href="' + escapeHtml(url) + '" target="_blank" style="color:var(--accent-blue);">🌐 ' + escapeHtml(lead.website) + '</a>';
+  }
+  setDrawerFld("drawerWebsite", webVal);
+
+  setDrawerFld("drawerAddress", lead.address ? escapeHtml(lead.address) : "");
+  setDrawerFld("drawerCity", lead.city ? escapeHtml(lead.city) : "");
+  setDrawerFld("drawerState", lead.state ? escapeHtml(lead.state) : "");
+  setDrawerFld("drawerCountry", (lead.country || (lead.city || lead.state ? "United States" : "")) ? escapeHtml(lead.country || "United States") : "");
+
+  let socVal = "";
+  if (lead.socials && String(lead.socials).trim() && String(lead.socials).indexOf("None") === -1) {
+    const socUrl = lead.socials.indexOf("http") === 0 ? lead.socials : "https://" + lead.socials;
+    socVal = '<a href="' + escapeHtml(socUrl) + '" target="_blank" class="social-badge">🔗 ' + escapeHtml(lead.socials) + '</a>';
+  }
+  setDrawerFld("drawerSocials", socVal);
 
   const callBtn = document.getElementById("drawerCallBtn");
   if (callBtn) {
@@ -565,6 +816,16 @@ function openDrawer(lead) {
       callBtn.style.display = "inline-flex";
     } else {
       callBtn.style.display = "none";
+    }
+  }
+
+  const emailBtn = document.getElementById("drawerEmailBtn");
+  if (emailBtn) {
+    if (lead.email) {
+      emailBtn.href = "mailto:" + lead.email;
+      emailBtn.style.display = "inline-flex";
+    } else {
+      emailBtn.style.display = "none";
     }
   }
 

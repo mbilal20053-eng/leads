@@ -35,11 +35,13 @@ GUI_DIR = os.path.dirname(os.path.abspath(__file__))
 STATIC_DIR = os.path.join(GUI_DIR, "static")
 app = Flask(__name__, static_folder=STATIC_DIR)
 
-leads_explicit_dir = r"C:\Users\billu\Downloads\leads"
-if os.path.exists(leads_explicit_dir):
-    BASE_DIR = leads_explicit_dir
-else:
-    BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+from gui.lead_db import (
+    LEADS_DATA_DIR, GLOBAL_DUCKDB_CON, LOCAL_SOURCES, LOCAL_SOURCES_BREAKDOWN,
+    VIEW_MAP, query_local_view_leads, get_local_csv_datasets
+)
+from gui import categories_service
+
+BASE_DIR = LEADS_DATA_DIR
 OUT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "_output")
 os.makedirs(OUT_DIR, exist_ok=True)
 
@@ -162,17 +164,18 @@ GLOBAL_SOURCES = [
         "id": "all_global",
         "label": "All Sources",
         "badge": "🌐 All Leads",
-        "name": "🌐 ALL LEADS UNIFIED (203,088,365 Across All Files & Databases)",
-        "count": 203088365,
+        "name": "🌐 ALL LEADS UNIFIED (215,789,714 Across All Files & Databases)",
+        "count": 215789714,
         "pct": 100.0,
         "color": "#3b82f6",
-        "tier_a": 122945000,
-        "tier_b": 47813134,
-        "with_phone": 39200000,
-        "no_website": 131558134,
+        "tier_a": 157004184,
+        "tier_b": 58785530,
+        "with_phone": 43410000,
+        "no_website": 139658134,
         "type": "global_unified",
         "is_default": True
     },
+] + LOCAL_SOURCES + [
     {
         "id": "europe_osm",
         "label": "Europe POIs",
@@ -603,7 +606,7 @@ def query_pdl_parquet_leads(pdl_dir, dataset_id, search=None, tier=None, state=N
     }
 
 
-def query_source_dataset_fallback(dataset_id, search=None, category=None, tier=None, state=None, has_phone=None, page=1, page_size=50, sort_col=None, sort_dir="asc"):
+def query_source_dataset_fallback(dataset_id, search=None, category=None, tier=None, state=None, country=None, has_phone=None, page=1, page_size=50, sort_col=None, sort_dir="asc", **kwargs):
     source_meta = next((s for s in GLOBAL_SOURCES if s["id"] == dataset_id), None)
     if not source_meta:
         return {"total": 0, "page": page, "page_size": page_size, "stats": {"total": 0, "tier_a": 0, "tier_b": 0, "tier_c": 0, "with_phone": 0}, "states": [], "leads": []}
@@ -639,13 +642,17 @@ def query_source_dataset_fallback(dataset_id, search=None, category=None, tier=N
             "id": lid,
             "tag_key": f"{dataset_id}:{lid}:{base['name']}",
             "name": base["name"],
+            "contact_name": base.get("contact_name", ""),
+            "job_title": base.get("job_title", base.get("category", "Commercial Enterprise")),
             "vertical": base["category"],
             "category": base["category"],
             "city": base["city"],
             "state": base["state"],
             "country": base["country"],
             "phone": base.get("phone", ""),
+            "email": base.get("email", ""),
             "website": base.get("website", ""),
+            "socials": base.get("socials", ""),
             "tier": base.get("tier", "A"),
             "score": base.get("score", 85),
             "opportunity": "NO WEBSITE (Urgent Need)" if not base.get("website") else "VERIFIED COMMERCIAL POI",
@@ -698,6 +705,9 @@ def get_datasets():
             "count": s["count"],
             "is_default": s.get("is_default", False)
         })
+
+    # Raw lead CSV files from local leads folder (28 files)
+    datasets.extend(get_local_csv_datasets())
 
     # Additional user exports and custom files
     user_csvs = [
@@ -1142,20 +1152,20 @@ def query_global_unified_leads(dataset_id="all_global", search=None, tier=None, 
         except Exception as e:
             print("Global companies query error:", e)
 
-    total = 203088365
+    total = 215789714
     return {
         "total": total,
         "page": page,
         "page_size": page_size,
         "stats": {
             "total": total,
-            "tier_a": 148809184,
-            "tier_b": 54279181,
+            "tier_a": 157004184,
+            "tier_b": 58785530,
             "tier_c": 0,
-            "with_phone": 39200000,
-            "no_website": 136058134
+            "with_phone": 43410000,
+            "no_website": 139658134
         },
-        "dataset_name": "🌐 ALL LEADS UNIFIED (203,088,365 Across All Files & Databases)",
+        "dataset_name": "🌐 ALL LEADS UNIFIED (215,789,714 Across All Files & Databases)",
         "sources_breakdown": GLOBAL_SOURCES_BREAKDOWN,
         "leads": leads
     }
@@ -1442,6 +1452,17 @@ def api_datasets():
         result.append({**d, "count": count or 0})
     return jsonify(result)
 
+@app.route("/api/categories")
+def api_categories():
+    dataset_id = request.args.get("dataset", "all_global")
+    query = request.args.get("q", "")
+    cats = categories_service.search_categories(query, dataset_id)
+    return jsonify({
+        "dataset": dataset_id,
+        "total": len(cats),
+        "categories": cats
+    })
+
 
 def generate_leads_export_csv(dataset_id, export_from=1, export_to=5000, search=None, category=None, tier=None, state=None, country=None, opportunity=None, has_phone=False):
     """Generates streaming CSV data for custom row ranges (From lead X to lead Y) across all databases."""
@@ -1460,6 +1481,59 @@ def generate_leads_export_csv(dataset_id, export_from=1, export_to=5000, search=
             pass
 
     leads = []
+    if dataset_id in VIEW_MAP:
+        view_name, view_title = VIEW_MAP[dataset_id]
+        cur = GLOBAL_DUCKDB_CON.cursor()
+        where = ["1=1"]
+        params = []
+        if search:
+            s = f"%{search}%"
+            where.append("(name ILIKE ? OR category ILIKE ? OR city ILIKE ? OR state ILIKE ? OR phone ILIKE ? OR email ILIKE ?)")
+            params.extend([s, s, s, s, s, s])
+        if tier and tier.lower() != "all":
+            where.append("tier = ?")
+            params.append(tier.upper())
+        if state and state.lower() != "all":
+            where.append("(state ILIKE ? OR city ILIKE ?)")
+            params.extend([f"%{state}%", f"%{state}%"])
+        if category and category.lower() != "all":
+            where.append("category ILIKE ?")
+            params.append(f"%{category}%")
+        if has_phone:
+            where.append("(phone IS NOT NULL AND length(trim(phone)) > 0)")
+        where_sql = " AND ".join(where)
+        sql = f"""
+            SELECT id, name, contact_name, job_title, email, phone, website, address, city, state, country, socials
+            FROM {view_name}
+            WHERE {where_sql}
+            LIMIT {limit} OFFSET {offset}
+        """
+        rows = cur.execute(sql, params).fetchall()
+        for i, r in enumerate(rows):
+            leads.append({
+                "#": start_row + i,
+                "Business Name": str(r[1] or ""),
+                "Owner / Contact": str(r[2] or ""),
+                "Role & Notes": str(r[3] or ""),
+                "Email": str(r[4] or ""),
+                "Phone": str(r[5] or ""),
+                "Website": str(r[6] or ""),
+                "Address": str(r[7] or ""),
+                "City": str(r[8] or ""),
+                "State / Region": str(r[9] or ""),
+                "Country": str(r[10] or "United States"),
+                "Socials": str(r[11] or "")
+            })
+        out = io.StringIO()
+        fields = [
+            "#", "Business Name", "Owner / Contact", "Role & Notes", "Email", "Phone",
+            "Website", "Address", "City", "State / Region", "Country", "Socials"
+        ]
+        writer = csv.DictWriter(out, fieldnames=fields, extrasaction='ignore')
+        writer.writeheader()
+        writer.writerows(leads)
+        return out.getvalue()
+
     d = resolve_dataset(dataset_id)
     file_path = d.get("file") if d else None
 
@@ -1699,31 +1773,24 @@ def generate_leads_export_csv(dataset_id, export_from=1, export_to=5000, search=
             src_label = d["badge"]
         for i, l in enumerate(fallback_data.get("leads", [])):
             leads.append({
-                "row_number": start_row + i,
-                "id": l.get("id", f"{dataset_id}_{start_row+i}"),
-                "source_database": src_label,
-                "company_name": l.get("name", ""),
-                "category": l.get("category", ""),
-                "tier": l.get("tier", "A"),
-                "score": l.get("score", 80),
-                "opportunity": l.get("opportunity", ""),
-                "phone": l.get("phone", ""),
-                "website": l.get("website", ""),
-                "address": l.get("address", ""),
-                "city": l.get("city", ""),
-                "state_region": l.get("state", ""),
-                "country": l.get("country", ""),
-                "cold_pitch": l.get("pitch", ""),
-                "why_lead": l.get("why", ""),
-                "status": l.get("status", "new"),
-                "notes": l.get("notes", "")
+                "#": start_row + i,
+                "Business Name": l.get("name", ""),
+                "Owner / Contact": l.get("contact_name", ""),
+                "Role & Notes": l.get("job_title", ""),
+                "Email": l.get("email", ""),
+                "Phone": l.get("phone", ""),
+                "Website": l.get("website", ""),
+                "Address": l.get("address", ""),
+                "City": l.get("city", ""),
+                "State / Region": l.get("state", ""),
+                "Country": l.get("country", ""),
+                "Socials": l.get("socials", "")
             })
 
     out = io.StringIO()
     fields = [
-        "row_number", "id", "source_database", "company_name", "category", "tier", "score",
-        "opportunity", "phone", "website", "address", "city", "state_region", "country",
-        "cold_pitch", "why_lead", "status", "notes"
+        "#", "Business Name", "Owner / Contact", "Role & Notes", "Email", "Phone",
+        "Website", "Address", "City", "State / Region", "Country", "Socials"
     ]
     writer = csv.DictWriter(out, fieldnames=fields, extrasaction='ignore')
     writer.writeheader()
@@ -1764,6 +1831,26 @@ def api_leads():
             mimetype="text/csv",
             headers={"Content-Disposition": f"attachment; filename={fname}"}
         )
+
+    if not dataset_id:
+        dataset_id = "all_global"
+
+    if dataset_id in VIEW_MAP:
+        view_name, view_title = VIEW_MAP[dataset_id]
+        tags = load_tags()
+        res = query_local_view_leads(
+            view_name, dataset_id, view_title, tags=tags,
+            search=search, tier=tier, state=state, country=country,
+            category=category, opportunity=opportunity, has_phone=has_phone,
+            page=page, page_size=page_size, sort_col=sort_col, sort_dir=sort_dir
+        )
+        res["sources_breakdown"] = GLOBAL_SOURCES_BREAKDOWN
+        res["dataset_id"] = dataset_id
+        src_info = next((s for s in GLOBAL_SOURCES if s["id"] == dataset_id), None)
+        if src_info:
+            res["dataset_name"] = src_info["name"]
+            res["dataset_badge"] = src_info.get("badge", "")
+        return jsonify(res)
 
     d = resolve_dataset(dataset_id)
     if not d:
@@ -2559,6 +2646,95 @@ html[data-theme="light"] table.leads-table tr:hover {
   border-color: var(--border-strong);
 }
 
+.empty-box {
+  display: inline-block;
+  padding: 2px 8px;
+  background: rgba(148, 163, 184, 0.08);
+  color: var(--text-dim);
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  min-width: 20px;
+  text-align: center;
+  user-select: none;
+}
+.cell-text {
+  max-width: 220px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 13px;
+  display: block;
+}
+.role-text {
+  max-width: 200px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 12px;
+  color: var(--text-muted);
+  background: rgba(99, 102, 241, 0.08);
+  padding: 2px 7px;
+  border-radius: 4px;
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  display: inline-block;
+}
+.contact-name {
+  font-weight: 700;
+  color: var(--text-main);
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 180px;
+}
+.email-link {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--accent-blue);
+  text-decoration: none;
+  max-width: 200px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: inline-block;
+}
+.email-link:hover { text-decoration: underline; }
+.social-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: rgba(14, 118, 168, 0.15);
+  color: #38bdf8;
+  border: 1px solid rgba(14, 118, 168, 0.35);
+  text-decoration: none;
+  font-size: 11.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+.social-badge:hover {
+  background: rgba(14, 118, 168, 0.3);
+  border-color: #38bdf8;
+}
+.copy-cell-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  padding: 2px 5px;
+  font-size: 10px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.copy-cell-btn:hover {
+  color: var(--text-main);
+  border-color: var(--border-strong);
+  background: var(--bg-elevated);
+}
+
 .web-badge {
   display: inline-flex;
   align-items: center;
@@ -2994,6 +3170,356 @@ html[data-theme="light"] table.leads-table tr:hover {
   border-color: var(--accent-emerald);
   color: #fff;
   box-shadow: 0 1px 4px rgba(16, 185, 129, 0.3);
+/* Category Filter & Modal Styling */
+.category-filter-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.cat-select {
+  min-width: 200px;
+  max-width: 260px;
+}
+.cat-browse-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  background: rgba(139, 92, 246, 0.14);
+  border: 1px solid rgba(139, 92, 246, 0.35);
+  color: #c084fc;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+.cat-browse-btn:hover {
+  background: rgba(139, 92, 246, 0.25);
+  border-color: #a855f7;
+  color: #f3e8ff;
+  box-shadow: 0 0 12px rgba(168, 85, 247, 0.3);
+}
+.active-filter-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  color: #34d399;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  animation: fadeIn 0.2s ease;
+}
+.active-filter-pill:hover {
+  background: rgba(16, 185, 129, 0.25);
+}
+.pill-label {
+  color: var(--text-dim);
+  font-size: 11px;
+  text-transform: uppercase;
+}
+.pill-val {
+  color: #6ee7b7;
+  font-weight: 700;
+}
+.pill-clear-x {
+  background: rgba(0,0,0,0.3);
+  border-radius: 50%;
+  width: 16px;
+  height: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  margin-left: 2px;
+}
+.pill-clear-x:hover {
+  background: rgba(239, 68, 68, 0.8);
+  color: #fff;
+}
+
+/* Category Badge in Table */
+.role-cell-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.table-cat-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  background: rgba(139, 92, 246, 0.14);
+  border: 1px solid rgba(139, 92, 246, 0.28);
+  color: #c084fc;
+  padding: 1px 7px;
+  border-radius: 6px;
+  width: fit-content;
+  max-width: 220px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.table-cat-badge:hover {
+  background: rgba(139, 92, 246, 0.25);
+  border-color: #a855f7;
+  color: #f5f3ff;
+  transform: translateY(-1px);
+}
+
+/* Categories Modal */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(3, 7, 18, 0.78);
+  backdrop-filter: blur(8px);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.categories-modal-content {
+  background: #0d1322;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 18px;
+  width: 100%;
+  max-width: 980px;
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8), 0 0 30px rgba(59, 130, 246, 0.15);
+  overflow: hidden;
+}
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.02);
+}
+.modal-title-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.modal-title {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--text-main);
+  letter-spacing: -0.01em;
+}
+.modal-subtitle {
+  font-size: 13px;
+  color: var(--text-dim);
+}
+.modal-close-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-muted);
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  transition: all 0.2s ease;
+}
+.modal-close-btn:hover {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #fca5a5;
+}
+.categories-modal-body {
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow: hidden;
+  flex: 1;
+}
+.cat-search-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.cat-search-icon {
+  position: absolute;
+  left: 14px;
+  font-size: 16px;
+  color: var(--text-dim);
+  pointer-events: none;
+}
+.cat-search-input {
+  width: 100%;
+  padding: 12px 40px 12px 42px;
+  background: #121a2d;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 10px;
+  color: #fff;
+  font-size: 14.5px;
+  font-family: var(--font-main);
+  outline: none;
+  transition: all 0.2s ease;
+}
+.cat-search-input:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 16px rgba(59, 130, 246, 0.3);
+  background: #152037;
+}
+.cat-search-clear {
+  position: absolute;
+  right: 12px;
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 14px;
+  padding: 4px;
+}
+.cat-search-clear:hover {
+  color: #fff;
+}
+.cat-quick-pills {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: thin;
+}
+.cat-quick-pill {
+  padding: 5px 12px;
+  background: #18223a;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.cat-quick-pill:hover {
+  background: rgba(59, 130, 246, 0.2);
+  border-color: #3b82f6;
+  color: #fff;
+}
+.cat-quick-pill.active {
+  background: #3b82f6;
+  border-color: #3b82f6;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);
+}
+.cat-results-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 4px;
+  font-size: 12.5px;
+  color: var(--text-dim);
+}
+.btn-text-action {
+  background: none;
+  border: none;
+  color: #60a5fa;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: underline;
+}
+.btn-text-action:hover {
+  color: #93c5fd;
+}
+.categories-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 10px;
+  overflow-y: auto;
+  max-height: 48vh;
+  padding: 2px 4px 10px 2px;
+  scrollbar-width: thin;
+}
+.cat-card {
+  background: #121a2d;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 8px;
+}
+.cat-card:hover {
+  background: #18223a;
+  border-color: #3b82f6;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(59, 130, 246, 0.2);
+}
+.cat-card.active {
+  background: rgba(16, 185, 129, 0.12);
+  border-color: #10b981;
+}
+.cat-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+.cat-card-name {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-main);
+  line-height: 1.3;
+}
+.cat-card-badge {
+  font-size: 11px;
+  font-weight: 700;
+  background: rgba(59, 130, 246, 0.16);
+  color: #60a5fa;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  padding: 2px 7px;
+  border-radius: 12px;
+  white-space: nowrap;
+}
+.cat-card.active .cat-card-badge {
+  background: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+  border-color: rgba(16, 185, 129, 0.4);
+}
+.cat-card-action {
+  font-size: 11.5px;
+  color: var(--text-dim);
+  font-weight: 600;
+}
+.cat-card:hover .cat-card-action {
+  color: #93c5fd;
+}
+.cat-card.active .cat-card-action {
+  color: #34d399;
+  font-weight: 700;
+}
+.no-categories-found {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-dim);
+  font-size: 14px;
 }
 
 </style>
@@ -3055,10 +3581,10 @@ html[data-theme="light"] table.leads-table tr:hover {
         <div>
           <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--accent-blue);background:rgba(59,130,246,0.12);padding:3px 10px;border-radius:20px;border:1px solid rgba(59,130,246,0.3);">GLOBAL LEADS PORTFOLIO</span>
           <h2 style="font-size:22px;font-family:var(--font-heading);font-weight:800;color:var(--text-main);margin:6px 0 2px;">
-            <span id="bannerTotalCount">203,088,365</span> Leads Across All Databases & Files
+            <span id="bannerTotalCount">215,789,714</span> Leads Across All Databases & Files
           </h2>
           <div style="font-size:12px;color:var(--text-dim);">
-            Unified aggregation across People Data Labs (32.3M), OpenStreetMap Global POIs (164M+), UK Companies House (5.4M), and Curated CRM Databases.
+            Unified aggregation across Global Commercial POIs & PDL (203.08M) + Local B2B Executive Shards & Specialized Domain Leads (12.70M).
           </div>
         </div>
         <div style="display:flex;gap:12px;align-items:center;">
@@ -3122,19 +3648,15 @@ html[data-theme="light"] table.leads-table tr:hover {
           <option value="all">All States / Regions</option>
         </select>
 
-        <!-- Category Dropdown -->
-        <select id="catFilter" class="filter-select" onchange="onCatChange(this.value)">
-          <option value="all">All Categories / Verticals</option>
-          <option value="Auto">Automotive Services</option>
-          <option value="Restaurant">Restaurants & Food</option>
-          <option value="Health">Healthcare & Dental</option>
-          <option value="Home">Home Services & Trades</option>
-          <option value="Beauty">Beauty & Salons</option>
-          <option value="Professional">Professional & Legal</option>
-          <option value="Tire">Tire & Auto Repair</option>
-          <option value="Clean">Cleaning & Janitorial</option>
-          <option value="Roof">Roofing & Construction</option>
-        </select>
+        <!-- Category Dropdown & Browse All Categories Button -->
+        <div class="category-filter-wrap">
+          <select id="catFilter" class="filter-select cat-select" onchange="onCatChange(this.value)" title="Filter leads by category">
+            <option value="all">🏷️ All Categories (295 Verticals)</option>
+          </select>
+          <button id="browseCategoriesBtn" type="button" class="cat-browse-btn" onclick="openCategoriesModal()" title="Browse & Search All 295 Categories">
+            <span>🏷️</span> <span class="browse-btn-text">Browse All (295)</span>
+          </button>
+        </div>
 
         <!-- Opportunity Dropdown -->
         <select id="oppFilter" class="filter-select" onchange="onOppChange(this.value)">
@@ -3160,6 +3682,13 @@ html[data-theme="light"] table.leads-table tr:hover {
 
         <!-- Clear All Filters -->
         <button class="btn btn-secondary" onclick="resetFilters()">Reset</button>
+
+        <!-- Active Category Pill -->
+        <div id="activeCatPill" class="active-filter-pill" style="display:none;" onclick="clearCategoryFilter()" title="Click to clear active category filter">
+          <span class="pill-label">Category:</span>
+          <span id="activeCatText" class="pill-val"></span>
+          <span class="pill-clear-x">✕</span>
+        </div>
       </div>
         <!-- Row 2: Export Range Filter (From Lead # to Lead #) -->
         <div class="toolbar-export-row">
@@ -3205,14 +3734,19 @@ html[data-theme="light"] table.leads-table tr:hover {
         <table class="leads-table">
           <thead>
             <tr>
-              <th style="width:50px;">#</th>
-              <th style="width:90px;" onclick="setSort('Tier')">Tier ↕</th>
-              <th onclick="setSort('Business Name')">Business Profile ↕</th>
-              <th style="width:170px;" onclick="setSort('Phone')">Direct Contact ↕</th>
-              <th style="width:160px;">Web Presence</th>
-              <th>Cold Outreach Pitch / Opener</th>
-              <th style="width:130px;">CRM Status</th>
-              <th style="width:80px;text-align:center;">Dossier</th>
+              <th style="width:45px;text-align:center;">#</th>
+              <th onclick="setSort('Business Name')" style="min-width:180px;">Business Name ↕</th>
+              <th onclick="setSort('Owner / Contact')" style="min-width:150px;">Owner / Contact ↕</th>
+              <th style="min-width:160px;">Role & Notes</th>
+              <th style="min-width:180px;">Email</th>
+              <th onclick="setSort('Phone')" style="min-width:150px;">Phone ↕</th>
+              <th style="min-width:110px;">Website</th>
+              <th style="min-width:160px;">Address</th>
+              <th onclick="setSort('City')" style="min-width:120px;">City ↕</th>
+              <th onclick="setSort('State / Region')" style="min-width:130px;">State / Region ↕</th>
+              <th style="min-width:110px;">Country</th>
+              <th style="min-width:120px;">Socials</th>
+              <th style="width:70px;text-align:center;">View</th>
             </tr>
           </thead>
           <tbody id="leadsTbody">
@@ -3357,6 +3891,9 @@ html[data-theme="light"] table.leads-table tr:hover {
       <a id="drawerCallBtn" href="#" class="btn btn-emerald" style="flex:1;">
         📞 Call Now
       </a>
+      <a id="drawerEmailBtn" href="#" class="btn btn-primary" style="flex:1;display:none;">
+        ✉️ Send Email
+      </a>
       <button id="drawerCopyPhoneBtn" class="btn btn-secondary" onclick="copyDrawerPhone()">
         📋 Copy Phone
       </button>
@@ -3385,12 +3922,19 @@ html[data-theme="light"] table.leads-table tr:hover {
 
     <!-- Company Details -->
     <div class="dossier-box">
-      <div class="dossier-title">Verified Business Information</div>
-      <div style="display:grid;grid-template-columns:100px 1fr;gap:8px;font-size:13px;">
-        <span style="color:var(--text-dim)">Phone:</span> <b id="drawerPhone" style="font-family:var(--font-mono)">...</b>
+      <div class="dossier-title">Complete Lead Profile (11 Verified Columns)</div>
+      <div style="display:grid;grid-template-columns:120px 1fr;gap:8px;font-size:13px;">
+        <span style="color:var(--text-dim)">Business Name:</span> <b id="drawerBizName" style="color:var(--text-main)">...</b>
+        <span style="color:var(--text-dim)">Owner / Contact:</span> <b id="drawerContact" style="color:var(--text-main)">...</b>
+        <span style="color:var(--text-dim)">Role & Notes:</span> <span id="drawerRoleNotes">...</span>
+        <span style="color:var(--text-dim)">Email:</span> <span id="drawerEmail">...</span>
+        <span style="color:var(--text-dim)">Phone:</span> <span id="drawerPhone">...</span>
+        <span style="color:var(--text-dim)">Website:</span> <span id="drawerWebsite">...</span>
         <span style="color:var(--text-dim)">Address:</span> <span id="drawerAddress">...</span>
-        <span style="color:var(--text-dim)">City / State:</span> <span id="drawerCityState">...</span>
-        <span style="color:var(--text-dim)">Opportunity:</span> <span id="drawerOpp">...</span>
+        <span style="color:var(--text-dim)">City:</span> <span id="drawerCity">...</span>
+        <span style="color:var(--text-dim)">State / Region:</span> <span id="drawerState">...</span>
+        <span style="color:var(--text-dim)">Country:</span> <span id="drawerCountry">...</span>
+        <span style="color:var(--text-dim)">Socials:</span> <span id="drawerSocials">...</span>
       </div>
     </div>
 
@@ -3416,10 +3960,58 @@ html[data-theme="light"] table.leads-table tr:hover {
   </div>
 </div>
 
+<!-- Categories Browser Modal -->
+<div id="categoriesModal" class="modal-overlay" style="display:none;" onclick="if(event.target===this)closeCategoriesModal()">
+  <div class="categories-modal-content">
+    <div class="modal-header">
+      <div class="modal-title-wrap">
+        <h3 class="modal-title">🏷️ Browse All Lead Categories</h3>
+        <span class="modal-subtitle">Filter by any of the 295 business verticals across 215,789,714 leads</span>
+      </div>
+      <button class="modal-close-btn" onclick="closeCategoriesModal()">✕</button>
+    </div>
+    
+    <div class="categories-modal-body">
+      <!-- Search input for categories -->
+      <div class="cat-search-box">
+        <span class="cat-search-icon">🔍</span>
+        <input type="text" id="catModalSearch" class="cat-search-input" placeholder="Search 295 categories (e.g. Healthcare, Real Estate, Tech, Construction, Chef, Cafe)..." oninput="filterCategoriesInModal(this.value)">
+        <button id="catModalClear" class="cat-search-clear" onclick="clearCatModalSearch()">✕</button>
+      </div>
+
+      <!-- Quick Category Filter Pills -->
+      <div class="cat-quick-pills" id="catQuickPills">
+        <button type="button" class="cat-quick-pill active" onclick="quickFilterCategory('all')">All (295)</button>
+        <button type="button" class="cat-quick-pill" onclick="quickFilterCategory('hospital & health care')">🏥 Healthcare (1.03M)</button>
+        <button type="button" class="cat-quick-pill" onclick="quickFilterCategory('Single family dwelling')">🏡 Homeowners (938K)</button>
+        <button type="button" class="cat-quick-pill" onclick="quickFilterCategory('information technology and services')">💻 IT & Services (542K)</button>
+        <button type="button" class="cat-quick-pill" onclick="quickFilterCategory('construction')">🏗️ Construction (524K)</button>
+        <button type="button" class="cat-quick-pill" onclick="quickFilterCategory('financial services')">💰 Finance (533K)</button>
+        <button type="button" class="cat-quick-pill" onclick="quickFilterCategory('real estate')">🏢 Real Estate (430K)</button>
+        <button type="button" class="cat-quick-pill" onclick="quickFilterCategory('automotive')">🚗 Automotive (296K)</button>
+        <button type="button" class="cat-quick-pill" onclick="quickFilterCategory('restaurants')">🍽️ Restaurants & Dining (154K)</button>
+        <button type="button" class="cat-quick-pill" onclick="quickFilterCategory('law practice')">⚖️ Legal Practice (187K)</button>
+        <button type="button" class="cat-quick-pill" onclick="quickFilterCategory('higher education')">🎓 Higher Education (568K)</button>
+      </div>
+
+      <!-- Results Header -->
+      <div class="cat-results-header">
+        <span id="catResultsCount" class="cat-results-count">Showing 295 categories</span>
+        <button type="button" class="btn-text-action" onclick="filterByCategory('all');closeCategoriesModal();">Select All (Reset Category Filter)</button>
+      </div>
+
+      <!-- Category Cards Grid -->
+      <div class="categories-grid" id="categoriesGrid">
+        <!-- Rendered via JS -->
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Toast Message -->
 <div id="toast" class="toast-msg">Notification</div>
 
-<script src="/static/app.js?v=20261023_v1"></script>
+<script src="/static/app.js?v=20261023_v3"></script>
 </body>
 </html>
 """

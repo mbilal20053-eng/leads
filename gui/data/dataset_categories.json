@@ -1,0 +1,340 @@
+{
+  "restaurants": [
+    {
+      "name": "Restaurant",
+      "count": 1335
+    },
+    {
+      "name": "Chef",
+      "count": 464
+    },
+    {
+      "name": "Bakery",
+      "count": 391
+    },
+    {
+      "name": "Coffee shop",
+      "count": 172
+    },
+    {
+      "name": "Cafe",
+      "count": 118
+    },
+    {
+      "name": "Coffee Shop",
+      "count": 20
+    }
+  ],
+  "realtors": [
+    {
+      "name": "Real Estate",
+      "count": 2606
+    },
+    {
+      "name": "Real Estate Agent",
+      "count": 2394
+    }
+  ],
+  "coaches": [
+    {
+      "name": "Coach",
+      "count": 2500
+    }
+  ],
+  "designers": [
+    {
+      "name": "Designer",
+      "count": 1051
+    },
+    {
+      "name": "Graphic Designer",
+      "count": 947
+    },
+    {
+      "name": "Web Designer",
+      "count": 312
+    },
+    {
+      "name": "Fashion Designer",
+      "count": 190
+    }
+  ],
+  "entrepreneurs": [
+    {
+      "name": "Entrepreneur",
+      "count": 2500
+    }
+  ],
+  "photographers": [
+    {
+      "name": "Photographer",
+      "count": 2500
+    }
+  ],
+  "musicians": [
+    {
+      "name": "Musician/band",
+      "count": 1440
+    },
+    {
+      "name": "Musician",
+      "count": 428
+    },
+    {
+      "name": "Musician/Band",
+      "count": 236
+    },
+    {
+      "name": "Producer",
+      "count": 226
+    },
+    {
+      "name": "DJ",
+      "count": 139
+    },
+    {
+      "name": "Band",
+      "count": 31
+    }
+  ],
+  "realestate_b2b": [
+    {
+      "name": "Real Estate",
+      "count": 41121
+    },
+    {
+      "name": "Real Estate Loans",
+      "count": 1346
+    },
+    {
+      "name": "Real Estate Management",
+      "count": 549
+    },
+    {
+      "name": "Real Estate Developers",
+      "count": 248
+    },
+    {
+      "name": "Real Estate Appraisers",
+      "count": 141
+    },
+    {
+      "name": "Real Estate Investments",
+      "count": 125
+    },
+    {
+      "name": "Real Estate Agent/manager",
+      "count": 96
+    },
+    {
+      "name": "Real Estate Consultants",
+      "count": 93
+    },
+    {
+      "name": "Real Estate Investment Trusts",
+      "count": 59
+    },
+    {
+      "name": "Real Estate Agent/manager Apartment Building Operator N",
+      "count": 39
+    },
+    {
+      "name": "Real Estate Support Services",
+      "count": 36
+    },
+    {
+      "name": "Real Estate-Rental Service",
+      "count": 28
+    },
+    {
+      "name": "real estate agents",
+      "count": 26
+    },
+    {
+      "name": "Real Estate Inspection",
+      "count": 22
+    },
+    {
+      "name": "BUILDING MATERIALS",
+      "count": 21
+    },
+    {
+      "name": "Contractors-Equip/Supls-Dlrs/Svc (Whol)",
+      "count": 14
+    },
+    {
+      "name": "Real Estate Agent/manager Online Hosting Information Re",
+      "count": 13
+    },
+    {
+      "name": "Real Estate Schools",
+      "count": 13
+    },
+    {
+      "name": "Real Estate Buyers & Brokers",
+      "count": 12
+    },
+    {
+      "name": "real estate agent/manager",
+      "count": 10
+    },
+    {
+      "name": "real estate agent",
+      "count": 10
+    },
+    {
+      "name": "Real Estate Agents and Managers (operating housing authorities)",
+      "count": 9
+    },
+    {
+      "name": "Construction",
+      "count": 9
+    },
+    {
+      "name": "Real Esate Broker Of Commercial Properties",
+      "count": 8
+    },
+    {
+      "name": "Real Estate Broker",
+      "count": 5
+    },
+    {
+      "name": "Builders Service",
+      "count": 5
+    },
+    {
+      "name": "Contractors",
+      "count": 4
+    },
+    {
+      "name": "BUILDING MATERIALS, HARDWARE, GARDEN SUPPLY, AND MOBILE HOME DEALERS",
+      "count": 4
+    },
+    {
+      "name": "Building Materials",
+      "count": 4
+    },
+    {
+      "name": "Real Estate Exchangers",
+      "count": 4
+    },
+    {
+      "name": "Building Contractors",
+      "count": 3
+    },
+    {
+      "name": "Real Estate Research Services",
+      "count": 3
+    },
+    {
+      "name": "Real Property Lessor",
+      "count": 3
+    },
+    {
+      "name": "Real Estate Agent/manager Real Property Lessor",
+      "count": 2
+    },
+    {
+      "name": "Building Materials-Manufacturers",
+      "count": 2
+    },
+    {
+      "name": "real estate agency",
+      "count": 2
+    },
+    {
+      "name": "Real Estate Information Reports",
+      "count": 2
+    },
+    {
+      "name": "Real Estate Investment",
+      "count": 1
+    },
+    {
+      "name": "Real Estate & Mortgage Broker",
+      "count": 1
+    },
+    {
+      "name": "Buildings-Pre-Cut Prefabricated/Modular",
+      "count": 1
+    },
+    {
+      "name": "Connectors-Electric-Manufacturers",
+      "count": 1
+    },
+    {
+      "name": "Real Estate & Property Management",
+      "count": 1
+    },
+    {
+      "name": "Real Estate Agent/manager Legal Services Office",
+      "count": 1
+    },
+    {
+      "name": "real estate developer",
+      "count": 1
+    },
+    {
+      "name": "Real Estate Agency",
+      "count": 1
+    },
+    {
+      "name": "Real Estate Appraiser",
+      "count": 1
+    },
+    {
+      "name": "Building Construction-Consultants",
+      "count": 1
+    },
+    {
+      "name": "Building Restoration & Preservation",
+      "count": 1
+    },
+    {
+      "name": "Real Estate Mulitple Listing Service",
+      "count": 1
+    },
+    {
+      "name": "Real Estate Agent",
+      "count": 1
+    },
+    {
+      "name": "Real Estate Development And Business Management",
+      "count": 1
+    },
+    {
+      "name": "Real Estate Development/management",
+      "count": 1
+    },
+    {
+      "name": "Real Estate Agent Residential",
+      "count": 1
+    },
+    {
+      "name": "Real Estate Investment Trust",
+      "count": 1
+    },
+    {
+      "name": "Contractors-Equipment & Supls-Renting",
+      "count": 1
+    },
+    {
+      "name": "real estate brokers",
+      "count": 1
+    }
+  ],
+  "homeowners": [
+    {
+      "name": "Single family dwelling",
+      "count": 938471
+    },
+    {
+      "name": "Multi-family dwelling",
+      "count": 143751
+    },
+    {
+      "name": "Mobile Home",
+      "count": 6233
+    }
+  ]
+}

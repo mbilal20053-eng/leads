@@ -1,0 +1,1182 @@
+[
+  {
+    "name": "hospital & health care",
+    "count": 1026814
+  },
+  {
+    "name": "Single family dwelling",
+    "count": 938471
+  },
+  {
+    "name": "higher education",
+    "count": 567820
+  },
+  {
+    "name": "education management",
+    "count": 543523
+  },
+  {
+    "name": "information technology and services",
+    "count": 541980
+  },
+  {
+    "name": "financial services",
+    "count": 532751
+  },
+  {
+    "name": "construction",
+    "count": 524493
+  },
+  {
+    "name": "real estate",
+    "count": 430080
+  },
+  {
+    "name": "health, wellness and fitness",
+    "count": 313693
+  },
+  {
+    "name": "insurance",
+    "count": 310559
+  },
+  {
+    "name": "automotive",
+    "count": 295558
+  },
+  {
+    "name": "computer software",
+    "count": 283444
+  },
+  {
+    "name": "marketing and advertising",
+    "count": 275636
+  },
+  {
+    "name": "accounting",
+    "count": 239926
+  },
+  {
+    "name": "non-profit organization management",
+    "count": 231569
+  },
+  {
+    "name": "medical practice",
+    "count": 220810
+  },
+  {
+    "name": "banking",
+    "count": 205522
+  },
+  {
+    "name": "oil & energy",
+    "count": 203342
+  },
+  {
+    "name": "transportation/trucking/railroad",
+    "count": 198114
+  },
+  {
+    "name": "internet",
+    "count": 194283
+  },
+  {
+    "name": "hospitality",
+    "count": 193814
+  },
+  {
+    "name": "law practice",
+    "count": 187122
+  },
+  {
+    "name": "food production",
+    "count": 186795
+  },
+  {
+    "name": "entertainment",
+    "count": 173162
+  },
+  {
+    "name": "primary/secondary education",
+    "count": 168719
+  },
+  {
+    "name": "restaurants",
+    "count": 154013
+  },
+  {
+    "name": "Multi-family dwelling",
+    "count": 143751
+  },
+  {
+    "name": "pharmaceuticals",
+    "count": 142421
+  },
+  {
+    "name": "design",
+    "count": 118237
+  },
+  {
+    "name": "mental health care",
+    "count": 116877
+  },
+  {
+    "name": "medical devices",
+    "count": 110104
+  },
+  {
+    "name": "research",
+    "count": 104206
+  },
+  {
+    "name": "mechanical or industrial engineering",
+    "count": 101024
+  },
+  {
+    "name": "religious institutions",
+    "count": 98770
+  },
+  {
+    "name": "music",
+    "count": 97610
+  },
+  {
+    "name": "food & beverages",
+    "count": 95166
+  },
+  {
+    "name": "legal services",
+    "count": 92770
+  },
+  {
+    "name": "utilities",
+    "count": 92369
+  },
+  {
+    "name": "airlines/aviation",
+    "count": 91871
+  },
+  {
+    "name": "aviation & aerospace",
+    "count": 86038
+  },
+  {
+    "name": "machinery",
+    "count": 85059
+  },
+  {
+    "name": "chemicals",
+    "count": 82138
+  },
+  {
+    "name": "civil engineering",
+    "count": 81602
+  },
+  {
+    "name": "logistics and supply chain",
+    "count": 80737
+  },
+  {
+    "name": "biotechnology",
+    "count": 79851
+  },
+  {
+    "name": "architecture & planning",
+    "count": 78344
+  },
+  {
+    "name": "building materials",
+    "count": 77103
+  },
+  {
+    "name": "writing and editing",
+    "count": 73156
+  },
+  {
+    "name": "broadcast media",
+    "count": 60045
+  },
+  {
+    "name": "professional training & coaching",
+    "count": 51864
+  },
+  {
+    "name": "retail",
+    "count": 51400
+  },
+  {
+    "name": "government administration",
+    "count": 51075
+  },
+  {
+    "name": "publishing",
+    "count": 50463
+  },
+  {
+    "name": "public relations and communications",
+    "count": 49407
+  },
+  {
+    "name": "investment management",
+    "count": 47079
+  },
+  {
+    "name": "media production",
+    "count": 45139
+  },
+  {
+    "name": "mining & metals",
+    "count": 43974
+  },
+  {
+    "name": "computer networking",
+    "count": 43936
+  },
+  {
+    "name": "Real Estate",
+    "count": 43727
+  },
+  {
+    "name": "computer hardware",
+    "count": 39413
+  },
+  {
+    "name": "renewables & environment",
+    "count": 36128
+  },
+  {
+    "name": "civic & social organization",
+    "count": 35914
+  },
+  {
+    "name": "e-learning",
+    "count": 33627
+  },
+  {
+    "name": "industrial automation",
+    "count": 32684
+  },
+  {
+    "name": "computer & network security",
+    "count": 32089
+  },
+  {
+    "name": "commercial real estate",
+    "count": 30632
+  },
+  {
+    "name": "leisure, travel, & tourism",
+    "count": 28810
+  },
+  {
+    "name": "management consulting",
+    "count": 27795
+  },
+  {
+    "name": "plastics",
+    "count": 24528
+  },
+  {
+    "name": "defense & space",
+    "count": 23810
+  },
+  {
+    "name": "consumer goods",
+    "count": 23701
+  },
+  {
+    "name": "newspapers",
+    "count": 23013
+  },
+  {
+    "name": "staffing and recruiting",
+    "count": 22611
+  },
+  {
+    "name": "electrical/electronic manufacturing",
+    "count": 22589
+  },
+  {
+    "name": "telecommunications",
+    "count": 22469
+  },
+  {
+    "name": "maritime",
+    "count": 21377
+  },
+  {
+    "name": "leisure, travel & tourism",
+    "count": 21193
+  },
+  {
+    "name": "international affairs",
+    "count": 19624
+  },
+  {
+    "name": "online media",
+    "count": 19465
+  },
+  {
+    "name": "market research",
+    "count": 18070
+  },
+  {
+    "name": "investment banking",
+    "count": 17984
+  },
+  {
+    "name": "philanthropy",
+    "count": 14753
+  },
+  {
+    "name": "venture capital & private equity",
+    "count": 14677
+  },
+  {
+    "name": "individual & family services",
+    "count": 13618
+  },
+  {
+    "name": "fund-raising",
+    "count": 13090
+  },
+  {
+    "name": "military",
+    "count": 12011
+  },
+  {
+    "name": "consumer services",
+    "count": 11638
+  },
+  {
+    "name": "capital markets",
+    "count": 10788
+  },
+  {
+    "name": "environmental services",
+    "count": 10540
+  },
+  {
+    "name": "human resources",
+    "count": 10096
+  },
+  {
+    "name": "facilities services",
+    "count": 9854
+  },
+  {
+    "name": "wholesale",
+    "count": 8980
+  },
+  {
+    "name": "consumer electronics",
+    "count": 8916
+  },
+  {
+    "name": "sports",
+    "count": 7881
+  },
+  {
+    "name": "apparel & fashion",
+    "count": 7195
+  },
+  {
+    "name": "information services",
+    "count": 7099
+  },
+  {
+    "name": "semiconductors",
+    "count": 6461
+  },
+  {
+    "name": "Mobile Home",
+    "count": 6233
+  },
+  {
+    "name": "events services",
+    "count": 5856
+  },
+  {
+    "name": "business supplies and equipment",
+    "count": 5424
+  },
+  {
+    "name": "security and investigations",
+    "count": 4888
+  },
+  {
+    "name": "outsourcing/offshoring",
+    "count": 4565
+  },
+  {
+    "name": "packaging and containers",
+    "count": 4403
+  },
+  {
+    "name": "law enforcement",
+    "count": 4395
+  },
+  {
+    "name": "printing",
+    "count": 4193
+  },
+  {
+    "name": "cosmetics",
+    "count": 4173
+  },
+  {
+    "name": "furniture",
+    "count": 3592
+  },
+  {
+    "name": "international trade and development",
+    "count": 3526
+  },
+  {
+    "name": "gambling & casinos",
+    "count": 3193
+  },
+  {
+    "name": "recreational facilities and services",
+    "count": 3189
+  },
+  {
+    "name": "government relations",
+    "count": 3176
+  },
+  {
+    "name": "museums and institutions",
+    "count": 3120
+  },
+  {
+    "name": "public safety",
+    "count": 3087
+  },
+  {
+    "name": "farming",
+    "count": 2980
+  },
+  {
+    "name": "performing arts",
+    "count": 2877
+  },
+  {
+    "name": "motion pictures and film",
+    "count": 2832
+  },
+  {
+    "name": "wine and spirits",
+    "count": 2795
+  },
+  {
+    "name": "sporting goods",
+    "count": 2727
+  },
+  {
+    "name": "supermarkets",
+    "count": 2696
+  },
+  {
+    "name": "arts and crafts",
+    "count": 2613
+  },
+  {
+    "name": "Coach",
+    "count": 2500
+  },
+  {
+    "name": "Photographer",
+    "count": 2500
+  },
+  {
+    "name": "Entrepreneur",
+    "count": 2500
+  },
+  {
+    "name": "graphic design",
+    "count": 2495
+  },
+  {
+    "name": "Real Estate Agent",
+    "count": 2395
+  },
+  {
+    "name": "computer games",
+    "count": 2350
+  },
+  {
+    "name": "wireless",
+    "count": 2144
+  },
+  {
+    "name": "textiles",
+    "count": 2070
+  },
+  {
+    "name": "photography",
+    "count": 2059
+  },
+  {
+    "name": "libraries",
+    "count": 2032
+  },
+  {
+    "name": "package/freight delivery",
+    "count": 1924
+  },
+  {
+    "name": "public policy",
+    "count": 1915
+  },
+  {
+    "name": "executive office",
+    "count": 1799
+  },
+  {
+    "name": "warehousing",
+    "count": 1736
+  },
+  {
+    "name": "paper & forest products",
+    "count": 1675
+  },
+  {
+    "name": "luxury goods & jewelry",
+    "count": 1584
+  },
+  {
+    "name": "import and export",
+    "count": 1468
+  },
+  {
+    "name": "Musician/band",
+    "count": 1440
+  },
+  {
+    "name": "Real Estate Loans",
+    "count": 1346
+  },
+  {
+    "name": "Restaurant",
+    "count": 1335
+  },
+  {
+    "name": "veterinary",
+    "count": 1287
+  },
+  {
+    "name": "program development",
+    "count": 1218
+  },
+  {
+    "name": "political organization",
+    "count": 1209
+  },
+  {
+    "name": "glass, ceramics & concrete",
+    "count": 1172
+  },
+  {
+    "name": "fine art",
+    "count": 1154
+  },
+  {
+    "name": "translation and localization",
+    "count": 1154
+  },
+  {
+    "name": "think tanks",
+    "count": 1136
+  },
+  {
+    "name": "judiciary",
+    "count": 1132
+  },
+  {
+    "name": "Designer",
+    "count": 1051
+  },
+  {
+    "name": "Graphic Designer",
+    "count": 947
+  },
+  {
+    "name": "alternative medicine",
+    "count": 899
+  },
+  {
+    "name": "railroad manufacture",
+    "count": 751
+  },
+  {
+    "name": "dairy",
+    "count": 690
+  },
+  {
+    "name": "Real Estate Management",
+    "count": 549
+  },
+  {
+    "name": "animation",
+    "count": 544
+  },
+  {
+    "name": "Chef",
+    "count": 464
+  },
+  {
+    "name": "shipbuilding",
+    "count": 455
+  },
+  {
+    "name": "nanotechnology",
+    "count": 451
+  },
+  {
+    "name": "Musician",
+    "count": 428
+  },
+  {
+    "name": "legislative office",
+    "count": 399
+  },
+  {
+    "name": "Bakery",
+    "count": 391
+  },
+  {
+    "name": "Web Designer",
+    "count": 312
+  },
+  {
+    "name": "tobacco",
+    "count": 304
+  },
+  {
+    "name": "alternative dispute resolution",
+    "count": 281
+  },
+  {
+    "name": "Real Estate Developers",
+    "count": 248
+  },
+  {
+    "name": "Musician/Band",
+    "count": 236
+  },
+  {
+    "name": "Producer",
+    "count": 226
+  },
+  {
+    "name": "fishery",
+    "count": 199
+  },
+  {
+    "name": "Fashion Designer",
+    "count": 190
+  },
+  {
+    "name": "Coffee shop",
+    "count": 172
+  },
+  {
+    "name": "Real Estate Appraisers",
+    "count": 141
+  },
+  {
+    "name": "ranching",
+    "count": 139
+  },
+  {
+    "name": "DJ",
+    "count": 139
+  },
+  {
+    "name": "Real Estate Investments",
+    "count": 125
+  },
+  {
+    "name": "Cafe",
+    "count": 118
+  },
+  {
+    "name": "Real Estate Agent/manager",
+    "count": 96
+  },
+  {
+    "name": "Real Estate Consultants",
+    "count": 93
+  },
+  {
+    "name": "Real Estate Investment Trusts",
+    "count": 59
+  },
+  {
+    "name": "Real Estate Agent/manager Apartment Building Operator N",
+    "count": 39
+  },
+  {
+    "name": "Real Estate Support Services",
+    "count": 36
+  },
+  {
+    "name": "Band",
+    "count": 31
+  },
+  {
+    "name": "Real Estate-Rental Service",
+    "count": 28
+  },
+  {
+    "name": "real estate agents",
+    "count": 26
+  },
+  {
+    "name": "Real Estate Inspection",
+    "count": 22
+  },
+  {
+    "name": "BUILDING MATERIALS",
+    "count": 21
+  },
+  {
+    "name": "Coffee Shop",
+    "count": 20
+  },
+  {
+    "name": "Contractors-Equip/Supls-Dlrs/Svc (Whol)",
+    "count": 14
+  },
+  {
+    "name": "Real Estate Agent/manager Online Hosting Information Re",
+    "count": 13
+  },
+  {
+    "name": "Real Estate Schools",
+    "count": 13
+  },
+  {
+    "name": "Real Estate Buyers & Brokers",
+    "count": 12
+  },
+  {
+    "name": "design",
+    "count": 11
+  },
+  {
+    "name": "inc.\"",
+    "count": 11
+  },
+  {
+    "name": "Design",
+    "count": 10
+  },
+  {
+    "name": "real estate agent/manager",
+    "count": 10
+  },
+  {
+    "name": "real estate agent",
+    "count": 10
+  },
+  {
+    "name": "Construction",
+    "count": 9
+  },
+  {
+    "name": "Real Estate Agents and Managers (operating housing authorities)",
+    "count": 9
+  },
+  {
+    "name": "Real Esate Broker Of Commercial Properties",
+    "count": 8
+  },
+  {
+    "name": "research",
+    "count": 7
+  },
+  {
+    "name": "lbmc.org",
+    "count": 6
+  },
+  {
+    "name": "Builders Service",
+    "count": 5
+  },
+  {
+    "name": "manufacturing",
+    "count": 5
+  },
+  {
+    "name": "inc\"",
+    "count": 5
+  },
+  {
+    "name": "Real Estate Broker",
+    "count": 5
+  },
+  {
+    "name": "BUILDING MATERIALS, HARDWARE, GARDEN SUPPLY, AND MOBILE HOME DEALERS",
+    "count": 4
+  },
+  {
+    "name": "united states",
+    "count": 4
+  },
+  {
+    "name": "Accounting",
+    "count": 4
+  },
+  {
+    "name": "Real Estate",
+    "count": 4
+  },
+  {
+    "name": "Real Estate Exchangers",
+    "count": 4
+  },
+  {
+    "name": "Building Materials",
+    "count": 4
+  },
+  {
+    "name": "Contractors",
+    "count": 4
+  },
+  {
+    "name": "lda)\"",
+    "count": 3
+  },
+  {
+    "name": "Real Estate Research Services",
+    "count": 3
+  },
+  {
+    "name": "Real Property Lessor",
+    "count": 3
+  },
+  {
+    "name": "real estate",
+    "count": 3
+  },
+  {
+    "name": "Manufacturing",
+    "count": 3
+  },
+  {
+    "name": "financial services",
+    "count": 3
+  },
+  {
+    "name": "Building Contractors",
+    "count": 3
+  },
+  {
+    "name": "insurance",
+    "count": 3
+  },
+  {
+    "name": "Insurance",
+    "count": 2
+  },
+  {
+    "name": "Construction",
+    "count": 2
+  },
+  {
+    "name": "hospitality",
+    "count": 2
+  },
+  {
+    "name": "Hospitality",
+    "count": 2
+  },
+  {
+    "name": "real estate agency",
+    "count": 2
+  },
+  {
+    "name": "Research",
+    "count": 2
+  },
+  {
+    "name": "Music",
+    "count": 2
+  },
+  {
+    "name": "inc.\\\"\"",
+    "count": 2
+  },
+  {
+    "name": "market research",
+    "count": 2
+  },
+  {
+    "name": "Real Estate Information Reports",
+    "count": 2
+  },
+  {
+    "name": "construction",
+    "count": 2
+  },
+  {
+    "name": "Building Materials-Manufacturers",
+    "count": 2
+  },
+  {
+    "name": "Market Research",
+    "count": 2
+  },
+  {
+    "name": "Real Estate Agent/manager Real Property Lessor",
+    "count": 2
+  },
+  {
+    "name": "media production",
+    "count": 2
+  },
+  {
+    "name": "entertainment",
+    "count": 2
+  },
+  {
+    "name": "music",
+    "count": 2
+  },
+  {
+    "name": "2020-01-01",
+    "count": 1
+  },
+  {
+    "name": "chemicals",
+    "count": 1
+  },
+  {
+    "name": "Chemicals",
+    "count": 1
+  },
+  {
+    "name": "online research",
+    "count": 1
+  },
+  {
+    "name": "higher education",
+    "count": 1
+  },
+  {
+    "name": "florida",
+    "count": 1
+  },
+  {
+    "name": "MUSIC",
+    "count": 1
+  },
+  {
+    "name": "publishing",
+    "count": 1
+  },
+  {
+    "name": "Personal Financial Planning",
+    "count": 1
+  },
+  {
+    "name": "and the pursuit of happiness.\"",
+    "count": 1
+  },
+  {
+    "name": "Building Restoration & Preservation",
+    "count": 1
+  },
+  {
+    "name": "Real Estate Mulitple Listing Service",
+    "count": 1
+  },
+  {
+    "name": "Real Estate Agent/manager Legal Services Office",
+    "count": 1
+  },
+  {
+    "name": "Real Estate Development And Business Management",
+    "count": 1
+  },
+  {
+    "name": "Real Estate Appraiser",
+    "count": 1
+  },
+  {
+    "name": "multifamily",
+    "count": 1
+  },
+  {
+    "name": "children",
+    "count": 1
+  },
+  {
+    "name": "Building Construction-Consultants",
+    "count": 1
+  },
+  {
+    "name": "Internet",
+    "count": 1
+  },
+  {
+    "name": "and Chemicals\"",
+    "count": 1
+  },
+  {
+    "name": "Computer Hardware",
+    "count": 1
+  },
+  {
+    "name": "2020-09-01",
+    "count": 1
+  },
+  {
+    "name": "Restaurants",
+    "count": 1
+  },
+  {
+    "name": "restaurants",
+    "count": 1
+  },
+  {
+    "name": "smithsonian institution\"",
+    "count": 1
+  },
+  {
+    "name": "e-learning",
+    "count": 1
+  },
+  {
+    "name": "Real Estate Investment",
+    "count": 1
+  },
+  {
+    "name": "pharmaceuticals",
+    "count": 1
+  },
+  {
+    "name": "Project Management",
+    "count": 1
+  },
+  {
+    "name": "real estate developer",
+    "count": 1
+  },
+  {
+    "name": "Real Estate & Mortgage Broker",
+    "count": 1
+  },
+  {
+    "name": "acquisition",
+    "count": 1
+  },
+  {
+    "name": "Real Estate Agency",
+    "count": 1
+  },
+  {
+    "name": "Connectors-Electric-Manufacturers",
+    "count": 1
+  },
+  {
+    "name": "business & life coach\\\"\"",
+    "count": 1
+  },
+  {
+    "name": "ltd.\"",
+    "count": 1
+  },
+  {
+    "name": "Real Estate & Property Management",
+    "count": 1
+  },
+  {
+    "name": "\\",
+    "count": 1
+  },
+  {
+    "name": "game theory",
+    "count": 1
+  },
+  {
+    "name": "llc\"",
+    "count": 1
+  },
+  {
+    "name": "E-learning",
+    "count": 1
+  },
+  {
+    "name": "Buildings-Pre-Cut Prefabricated/Modular",
+    "count": 1
+  },
+  {
+    "name": "great britain",
+    "count": 1
+  },
+  {
+    "name": "Real Estate Development/management",
+    "count": 1
+  },
+  {
+    "name": "Real Estate Agent Residential",
+    "count": 1
+  },
+  {
+    "name": "Real Estate Investment Trust",
+    "count": 1
+  },
+  {
+    "name": "Angel Investors",
+    "count": 1
+  },
+  {
+    "name": "real estate brokers",
+    "count": 1
+  },
+  {
+    "name": "and philosophy.\"",
+    "count": 1
+  },
+  {
+    "name": "CONSTRUCTION",
+    "count": 1
+  },
+  {
+    "name": "2020-12-01",
+    "count": 1
+  },
+  {
+    "name": "2020-10-01",
+    "count": 1
+  },
+  {
+    "name": "automotriz cordillera ltda\"",
+    "count": 1
+  },
+  {
+    "name": "Waste to Energy",
+    "count": 1
+  },
+  {
+    "name": "philanthropy",
+    "count": 1
+  },
+  {
+    "name": "online media",
+    "count": 1
+  },
+  {
+    "name": "Entertainment",
+    "count": 1
+  },
+  {
+    "name": "Medical Devices",
+    "count": 1
+  },
+  {
+    "name": "Contractors-Equipment & Supls-Renting",
+    "count": 1
+  }
+]
