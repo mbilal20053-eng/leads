@@ -181,8 +181,8 @@ function renderKPIs(stats, breakdown, datasetName) {
 
   const bannerShare = document.getElementById("bannerSharePct");
   if (bannerShare) {
-    if (currentDataset === "all_global") {
-      bannerShare.textContent = "100% (All Sources - 215.7M Leads)";
+    if (currentDataset === "all_global" || currentDataset === "all_local_unified") {
+      bannerShare.textContent = "100% (All Sources - " + Number(total).toLocaleString() + " Leads)";
     } else if (breakdown) {
       const item = breakdown.find(function (b) { return b.id === currentDataset; });
       if (item) {

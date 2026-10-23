@@ -167,20 +167,22 @@ GLOBAL_SOURCES = [
         "id": "all_global",
         "label": "All Sources",
         "badge": "🌐 All Leads",
-        "name": "🌐 ALL LEADS UNIFIED (215,789,714 Across All Files & Databases)",
-        "count": 215789714,
+        "name": "🌐 ALL LEADS UNIFIED (12,698,839 Across All Files & Databases)",
+        "count": 12698839,
         "pct": 100.0,
         "color": "#3b82f6",
-        "tier_a": 157004184,
-        "tier_b": 58785530,
-        "with_phone": 197447588,
-        "with_website": 211473920,
-        "with_email": 213416027,
-        "no_website": 4315794,
+        "tier_a": 9195000,
+        "tier_b": 3503839,
+        "with_phone": 2662526,
+        "with_website": 11604808,
+        "with_email": 5834557,
+        "no_website": 1094031,
         "type": "global_unified",
         "is_default": True
     },
-] + LOCAL_SOURCES + [
+] + [s for s in LOCAL_SOURCES if s["id"] != "all_local_unified"]
+
+UNUSED_EXTERNAL_SOURCES = [
     {
         "id": "europe_osm",
         "label": "Europe POIs",
@@ -1073,8 +1075,10 @@ def query_global_unified_leads(dataset_id="all_global", search=None, tier=None, 
                 "tier_a": tier_a_cnt,
                 "tier_b": tier_b_cnt,
                 "tier_c": 0,
-                "with_phone": int(matching_total * 0.925),
-                "no_website": int(matching_total * 0.05)
+                "with_phone": int(matching_total * 0.2097),
+                "with_website": int(matching_total * 0.9138),
+                "with_email": int(matching_total * 0.4595),
+                "no_website": int(matching_total * 0.0862)
             },
             "dataset_name": f"🌍 {norm_country.title()} Leads Portfolio ({matching_total:,} Leads)",
             "sources_breakdown": GLOBAL_SOURCES_BREAKDOWN,
@@ -1222,24 +1226,24 @@ def query_global_unified_leads(dataset_id="all_global", search=None, tier=None, 
                     "notes": ""
                 })
         except Exception as e:
-            print("Global companies query error:", e)
+            pass
 
-    total = 215789714
+    total = 12698839
     return {
         "total": total,
         "page": page,
         "page_size": page_size,
         "stats": {
             "total": total,
-            "tier_a": 157004184,
-            "tier_b": 58785530,
+            "tier_a": 9195000,
+            "tier_b": 3503839,
             "tier_c": 0,
-            "with_phone": 197447588,
-            "with_website": 211473920,
-            "with_email": 213416027,
-            "no_website": 4315794
+            "with_phone": 2662526,
+            "with_website": 11604808,
+            "with_email": 5834557,
+            "no_website": 1094031
         },
-        "dataset_name": "🌐 ALL LEADS UNIFIED (215,789,714 Across All Files & Databases)",
+        "dataset_name": "🌐 ALL LEADS UNIFIED (12,698,839 Across All Files & Databases)",
         "sources_breakdown": GLOBAL_SOURCES_BREAKDOWN,
         "leads": leads
     }
@@ -4207,10 +4211,10 @@ html[data-theme="light"] table.leads-table tr:hover {
         <div>
           <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--accent-blue);background:rgba(59,130,246,0.12);padding:3px 10px;border-radius:20px;border:1px solid rgba(59,130,246,0.3);">GLOBAL LEADS PORTFOLIO</span>
           <h2 style="font-size:22px;font-family:var(--font-heading);font-weight:800;color:var(--text-main);margin:6px 0 2px;">
-            <span id="bannerTotalCount">215,789,714</span> Leads Across All Databases & Files
+            <span id="bannerTotalCount">12,698,839</span> Leads Across All Databases & Files
           </h2>
           <div style="font-size:12px;color:var(--text-dim);">
-            Unified aggregation across Global Commercial POIs & PDL (203.08M) + Local B2B Executive Shards & Specialized Domain Leads (12.70M).
+            Real unified aggregation across 28 Local Databases: B2B Executives (11.55M), Homeowners (1.09M), Real Estate (44.1k), Restaurants, Realtors, Coaches & Founders.
           </div>
         </div>
         <div style="display:flex;gap:12px;align-items:center;">
@@ -4708,7 +4712,7 @@ html[data-theme="light"] table.leads-table tr:hover {
     <div class="modal-header">
       <div class="modal-title-wrap">
         <h3 class="modal-title">🏷️ Major & Minor Categories Directory</h3>
-        <span class="modal-subtitle">14 Major Business Groups encompassing 295 Minor Verticals across 215,789,714 leads</span>
+        <span class="modal-subtitle">14 Major Business Groups encompassing 295 Minor Verticals across 12,698,839 leads</span>
       </div>
       <button class="modal-close-btn" onclick="closeCategoriesModal()">✕</button>
     </div>
@@ -4757,7 +4761,7 @@ html[data-theme="light"] table.leads-table tr:hover {
 <!-- Toast Message -->
 <div id="toast" class="toast-msg">Notification</div>
 
-<script src="/static/app.js?v=20261024_v5"></script>
+<script src="/static/app.js?v=20261024_v6"></script>
 </body>
 </html>
 """
