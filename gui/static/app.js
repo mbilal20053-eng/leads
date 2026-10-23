@@ -105,27 +105,62 @@ function renderKPIs(stats, breakdown, datasetName) {
   const tierA = Number(stats.tier_a || 0);
   const tierB = Number(stats.tier_b || 0);
   const phone = Number(stats.with_phone || 0);
+  const website = Number(stats.with_website !== undefined ? stats.with_website : Math.max(0, total - Number(stats.no_website || 0)));
+  const email = Number(stats.with_email !== undefined ? stats.with_email : 0);
 
   const kTotal = document.getElementById("kpiTotal");
   const kTierA = document.getElementById("kpiTierA");
   const kTierB = document.getElementById("kpiTierB");
   const kPhone = document.getElementById("kpiWithPhone");
+  const kWebsite = document.getElementById("kpiWithWebsite");
+  const kEmail = document.getElementById("kpiWithEmail");
 
   if (kTotal) kTotal.textContent = total.toLocaleString();
 
-  const tierAPct = total > 0 ? ((tierA / total) * 100).toFixed(1) : "72.0";
-  const tierBPct = total > 0 ? ((tierB / total) * 100).toFixed(1) : "28.0";
-  const phonePct = total > 0 ? ((phone / total) * 100).toFixed(1) : "23.0";
+  const tierAPct = total > 0 ? ((tierA / total) * 100).toFixed(1) : "0.0";
+  const tierBPct = total > 0 ? ((tierB / total) * 100).toFixed(1) : "0.0";
+  const phonePct = total > 0 ? ((phone / total) * 100).toFixed(1) : "0.0";
+  const websitePct = total > 0 ? ((website / total) * 100).toFixed(1) : "0.0";
+  const emailPct = total > 0 ? ((email / total) * 100).toFixed(1) : "0.0";
+
+  if (kPhone) {
+    kPhone.innerHTML = phone.toLocaleString() + ' <span style="font-size:12px;font-weight:700;padding:2px 8px;border-radius:12px;background:rgba(99,102,241,0.18);color:#818cf8;border:1px solid rgba(99,102,241,0.35);vertical-align:middle;margin-left:6px;">' + phonePct + '%</span>';
+    const sub = document.getElementById("kpiPhoneSub");
+    if (sub) sub.textContent = phone.toLocaleString() + ' of ' + total.toLocaleString() + ' leads (' + phonePct + '%)';
+    const badge = document.getElementById("kpiPhoneBadge");
+    if (badge) badge.textContent = phonePct + "% REACH";
+  }
+
+  if (kWebsite) {
+    kWebsite.innerHTML = website.toLocaleString() + ' <span style="font-size:12px;font-weight:700;padding:2px 8px;border-radius:12px;background:rgba(6,182,212,0.18);color:#22d3ee;border:1px solid rgba(6,182,212,0.35);vertical-align:middle;margin-left:6px;">' + websitePct + '%</span>';
+    const sub = document.getElementById("kpiWebsiteSub");
+    if (sub) sub.textContent = website.toLocaleString() + ' of ' + total.toLocaleString() + ' leads (' + websitePct + '%)';
+    const badge = document.getElementById("kpiWebsiteBadge");
+    if (badge) badge.textContent = websitePct + "% SITES";
+  }
+
+  if (kEmail) {
+    kEmail.innerHTML = email.toLocaleString() + ' <span style="font-size:12px;font-weight:700;padding:2px 8px;border-radius:12px;background:rgba(16,185,129,0.18);color:#34d399;border:1px solid rgba(16,185,129,0.35);vertical-align:middle;margin-left:6px;">' + emailPct + '%</span>';
+    const sub = document.getElementById("kpiEmailSub");
+    if (sub) sub.textContent = email.toLocaleString() + ' of ' + total.toLocaleString() + ' leads (' + emailPct + '%)';
+    const badge = document.getElementById("kpiEmailBadge");
+    if (badge) badge.textContent = emailPct + "% INBOX";
+  }
 
   if (kTierA) {
-    kTierA.innerHTML = tierA.toLocaleString() + ' <span style="font-size:12px;font-weight:600;opacity:0.85;">(' + tierAPct + '%)</span>';
+    kTierA.innerHTML = tierA.toLocaleString() + ' <span style="font-size:12px;font-weight:700;padding:2px 8px;border-radius:12px;background:rgba(16,185,129,0.18);color:#34d399;border:1px solid rgba(16,185,129,0.35);vertical-align:middle;margin-left:6px;">' + tierAPct + '%</span>';
   }
   if (kTierB) {
-    kTierB.innerHTML = tierB.toLocaleString() + ' <span style="font-size:12px;font-weight:600;opacity:0.85;">(' + tierBPct + '%)</span>';
+    kTierB.innerHTML = tierB.toLocaleString() + ' <span style="font-size:12px;font-weight:700;padding:2px 8px;border-radius:12px;background:rgba(245,158,11,0.18);color:#fbbf24;border:1px solid rgba(245,158,11,0.35);vertical-align:middle;margin-left:6px;">' + tierBPct + '%</span>';
   }
-  if (kPhone) {
-    kPhone.innerHTML = phone.toLocaleString() + ' <span style="font-size:12px;font-weight:600;opacity:0.85;">(' + phonePct + '%)</span>';
-  }
+
+  // Update table header meta badges if present
+  const metaPhoneCoverage = document.getElementById("metaPhoneCoverage");
+  if (metaPhoneCoverage) metaPhoneCoverage.textContent = phonePct + "%";
+  const metaWebsiteCoverage = document.getElementById("metaWebsiteCoverage");
+  if (metaWebsiteCoverage) metaWebsiteCoverage.textContent = websitePct + "%";
+  const metaEmailCoverage = document.getElementById("metaEmailCoverage");
+  if (metaEmailCoverage) metaEmailCoverage.textContent = emailPct + "%";
 
   // Update banner total count to exact number of current filtered source!
   const bannerTotal = document.getElementById("bannerTotalCount");

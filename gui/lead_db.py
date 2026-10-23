@@ -376,7 +376,9 @@ LOCAL_SOURCES = [
         "tier_a": 9195000,
         "tier_b": 3506349,
         "with_phone": 4210000,
-        "no_website": 3600000,
+        "with_website": 8500000,
+        "with_email": 9250000,
+        "no_website": 4201349,
         "type": "local_unified",
         "is_default": False
     },
@@ -391,7 +393,9 @@ LOCAL_SOURCES = [
         "tier_a": 8360000,
         "tier_b": 3188780,
         "with_phone": 3850000,
-        "no_website": 3100000,
+        "with_website": 8450000,
+        "with_email": 9200000,
+        "no_website": 3098780,
         "type": "b2b_shards"
     },
     {
@@ -402,9 +406,11 @@ LOCAL_SOURCES = [
         "count": 1088456,
         "pct": 8.57,
         "color": "#10b981",
-        "tier_a": 780000,
-        "tier_b": 308456,
-        "with_phone": 320000,
+        "tier_a": 383099,
+        "tier_b": 705357,
+        "with_phone": 635832,
+        "with_website": 0,
+        "with_email": 0,
         "no_website": 1088456,
         "type": "homeowners_csv"
     },
@@ -416,10 +422,12 @@ LOCAL_SOURCES = [
         "count": 44110,
         "pct": 0.35,
         "color": "#f59e0b",
-        "tier_a": 32000,
-        "tier_b": 12110,
-        "with_phone": 40000,
-        "no_website": 5000,
+        "tier_a": 44110,
+        "tier_b": 0,
+        "with_phone": 44063,
+        "with_website": 43253,
+        "with_email": 43616,
+        "no_website": 857,
         "type": "realestate_csv"
     },
     {
@@ -430,10 +438,12 @@ LOCAL_SOURCES = [
         "count": 2500,
         "pct": 0.02,
         "color": "#8b5cf6",
-        "tier_a": 1950,
-        "tier_b": 550,
-        "with_phone": 2100,
-        "no_website": 550,
+        "tier_a": 2500,
+        "tier_b": 0,
+        "with_phone": 2135,
+        "with_website": 1967,
+        "with_email": 2500,
+        "no_website": 533,
         "type": "category_csv"
     },
     {
@@ -444,10 +454,12 @@ LOCAL_SOURCES = [
         "count": 2500,
         "pct": 0.02,
         "color": "#ef4444",
-        "tier_a": 1850,
-        "tier_b": 650,
-        "with_phone": 1920,
-        "no_website": 580,
+        "tier_a": 2500,
+        "tier_b": 0,
+        "with_phone": 1913,
+        "with_website": 1899,
+        "with_email": 2499,
+        "no_website": 601,
         "type": "category_csv"
     },
     {
@@ -458,10 +470,12 @@ LOCAL_SOURCES = [
         "count": 2500,
         "pct": 0.02,
         "color": "#06b6d4",
-        "tier_a": 1950,
-        "tier_b": 550,
-        "with_phone": 1800,
-        "no_website": 700,
+        "tier_a": 2500,
+        "tier_b": 0,
+        "with_phone": 861,
+        "with_website": 2152,
+        "with_email": 2500,
+        "no_website": 348,
         "type": "category_csv"
     },
     {
@@ -472,10 +486,12 @@ LOCAL_SOURCES = [
         "count": 2500,
         "pct": 0.02,
         "color": "#ec4899",
-        "tier_a": 1820,
-        "tier_b": 680,
-        "with_phone": 1750,
-        "no_website": 680,
+        "tier_a": 2500,
+        "tier_b": 0,
+        "with_phone": 1149,
+        "with_website": 1875,
+        "with_email": 2500,
+        "no_website": 625,
         "type": "category_csv"
     },
     {
@@ -486,10 +502,12 @@ LOCAL_SOURCES = [
         "count": 2502,
         "pct": 0.02,
         "color": "#14b8a6",
-        "tier_a": 1980,
-        "tier_b": 522,
-        "with_phone": 1820,
-        "no_website": 522,
+        "tier_a": 2502,
+        "tier_b": 0,
+        "with_phone": 1312,
+        "with_website": 1806,
+        "with_email": 2500,
+        "no_website": 696,
         "type": "category_csv"
     },
     {
@@ -500,10 +518,12 @@ LOCAL_SOURCES = [
         "count": 2500,
         "pct": 0.02,
         "color": "#a855f7",
-        "tier_a": 1910,
-        "tier_b": 590,
-        "with_phone": 1780,
-        "no_website": 590,
+        "tier_a": 2500,
+        "tier_b": 0,
+        "with_phone": 1133,
+        "with_website": 1798,
+        "with_email": 2500,
+        "no_website": 702,
         "type": "category_csv"
     },
     {
@@ -514,10 +534,12 @@ LOCAL_SOURCES = [
         "count": 2501,
         "pct": 0.02,
         "color": "#f97316",
-        "tier_a": 1740,
-        "tier_b": 761,
-        "with_phone": 1650,
-        "no_website": 761,
+        "tier_a": 2501,
+        "tier_b": 0,
+        "with_phone": 990,
+        "with_website": 1891,
+        "with_email": 2500,
+        "no_website": 610,
         "type": "category_csv"
     }
 ]
@@ -550,18 +572,29 @@ VIEW_MAP = {
 }
 
 KNOWN_TOTALS = {
-    "all_global": (215789714, 157004184, 58785530, 43410000),
-    "v_all_unified": (12701349, 9195000, 3506349, 4210000),
-    "v_b2b_executives": (11548780, 8360000, 3188780, 3850000),
-    "v_homeowners": (1088456, 780000, 308456, 320000),
-    "v_realestate_b2b": (44110, 32000, 12110, 40000),
-    "v_restaurants": (2500, 1850, 650, 1920),
-    "v_realtors": (2500, 1950, 550, 2100),
-    "v_coaches": (2500, 1950, 550, 1800),
-    "v_designers": (2500, 1820, 680, 1750),
-    "v_entrepreneurs": (2502, 1980, 522, 1820),
-    "v_photographers": (2500, 1910, 590, 1780),
-    "v_musicians": (2501, 1740, 761, 1650)
+    "all_global": (215789714, 157004184, 58785530, 43410000, 156000000, 148000000),
+    "all_local_unified": (12701349, 9195000, 3506349, 4210000, 8500000, 9250000),
+    "v_all_unified": (12701349, 9195000, 3506349, 4210000, 8500000, 9250000),
+    "b2b_executives": (11548780, 8360000, 3188780, 3850000, 8450000, 9200000),
+    "v_b2b_executives": (11548780, 8360000, 3188780, 3850000, 8450000, 9200000),
+    "homeowners": (1088456, 383099, 705357, 635832, 0, 0),
+    "v_homeowners": (1088456, 383099, 705357, 635832, 0, 0),
+    "realestate_b2b": (44110, 44110, 0, 44063, 43253, 43616),
+    "v_realestate_b2b": (44110, 44110, 0, 44063, 43253, 43616),
+    "restaurants": (2500, 2500, 0, 1913, 1899, 2499),
+    "v_restaurants": (2500, 2500, 0, 1913, 1899, 2499),
+    "realtors": (2500, 2500, 0, 2135, 1967, 2500),
+    "v_realtors": (2500, 2500, 0, 2135, 1967, 2500),
+    "coaches": (2500, 2500, 0, 861, 2152, 2500),
+    "v_coaches": (2500, 2500, 0, 861, 2152, 2500),
+    "designers": (2500, 2500, 0, 1149, 1875, 2500),
+    "v_designers": (2500, 2500, 0, 1149, 1875, 2500),
+    "entrepreneurs": (2502, 2502, 0, 1312, 1806, 2500),
+    "v_entrepreneurs": (2502, 2502, 0, 1312, 1806, 2500),
+    "photographers": (2500, 2500, 0, 1133, 1798, 2500),
+    "v_photographers": (2500, 2500, 0, 1133, 1798, 2500),
+    "musicians": (2501, 2501, 0, 990, 1891, 2500),
+    "v_musicians": (2501, 2501, 0, 990, 1891, 2500)
 }
 
 def query_local_view_leads(view_name, dataset_id, dataset_name, tags=None, search=None, tier=None, state=None, country=None, category=None, major_category=None, crm_status=None, opportunity=None, has_phone=False, page=1, page_size=50, sort_col=None, sort_dir="asc"):
@@ -666,23 +699,34 @@ def query_local_view_leads(view_name, dataset_id, dataset_name, tags=None, searc
     cur = GLOBAL_DUCKDB_CON.cursor()
     
     if where_sql == "1=1" and dataset_id in KNOWN_TOTALS:
-        tot, ta, tb, ph = KNOWN_TOTALS[dataset_id]
+        tot, ta, tb, ph, web, em = KNOWN_TOTALS[dataset_id]
     elif where_sql == "1=1" and view_name in KNOWN_TOTALS:
-        tot, ta, tb, ph = KNOWN_TOTALS[view_name]
+        tot, ta, tb, ph, web, em = KNOWN_TOTALS[view_name]
     elif view_name not in ["v_all_unified", "v_b2b_executives", "v_homeowners"]:
         try:
-            count_sql = f"SELECT count(*), count(CASE WHEN tier='A' THEN 1 END), count(CASE WHEN tier='B' THEN 1 END), count(CASE WHEN phone IS NOT NULL AND length(trim(phone)) > 0 THEN 1 END) FROM {view_name} WHERE {where_sql}"
+            count_sql = f"""
+                SELECT 
+                    count(*), 
+                    count(CASE WHEN tier='A' THEN 1 END), 
+                    count(CASE WHEN tier='B' THEN 1 END), 
+                    count(CASE WHEN phone IS NOT NULL AND length(trim(phone)) > 0 AND phone != 'None' THEN 1 END),
+                    count(CASE WHEN website IS NOT NULL AND length(trim(website)) > 0 AND website != 'None' THEN 1 END),
+                    count(CASE WHEN email IS NOT NULL AND length(trim(email)) > 0 AND email != 'None' AND email LIKE '%@%' THEN 1 END)
+                FROM {view_name} WHERE {where_sql}
+            """
             c_row = cur.execute(count_sql, params).fetchone()
-            tot, ta, tb, ph = c_row[0], c_row[1], c_row[2], c_row[3]
+            tot, ta, tb, ph, web, em = c_row[0], c_row[1], c_row[2], c_row[3], c_row[4], c_row[5]
         except Exception:
-            tot, ta, tb, ph = 0, 0, 0, 0
+            tot, ta, tb, ph, web, em = 0, 0, 0, 0, 0, 0
     else:
-        # Large 11.5M dataset: avoid scanning all 18 shards for count
-        base_tot, base_ta, base_tb, base_ph = KNOWN_TOTALS.get(view_name, (1000000, 700000, 300000, 300000))
+        # Large dataset fallback
+        base_tot, base_ta, base_tb, base_ph, base_web, base_em = KNOWN_TOTALS.get(view_name, (1000000, 700000, 300000, 300000, 700000, 750000))
         tot = min(base_tot, 15000)
         ta = int(tot * 0.72)
         tb = tot - ta
         ph = int(tot * 0.35)
+        web = int(tot * 0.70)
+        em = int(tot * 0.75)
 
     sql = f"""
     SELECT id, name, contact_name, job_title, category, address, city, state, zip, country,
@@ -743,7 +787,9 @@ def query_local_view_leads(view_name, dataset_id, dataset_name, tags=None, searc
             "tier_b": tb,
             "tier_c": max(0, tot - ta - tb),
             "with_phone": ph,
-            "no_website": max(0, tot - ta)
+            "with_website": web,
+            "with_email": em,
+            "no_website": max(0, tot - web)
         },
         "states": states_list,
         "categories": categories_list,

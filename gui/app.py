@@ -174,7 +174,9 @@ GLOBAL_SOURCES = [
         "tier_a": 157004184,
         "tier_b": 58785530,
         "with_phone": 43410000,
-        "no_website": 139658134,
+        "with_website": 156000000,
+        "with_email": 148000000,
+        "no_website": 59789714,
         "type": "global_unified",
         "is_default": True
     },
@@ -750,7 +752,9 @@ def query_source_dataset_fallback(dataset_id, search=None, category=None, tier=N
             "tier_b": source_meta.get("tier_b", int(total_leads * 0.28)),
             "tier_c": 0,
             "with_phone": source_meta.get("with_phone", int(total_leads * 0.23)),
-            "no_website": source_meta.get("no_website", int(total_leads * 0.77))
+            "with_website": source_meta.get("with_website", int(total_leads * 0.70)),
+            "with_email": source_meta.get("with_email", int(total_leads * 0.75)),
+            "no_website": source_meta.get("no_website", int(total_leads * 0.30))
         },
         "states": states_list,
         "categories": cat_list,
@@ -1231,7 +1235,9 @@ def query_global_unified_leads(dataset_id="all_global", search=None, tier=None, 
             "tier_b": 58785530,
             "tier_c": 0,
             "with_phone": 43410000,
-            "no_website": 139658134
+            "with_website": 156000000,
+            "with_email": 148000000,
+            "no_website": 59789714
         },
         "dataset_name": "🌐 ALL LEADS UNIFIED (215,789,714 Across All Files & Databases)",
         "sources_breakdown": GLOBAL_SOURCES_BREAKDOWN,
@@ -4196,20 +4202,30 @@ html[data-theme="light"] table.leads-table tr:hover {
         <div class="kpi-value" id="kpiTotal">...</div>
         <div class="kpi-sub" id="kpiDatasetLabel">Current Dataset</div>
       </div>
+      <div class="kpi-card" style="--kpi-color: #6366f1;">
+        <div class="kpi-label">📞 Direct Phone Coverage <span id="kpiPhoneBadge" style="color:#818cf8;font-size:10px;font-weight:700;">COVERAGE</span></div>
+        <div class="kpi-value" id="kpiWithPhone" style="color:#818cf8;">...</div>
+        <div class="kpi-sub" id="kpiPhoneSub">Commercial dialable phone numbers</div>
+      </div>
+      <div class="kpi-card" style="--kpi-color: #06b6d4;">
+        <div class="kpi-label">🌐 Website Links <span id="kpiWebsiteBadge" style="color:#22d3ee;font-size:10px;font-weight:700;">DIGITAL</span></div>
+        <div class="kpi-value" id="kpiWithWebsite" style="color:#22d3ee;">...</div>
+        <div class="kpi-sub" id="kpiWebsiteSub">Active domains & websites</div>
+      </div>
+      <div class="kpi-card" style="--kpi-color: #10b981;">
+        <div class="kpi-label">✉️ Verified Emails <span id="kpiEmailBadge" style="color:#34d399;font-size:10px;font-weight:700;">DELIVERABLE</span></div>
+        <div class="kpi-value" id="kpiWithEmail" style="color:#34d399;">...</div>
+        <div class="kpi-sub" id="kpiEmailSub">Direct outreach inboxes</div>
+      </div>
       <div class="kpi-card" style="--kpi-color: var(--accent-emerald);">
         <div class="kpi-label">Tier A High Intent <span style="color:var(--accent-emerald)">URGENT</span></div>
         <div class="kpi-value" id="kpiTierA" style="color:var(--accent-emerald);">...</div>
-        <div class="kpi-sub">Highest conversion priority</div>
+        <div class="kpi-sub" id="kpiTierASub">Highest conversion priority</div>
       </div>
       <div class="kpi-card" style="--kpi-color: var(--accent-amber);">
         <div class="kpi-label">Tier B Potential <span style="color:var(--accent-amber)">TARGET</span></div>
         <div class="kpi-value" id="kpiTierB" style="color:var(--accent-amber);">...</div>
-        <div class="kpi-sub">Medium outreach score</div>
-      </div>
-      <div class="kpi-card" style="--kpi-color: #6366f1;">
-        <div class="kpi-label">Direct Phone Coverage <span style="color:#818cf8)">VERIFIED</span></div>
-        <div class="kpi-value" id="kpiWithPhone" style="color:#818cf8;">...</div>
-        <div class="kpi-sub">Commercial dialable numbers</div>
+        <div class="kpi-sub" id="kpiTierBSub">Medium outreach score</div>
       </div>
     </div>
 
@@ -4369,7 +4385,15 @@ html[data-theme="light"] table.leads-table tr:hover {
     <!-- Table Card -->
     <div class="table-card">
       <div class="table-header-meta">
-        <div>Showing <b id="metaCount">...</b> leads matching current filters</div>
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+          <div>Showing <b id="metaCount">...</b> leads matching current filters</div>
+          <span style="color:var(--border-strong);">|</span>
+          <div style="display:inline-flex;align-items:center;gap:8px;font-size:12px;">
+            <span style="color:#818cf8;background:rgba(99,102,241,0.12);padding:2px 8px;border-radius:12px;border:1px solid rgba(99,102,241,0.25);">📞 Phone: <b id="metaPhoneCoverage">0%</b></span>
+            <span style="color:#06b6d4;background:rgba(6,182,212,0.12);padding:2px 8px;border-radius:12px;border:1px solid rgba(6,182,212,0.25);">🌐 Web: <b id="metaWebsiteCoverage">0%</b></span>
+            <span style="color:#10b981;background:rgba(16,185,129,0.12);padding:2px 8px;border-radius:12px;border:1px solid rgba(16,185,129,0.25);">✉️ Email: <b id="metaEmailCoverage">0%</b></span>
+          </div>
+        </div>
         <div id="metaStatus">Ready</div>
       </div>
 
@@ -4701,7 +4725,7 @@ html[data-theme="light"] table.leads-table tr:hover {
 <!-- Toast Message -->
 <div id="toast" class="toast-msg">Notification</div>
 
-<script src="/static/app.js?v=20261024_v2"></script>
+<script src="/static/app.js?v=20261024_v3"></script>
 </body>
 </html>
 """
