@@ -168,7 +168,7 @@ GLOBAL_SOURCES = [
         "id": "all_global",
         "label": "All Sources",
         "badge": "🌐 All Leads",
-        "name": "🌐 ALL LEADS UNIFIED (215,789,714 Across All Files & Databases)",
+        "name": "🌐 ALL LEADS UNIFIED (215,789,714 - Planet Daily 92.8GB + B2B + Homeowners + All Databases)",
         "count": 215789714,
         "pct": 100.0,
         "color": "#3b82f6",
@@ -2497,6 +2497,13 @@ def api_upload():
     file.save(dest)
     return jsonify({"success": True, "file": os.path.basename(dest)})
 
+@app.after_request
+def add_cache_headers(response):
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
+
 @app.route("/run", methods=["POST"])
 def start_run():
     params = request.get_json(force=True)
@@ -3132,6 +3139,18 @@ html[data-theme="light"] table.leads-table tr:hover {
   background: var(--tier-c-bg);
   color: var(--tier-c-text);
   border: 1px solid var(--tier-c-border);
+}
+
+.source-col-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 12px;
+  letter-spacing: 0.01em;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
 }
 
 .biz-name {
@@ -4402,7 +4421,7 @@ html[data-theme="light"] table.leads-table tr:hover {
             <span id="bannerTotalCount">215,789,714</span> Leads Across All Databases & Files
           </h2>
           <div style="font-size:12px;color:var(--text-dim);">
-            Unified aggregation across Global Commercial POIs & PDL (203.08M) + Local B2B Executive Shards & Specialized Domain Leads (12.70M).
+            Unified Live Master Portfolio: 🌍 Planet Daily OpenStreetMap 92.8 GB (150M POIs) + 💼 B2B Executives (11.55M) + 🏡 Homeowners (1.09M) + 🏢 Real Estate (44k) + 🌟 All 7 Specialist Directories.
           </div>
         </div>
         <div style="display:flex;gap:12px;align-items:center;">
@@ -4627,6 +4646,7 @@ html[data-theme="light"] table.leads-table tr:hover {
             <tr>
               <th style="width:36px;text-align:center;"><input type="checkbox" id="selectAllCheckbox" class="lead-checkbox" onchange="toggleSelectAllRows(this.checked)" title="Select all leads on current page"></th>
               <th style="width:45px;text-align:center;">#</th>
+              <th style="min-width:150px;">Source Database</th>
               <th onclick="setSort('Business Name')" style="min-width:180px;">Business Name ↕</th>
               <th onclick="setSort('Category')" style="min-width:160px;">Category ↕</th>
               <th onclick="setSort('Owner / Contact')" style="min-width:150px;">Owner / Contact ↕</th>
@@ -4949,7 +4969,7 @@ html[data-theme="light"] table.leads-table tr:hover {
 <!-- Toast Message -->
 <div id="toast" class="toast-msg">Notification</div>
 
-<script src="/static/app.js?v=20261024_v7"></script>
+<script src="/static/app.js?v=20261024_v10_planet_daily"></script>
 </body>
 </html>
 """

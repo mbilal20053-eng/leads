@@ -49,7 +49,7 @@ async function loadLeads() {
   const tbody = document.getElementById("leadsTbody");
   if (!tbody) return;
 
-  tbody.innerHTML = '<tr><td colspan="14" style="text-align:center;padding:48px 20px;"><div class="skeleton" style="width:260px;margin:0 auto 12px;height:18px;"></div><span style="color:var(--text-dim);font-weight:500;">Loading leads database...</span></td></tr>';
+  tbody.innerHTML = '<tr><td colspan="16" style="text-align:center;padding:48px 20px;"><div class="skeleton" style="width:260px;margin:0 auto 12px;height:18px;"></div><span style="color:var(--text-dim);font-weight:500;">Loading leads database...</span></td></tr>';
   const metaStatus = document.getElementById("metaStatus");
   if (metaStatus) metaStatus.textContent = "Loading...";
 
@@ -91,7 +91,7 @@ async function loadLeads() {
     if (metaStatus) metaStatus.textContent = "Up to date";
   } catch (err) {
     console.error("Error loading leads:", err);
-    tbody.innerHTML = '<tr><td colspan="14" style="text-align:center;padding:40px;color:var(--accent-rose);font-size:14px;">' +
+    tbody.innerHTML = '<tr><td colspan="16" style="text-align:center;padding:40px;color:var(--accent-rose);font-size:14px;">' +
       '<div>⚠️ Error loading leads: ' + escapeHtml(err.message) + '</div>' +
       '<button class="btn btn-secondary" style="margin-top:12px;" onclick="loadLeads()">Try Again</button>' +
       '</td></tr>';
@@ -168,7 +168,9 @@ function renderKPIs(stats, breakdown, datasetName) {
 
   const kDatasetLabel = document.getElementById("kpiDatasetLabel");
   if (kDatasetLabel) {
-    if (datasetName) {
+    if (currentDataset === "all_global") {
+      kDatasetLabel.textContent = "🌐 All Leads (Planet Daily 92.8GB + B2B + Homeowners + All 28 Local Files)";
+    } else if (datasetName) {
       kDatasetLabel.textContent = datasetName;
     } else {
       const activeChip = document.querySelector(".source-chip.active");
@@ -181,8 +183,10 @@ function renderKPIs(stats, breakdown, datasetName) {
 
   const bannerShare = document.getElementById("bannerSharePct");
   if (bannerShare) {
-    if (currentDataset === "all_global" || currentDataset === "all_local_unified") {
-      bannerShare.textContent = "100% (All Sources - " + Number(total).toLocaleString() + " Leads)";
+    if (currentDataset === "all_global") {
+      bannerShare.textContent = "100% (All Sources: Planet Daily 150M + B2B 11.55M + Homeowners 1.09M + Local 28 Files)";
+    } else if (currentDataset === "all_local_unified") {
+      bannerShare.textContent = "100% (All Local Files - " + Number(total).toLocaleString() + " Leads)";
     } else if (breakdown) {
       const item = breakdown.find(function (b) { return b.id === currentDataset; });
       if (item) {
@@ -286,7 +290,7 @@ function renderTable(leads, total) {
   window.leadDataMap = {};
 
   if (!leads || leads.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="14" style="text-align:center;padding:60px 20px;color:var(--text-dim);font-size:14px;">' +
+    tbody.innerHTML = '<tr><td colspan="16" style="text-align:center;padding:60px 20px;color:var(--text-dim);font-size:14px;">' +
       '<div style="font-size:32px;margin-bottom:12px;">🔍</div>' +
       '<div>No matching leads found for current search/filters.</div>' +
       '<button class="btn btn-secondary" style="margin-top:14px;" onclick="resetFilters()">Reset All Filters</button>' +
@@ -348,12 +352,19 @@ function renderTable(leads, total) {
     const isChecked = selectedLeadIds.has(safeId) ? ' checked' : '';
     const checkboxHtml = '<input type="checkbox" class="lead-checkbox lead-row-checkbox" data-id="' + safeId + '" onchange="onLeadCheckChange(\'' + safeId + '\', this.checked)"' + isChecked + '>';
 
+    // 0. Source Dataset Badge
+    const srcBadge = lead.source_badge || 'Source Database';
+    const srcColor = lead.source_color || '#3b82f6';
+    const sourceHtml = '<span class="source-col-badge" style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;padding:3px 9px;border-radius:12px;background:' + srcColor + '18;color:' + srcColor + ';border:1px solid ' + srcColor + '40;white-space:nowrap;" title="Origin Database: ' + escapeHtml(srcBadge) + '">' +
+      '<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:' + srcColor + ';"></span>' +
+      escapeHtml(srcBadge) +
+      '</span>';
+
     // 1. Business Name
     let bizNameHtml = '<span class="empty-box">-</span>';
     if (lead.name && String(lead.name).trim() && String(lead.name) !== "None") {
       const nm = String(lead.name).trim();
-      const badgeHtml = lead.source_badge ? ' <span style="font-size:10px;font-weight:600;opacity:0.85;background:' + (lead.source_color || '#3b82f6') + '20;color:' + (lead.source_color || '#3b82f6') + ';padding:1px 6px;border-radius:10px;margin-left:4px;">' + escapeHtml(lead.source_badge) + '</span>' : '';
-      bizNameHtml = '<div class="biz-name" title="' + escapeHtml(nm) + '">' + escapeHtml(nm) + badgeHtml + '</div>';
+      bizNameHtml = '<div class="biz-name" title="' + escapeHtml(nm) + '">' + escapeHtml(nm) + '</div>';
     }
 
     // 2. Category (Major Category + Minor Category)
@@ -464,6 +475,7 @@ function renderTable(leads, total) {
     rowsHtml += '<tr id="row_' + safeId + '">' +
       '<td style="text-align:center;">' + checkboxHtml + '</td>' +
       '<td style="color:var(--text-dim);font-size:12px;text-align:center;">' + rowNum + '</td>' +
+      '<td>' + sourceHtml + '</td>' +
       '<td>' + bizNameHtml + '</td>' +
       '<td>' + catHtml + '</td>' +
       '<td>' + contactHtml + '</td>' +
