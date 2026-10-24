@@ -49,7 +49,7 @@ async function loadLeads() {
   const tbody = document.getElementById("leadsTbody");
   if (!tbody) return;
 
-  tbody.innerHTML = '<tr><td colspan="16" style="text-align:center;padding:48px 20px;"><div class="skeleton" style="width:260px;margin:0 auto 12px;height:18px;"></div><span style="color:var(--text-dim);font-weight:500;">Loading leads database...</span></td></tr>';
+  tbody.innerHTML = '<tr><td colspan="15" style="text-align:center;padding:48px 20px;"><div class="skeleton" style="width:260px;margin:0 auto 12px;height:18px;"></div><span style="color:var(--text-dim);font-weight:500;">Loading leads database...</span></td></tr>';
   const metaStatus = document.getElementById("metaStatus");
   if (metaStatus) metaStatus.textContent = "Loading...";
 
@@ -91,7 +91,7 @@ async function loadLeads() {
     if (metaStatus) metaStatus.textContent = "Up to date";
   } catch (err) {
     console.error("Error loading leads:", err);
-    tbody.innerHTML = '<tr><td colspan="16" style="text-align:center;padding:40px;color:var(--accent-rose);font-size:14px;">' +
+    tbody.innerHTML = '<tr><td colspan="15" style="text-align:center;padding:40px;color:var(--accent-rose);font-size:14px;">' +
       '<div>⚠️ Error loading leads: ' + escapeHtml(err.message) + '</div>' +
       '<button class="btn btn-secondary" style="margin-top:12px;" onclick="loadLeads()">Try Again</button>' +
       '</td></tr>';
@@ -267,7 +267,7 @@ function selectSourceChip(id) {
   // 3. Immediately display skeleton in table
   const tbody = document.getElementById("leadsTbody");
   if (tbody) {
-    tbody.innerHTML = '<tr><td colspan="14" style="text-align:center;padding:48px 20px;"><div class="skeleton" style="width:260px;margin:0 auto 12px;height:18px;"></div><span style="color:var(--text-dim);font-weight:500;">Loading ' + escapeHtml(id) + ' leads database...</span></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="15" style="text-align:center;padding:48px 20px;"><div class="skeleton" style="width:260px;margin:0 auto 12px;height:18px;"></div><span style="color:var(--text-dim);font-weight:500;">Loading ' + escapeHtml(id) + ' leads database...</span></td></tr>';
   }
 
   // 4. Fetch the leads for this source
@@ -290,7 +290,7 @@ function renderTable(leads, total) {
   window.leadDataMap = {};
 
   if (!leads || leads.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="16" style="text-align:center;padding:60px 20px;color:var(--text-dim);font-size:14px;">' +
+    tbody.innerHTML = '<tr><td colspan="15" style="text-align:center;padding:60px 20px;color:var(--text-dim);font-size:14px;">' +
       '<div style="font-size:32px;margin-bottom:12px;">🔍</div>' +
       '<div>No matching leads found for current search/filters.</div>' +
       '<button class="btn btn-secondary" style="margin-top:14px;" onclick="resetFilters()">Reset All Filters</button>' +
@@ -352,19 +352,23 @@ function renderTable(leads, total) {
     const isChecked = selectedLeadIds.has(safeId) ? ' checked' : '';
     const checkboxHtml = '<input type="checkbox" class="lead-checkbox lead-row-checkbox" data-id="' + safeId + '" onchange="onLeadCheckChange(\'' + safeId + '\', this.checked)"' + isChecked + '>';
 
-    // 0. Source Dataset Badge
-    const srcBadge = lead.source_badge || 'Source Database';
+    // 1. Business Name (with origin source badge tag attached inline)
+    const srcBadge = lead.source_badge || '';
     const srcColor = lead.source_color || '#3b82f6';
-    const sourceHtml = '<span class="source-col-badge" style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;padding:3px 9px;border-radius:12px;background:' + srcColor + '18;color:' + srcColor + ';border:1px solid ' + srcColor + '40;white-space:nowrap;" title="Origin Database: ' + escapeHtml(srcBadge) + '">' +
-      '<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:' + srcColor + ';"></span>' +
-      escapeHtml(srcBadge) +
-      '</span>';
+    let sourceTagHtml = '';
+    if (srcBadge) {
+      sourceTagHtml = '<span class="lead-source-tag" style="display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;padding:1px 7px;border-radius:10px;background:' + srcColor + '18;color:' + srcColor + ';border:1px solid ' + srcColor + '35;margin-left:6px;vertical-align:middle;" title="Source: ' + escapeHtml(srcBadge) + '">' +
+        '<span style="display:inline-block;width:5px;height:5px;border-radius:50%;background:' + srcColor + ';"></span>' +
+        escapeHtml(srcBadge) +
+        '</span>';
+    }
 
-    // 1. Business Name
     let bizNameHtml = '<span class="empty-box">-</span>';
     if (lead.name && String(lead.name).trim() && String(lead.name) !== "None") {
       const nm = String(lead.name).trim();
-      bizNameHtml = '<div class="biz-name" title="' + escapeHtml(nm) + '">' + escapeHtml(nm) + '</div>';
+      bizNameHtml = '<div class="biz-name" title="' + escapeHtml(nm) + '"><span style="font-weight:700;color:var(--text-main);">' + escapeHtml(nm) + '</span>' + sourceTagHtml + '</div>';
+    } else if (sourceTagHtml) {
+      bizNameHtml = sourceTagHtml;
     }
 
     // 2. Category (Major Category + Minor Category)
@@ -475,11 +479,10 @@ function renderTable(leads, total) {
     rowsHtml += '<tr id="row_' + safeId + '">' +
       '<td style="text-align:center;">' + checkboxHtml + '</td>' +
       '<td style="color:var(--text-dim);font-size:12px;text-align:center;">' + rowNum + '</td>' +
-      '<td>' + sourceHtml + '</td>' +
       '<td>' + bizNameHtml + '</td>' +
-      '<td>' + catHtml + '</td>' +
       '<td>' + contactHtml + '</td>' +
       '<td>' + roleHtml + '</td>' +
+      '<td>' + catHtml + '</td>' +
       '<td>' + emailHtml + '</td>' +
       '<td>' + phoneHtml + '</td>' +
       '<td>' + webHtml + '</td>' +

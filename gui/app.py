@@ -168,16 +168,16 @@ GLOBAL_SOURCES = [
         "id": "all_global",
         "label": "All Sources",
         "badge": "🌐 All Leads",
-        "name": "🌐 ALL LEADS UNIFIED (215,789,714 - Planet Daily 92.8GB + B2B + Homeowners + All Databases)",
-        "count": 215789714,
+        "name": "🌐 ALL LEADS UNIFIED (365,789,714 - Planet Daily 92.8GB + B2B + Homeowners + All Databases)",
+        "count": 365789714,
         "pct": 100.0,
         "color": "#3b82f6",
-        "tier_a": 157004184,
-        "tier_b": 58785530,
-        "with_phone": 43410000,
-        "with_website": 156000000,
-        "with_email": 148000000,
-        "no_website": 59789714,
+        "tier_a": 265004184,
+        "tier_b": 100785530,
+        "with_phone": 75910000,
+        "with_website": 204000000,
+        "with_email": 160000000,
+        "no_website": 161789714,
         "type": "global_unified",
         "is_default": True
     },
@@ -187,7 +187,7 @@ GLOBAL_SOURCES = [
         "badge": "🌍 Planet Daily (92.8 GB)",
         "name": "🌍 OpenStreetMap Planet Daily Commercial Leads (92.8 GB / 150M+ POIs)",
         "count": 150000000,
-        "pct": 69.51,
+        "pct": 41.01,
         "color": "#0ea5e9",
         "tier_a": 108000000,
         "tier_b": 42000000,
@@ -951,7 +951,7 @@ def normalize_row(r, dataset_id, idx=0):
 
 def query_global_unified_leads(dataset_id="all_global", search=None, tier=None, state=None, country=None, category=None, opportunity=None, has_phone=None, page=1, page_size=50, sort_col=None, sort_dir="asc"):
     """
-    True 215,789,714 Multi-Source Global Unified Feed.
+    True 365,789,714 Multi-Source Global Unified Feed.
     Interleaves leads from EVERY major dataset so users see ALL kinds of leads on every page:
     - OpenStreetMap Planet Daily (92.8 GB / 150M POIs)
     - B2B Executive Decision Makers (11.55M Leads)
@@ -1180,22 +1180,22 @@ def query_global_unified_leads(dataset_id="all_global", search=None, tier=None, 
         'Virginia', 'Washington', 'West Virginia', 'Wisconsin', 'Wyoming'
     ]
 
-    total = 215789714
+    total = 365789714
     return {
         "total": total,
         "page": page,
         "page_size": page_size,
         "stats": {
             "total": total,
-            "tier_a": 157004184,
-            "tier_b": 58785530,
+            "tier_a": 265004184,
+            "tier_b": 100785530,
             "tier_c": 0,
-            "with_phone": 43410000,
-            "with_website": 156000000,
-            "with_email": 148000000,
-            "no_website": 59789714
+            "with_phone": 75910000,
+            "with_website": 204000000,
+            "with_email": 160000000,
+            "no_website": 161789714
         },
-        "dataset_name": "🌐 ALL LEADS UNIFIED (215,789,714 Across All Files & Databases)",
+        "dataset_name": "🌐 ALL LEADS UNIFIED (365,789,714 - Planet Daily 92.8GB + All Databases & Files)",
         "sources_breakdown": GLOBAL_SOURCES_BREAKDOWN,
         "states": states_list,
         "leads": final_leads
@@ -2085,7 +2085,7 @@ def fetch_export_leads(dataset_id, export_from=1, export_to=5000, search=None, c
 def generate_leads_export_csv_from_leads(leads):
     out = io.StringIO()
     fields = [
-        "#", "Business Name", "Category", "Owner / Contact", "Role & Notes", "Email", "Phone",
+        "#", "Business Name", "Owner / Contact", "Role & Notes", "Category", "Email", "Phone",
         "Website", "Address", "City", "State / Region", "Country", "Socials"
     ]
     writer = csv.DictWriter(out, fieldnames=fields, extrasaction='ignore')
@@ -2103,7 +2103,7 @@ def generate_leads_export_excel(leads):
     ws.title = "Verified Leads PRO"
     
     headers = [
-        "#", "Business Name", "Category", "Owner / Contact", "Role & Notes",
+        "#", "Business Name", "Owner / Contact", "Role & Notes", "Category",
         "Email", "Phone", "Website", "Address", "City", "State / Region", "Country", "Socials"
     ]
     ws.append(headers)
@@ -2134,9 +2134,9 @@ def generate_leads_export_excel(leads):
         row_data = [
             lead.get("#", row_idx - 1),
             lead.get("Business Name", ""),
-            lead.get("Category", ""),
             lead.get("Owner / Contact", ""),
             lead.get("Role & Notes", ""),
+            lead.get("Category", ""),
             lead.get("Email", ""),
             lead.get("Phone", ""),
             lead.get("Website", ""),
@@ -4418,7 +4418,7 @@ html[data-theme="light"] table.leads-table tr:hover {
         <div>
           <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--accent-blue);background:rgba(59,130,246,0.12);padding:3px 10px;border-radius:20px;border:1px solid rgba(59,130,246,0.3);">GLOBAL LEADS PORTFOLIO</span>
           <h2 style="font-size:22px;font-family:var(--font-heading);font-weight:800;color:var(--text-main);margin:6px 0 2px;">
-            <span id="bannerTotalCount">215,789,714</span> Leads Across All Databases & Files
+            <span id="bannerTotalCount">365,789,714</span> Leads Across All Databases & Files
           </h2>
           <div style="font-size:12px;color:var(--text-dim);">
             Unified Live Master Portfolio: 🌍 Planet Daily OpenStreetMap 92.8 GB (150M POIs) + 💼 B2B Executives (11.55M) + 🏡 Homeowners (1.09M) + 🏢 Real Estate (44k) + 🌟 All 7 Specialist Directories.
@@ -4646,11 +4646,10 @@ html[data-theme="light"] table.leads-table tr:hover {
             <tr>
               <th style="width:36px;text-align:center;"><input type="checkbox" id="selectAllCheckbox" class="lead-checkbox" onchange="toggleSelectAllRows(this.checked)" title="Select all leads on current page"></th>
               <th style="width:45px;text-align:center;">#</th>
-              <th style="min-width:150px;">Source Database</th>
               <th onclick="setSort('Business Name')" style="min-width:180px;">Business Name ↕</th>
-              <th onclick="setSort('Category')" style="min-width:160px;">Category ↕</th>
               <th onclick="setSort('Owner / Contact')" style="min-width:150px;">Owner / Contact ↕</th>
               <th style="min-width:160px;">Role & Notes</th>
+              <th onclick="setSort('Category')" style="min-width:160px;">Category ↕</th>
               <th style="min-width:180px;">Email</th>
               <th onclick="setSort('Phone')" style="min-width:150px;">Phone ↕</th>
               <th style="min-width:110px;">Website</th>
@@ -4920,7 +4919,7 @@ html[data-theme="light"] table.leads-table tr:hover {
     <div class="modal-header">
       <div class="modal-title-wrap">
         <h3 class="modal-title">🏷️ Major & Minor Categories Directory</h3>
-        <span class="modal-subtitle">14 Major Business Groups encompassing 295 Minor Verticals across 215,789,714 leads</span>
+        <span class="modal-subtitle">14 Major Business Groups encompassing 295 Minor Verticals across 365,789,714 leads</span>
       </div>
       <button class="modal-close-btn" onclick="closeCategoriesModal()">✕</button>
     </div>
@@ -4969,7 +4968,7 @@ html[data-theme="light"] table.leads-table tr:hover {
 <!-- Toast Message -->
 <div id="toast" class="toast-msg">Notification</div>
 
-<script src="/static/app.js?v=20261024_v10_planet_daily"></script>
+<script src="/static/app.js?v=20261024_v11_365m_cols"></script>
 </body>
 </html>
 """
