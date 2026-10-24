@@ -739,6 +739,9 @@ def query_source_dataset_fallback(dataset_id, search=None, category=None, tier=N
             "zip": "",
             "pitch": base.get("pitch", f"Commercial enterprise in {base['city']}. Digital conversion portal opportunity."),
             "why": f"Verified commercial record in {source_meta['label']} dataset.",
+            "source_badge": source_meta.get("badge", f"🌍 {source_meta.get('label', dataset_id)}"),
+            "source_id": dataset_id,
+            "source_color": source_meta.get("color", "#0ea5e9"),
             "status": "new",
             "notes": ""
         })
@@ -1061,6 +1064,13 @@ def query_global_unified_leads(dataset_id="all_global", search=None, tier=None, 
                 })
         except Exception as e:
             print("Planet OSM in unified feed error:", e)
+
+    if not osm_leads:
+        try:
+            osm_fallback = query_source_dataset_fallback("planet_daily_osm", search=search, category=category, tier=tier, state=state, country=norm_country, has_phone=has_phone, page=page, page_size=s_osm)
+            osm_leads = osm_fallback.get("leads", [])
+        except Exception as e:
+            print("Planet OSM fallback error:", e)
 
     # 2. Local Database Slices (B2B, Homeowners, Real Estate, Targeted Professionals)
     def query_local(view_name, badge, color, limit, off):
