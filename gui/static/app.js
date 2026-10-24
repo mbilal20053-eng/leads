@@ -169,7 +169,7 @@ function renderKPIs(stats, breakdown, datasetName) {
   const kDatasetLabel = document.getElementById("kpiDatasetLabel");
   if (kDatasetLabel) {
     if (currentDataset === "all_global") {
-      kDatasetLabel.textContent = "🌐 All Leads (Planet Daily 92.8GB + B2B + Homeowners + All 28 Local Files)";
+      kDatasetLabel.textContent = "🌐 All Leads (Planet Daily 92.8GB + Data Legion 28.1M + B2B + Homeowners + All Local Files)";
     } else if (datasetName) {
       kDatasetLabel.textContent = datasetName;
     } else {
@@ -184,7 +184,7 @@ function renderKPIs(stats, breakdown, datasetName) {
   const bannerShare = document.getElementById("bannerSharePct");
   if (bannerShare) {
     if (currentDataset === "all_global") {
-      bannerShare.textContent = "100% (All Sources: Planet Daily 150M + B2B 11.55M + Homeowners 1.09M + Local 28 Files)";
+      bannerShare.textContent = "100% (All Sources: Planet Daily 150M + Data Legion 28.1M + B2B 11.55M + Homeowners 1.09M + Retail Locations)";
     } else if (currentDataset === "all_local_unified") {
       bannerShare.textContent = "100% (All Local Files - " + Number(total).toLocaleString() + " Leads)";
     } else if (breakdown) {

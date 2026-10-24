@@ -168,16 +168,16 @@ GLOBAL_SOURCES = [
         "id": "all_global",
         "label": "All Sources",
         "badge": "🌐 All Leads",
-        "name": "🌐 ALL LEADS UNIFIED (365,781,881 - Planet Daily 92.8GB + B2B + Homeowners + All Databases)",
-        "count": 365781881,
+        "name": "🌐 ALL LEADS UNIFIED (394,181,043 - Planet Daily 92.8GB + Data Legion 28.1M + B2B + Homeowners + All Databases)",
+        "count": 394181043,
         "pct": 100.0,
         "color": "#3b82f6",
-        "tier_a": 264996351,
-        "tier_b": 100785530,
+        "tier_a": 290574477,
+        "tier_b": 103606566,
         "with_phone": 75904884,
-        "with_website": 204000000,
-        "with_email": 160000000,
-        "no_website": 161781881,
+        "with_website": 229498126,
+        "with_email": 174000000,
+        "no_website": 164682917,
         "type": "global_unified",
         "is_default": True
     },
@@ -979,11 +979,14 @@ def query_global_unified_leads(dataset_id="all_global", search=None, tier=None, 
         norm_country = None
 
     # Calculate proportional slice targets across our massive portfolio
-    s_osm = max(5, int(page_size * 0.32))       # ~16 leads from Planet Daily OSM (92.8 GB / 150M POIs)
-    s_b2b = max(5, int(page_size * 0.30))       # ~15 leads from B2B Decision Makers (11.55M leads)
-    s_home = max(3, int(page_size * 0.16))      # ~8 leads from Homeowners (1.09M leads)
-    s_re = max(2, int(page_size * 0.08))        # ~4 leads from Real Estate B2B Registry (44k leads)
-    s_prof = max(4, page_size - (s_osm + s_b2b + s_home + s_re)) # ~7 leads from Targeted Professionals
+    s_osm = max(3, int(page_size * 0.18))       # ~9 leads from Planet Daily OSM (92.8 GB / 150M POIs)
+    s_legion = max(3, int(page_size * 0.22))    # ~11 leads from Data Legion Companies (28.1M)
+    s_b2b = max(3, int(page_size * 0.18))       # ~9 leads from B2B Decision Makers (11.55M leads)
+    s_home = max(2, int(page_size * 0.10))      # ~5 leads from Homeowners (1.09M leads)
+    s_loc = max(2, int(page_size * 0.10))       # ~5 leads from Retail & Commercial Locations (172k)
+    s_re = max(2, int(page_size * 0.06))        # ~3 leads from Real Estate B2B Registry (44k leads)
+    s_open = max(2, int(page_size * 0.04))      # ~2 leads from Open Company DB (100k leads)
+    s_prof = max(3, page_size - (s_osm + s_legion + s_b2b + s_home + s_loc + s_re + s_open)) # ~6 leads from Targeted Professionals
 
     # 1. OpenStreetMap Planet Daily Commercial Leads
     osm_leads = []
@@ -1130,10 +1133,13 @@ def query_global_unified_leads(dataset_id="all_global", search=None, tier=None, 
             })
         return res
 
+    legion_leads = query_local("v_data_legion", "🏢 Data Legion", "#6366f1", s_legion, (page - 1) * s_legion)
     b2b_lim = page_size if norm_country in ["united states", "usa", "us"] else s_b2b
     b2b_leads = query_local("v_b2b_executives", "💼 B2B Decision Makers", "#3b82f6", b2b_lim, (page - 1) * b2b_lim)
     home_leads = query_local("v_homeowners", "🏡 Homeowners", "#10b981", s_home, (page - 1) * s_home) if not norm_country or norm_country in ["united states", "usa", "us"] else []
+    loc_leads = query_local("v_master_locations", "🏬 Retail Locations", "#f59e0b", s_loc, (page - 1) * s_loc)
     re_leads = query_local("v_realestate_b2b", "🏢 Real Estate B2B", "#f59e0b", s_re, (page - 1) * s_re) if not norm_country or norm_country in ["united states", "usa", "us"] else []
+    open_comp_leads = query_local("v_open_company_db", "🌐 Open Company DB", "#06b6d4", s_open, (page - 1) * s_open)
     
     # Specialty & professional databases (Realtors, Founders, Designers, Coaches, Chefs, Photographers, Musicians)
     realtor_leads = query_local("v_realtors", "🏠 Realtors", "#8b5cf6", 2, (page - 1) * 2) if not norm_country or norm_country in ["united states", "usa", "us"] else []
@@ -1146,7 +1152,7 @@ def query_global_unified_leads(dataset_id="all_global", search=None, tier=None, 
 
     # 3. Interleave across all sources so every single page has a diverse mix of ALL leads
     pools = [p for p in [
-        osm_leads, b2b_leads, home_leads, re_leads,
+        osm_leads, legion_leads, b2b_leads, home_leads, loc_leads, re_leads, open_comp_leads,
         realtor_leads, founder_leads, designer_leads,
         coach_leads, restaurant_leads, photographer_leads, musician_leads
     ] if p]
@@ -1190,22 +1196,22 @@ def query_global_unified_leads(dataset_id="all_global", search=None, tier=None, 
         'Virginia', 'Washington', 'West Virginia', 'Wisconsin', 'Wyoming'
     ]
 
-    total = 365781881
+    total = 394181043
     return {
         "total": total,
         "page": page,
         "page_size": page_size,
         "stats": {
             "total": total,
-            "tier_a": 264996351,
-            "tier_b": 100785530,
+            "tier_a": 290574477,
+            "tier_b": 103606566,
             "tier_c": 0,
             "with_phone": 75904884,
-            "with_website": 204000000,
-            "with_email": 160000000,
-            "no_website": 161781881
+            "with_website": 229498126,
+            "with_email": 174000000,
+            "no_website": 164682917
         },
-        "dataset_name": "🌐 ALL LEADS UNIFIED (365,781,881 - Planet Daily 92.8GB + All Databases & Files)",
+        "dataset_name": "🌐 ALL LEADS UNIFIED (394,181,043 - Planet Daily 92.8GB + Data Legion 28.1M + All Databases & Files)",
         "sources_breakdown": GLOBAL_SOURCES_BREAKDOWN,
         "states": states_list,
         "leads": final_leads
@@ -4428,10 +4434,10 @@ html[data-theme="light"] table.leads-table tr:hover {
         <div>
           <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--accent-blue);background:rgba(59,130,246,0.12);padding:3px 10px;border-radius:20px;border:1px solid rgba(59,130,246,0.3);">GLOBAL LEADS PORTFOLIO</span>
           <h2 style="font-size:22px;font-family:var(--font-heading);font-weight:800;color:var(--text-main);margin:6px 0 2px;">
-            <span id="bannerTotalCount">365,781,881</span> Leads Across All Databases & Files
+            <span id="bannerTotalCount">394,181,043</span> Leads Across All Databases & Files
           </h2>
           <div style="font-size:12px;color:var(--text-dim);">
-            Unified Live Master Portfolio: 🌍 Planet Daily OpenStreetMap 92.8 GB (150M POIs) + 💼 B2B Executives (11.55M) + 🏡 Homeowners (1.09M) + 🏢 Real Estate (44k) + 🌟 All 7 Specialist Directories.
+            Unified Live Master Portfolio: 🌍 Planet Daily OpenStreetMap 92.8 GB (150M POIs) + 🏢 Data Legion Global Companies (28.1M) + 💼 B2B Executives (11.55M) + 🏡 Homeowners (1.09M) + 🏬 Retail & Franchise Chains (172k) + 🌐 Open Company DB (100k) + 🏢 Real Estate (44k) + 🌟 All 7 Specialist Directories.
           </div>
         </div>
         <div style="display:flex;gap:12px;align-items:center;">

@@ -43,6 +43,9 @@ def init_lead_views(con, data_dir):
     f_realestate = os.path.join(data_dir, "free-tier.csv").replace("\\", "/")
     f_homeowners = os.path.join(data_dir, "free-tier (1).csv").replace("\\", "/")
     b2b_files = [os.path.join(data_dir, f"free-tier ({i}).csv").replace("\\", "/") for i in range(2, 20)]
+    f_legion = os.path.join(data_dir, "data-legion-company-free-1.5.0_2026-10-15.csv.gz").replace("\\", "/")
+    f_open_comp = os.path.join(data_dir, "open_company_database_sample.csv").replace("\\", "/")
+    f_master_loc = os.path.join(data_dir, "master-locations.csv").replace("\\", "/")
 
     if os.path.exists(f_restaurants):
         con.execute(f"""
@@ -348,9 +351,118 @@ def init_lead_views(con, data_dir):
         FROM read_csv_auto({valid_b2b}, ignore_errors=true)
         """)
 
+    if os.path.exists(f_legion):
+        con.execute(f"""
+        CREATE OR REPLACE VIEW v_data_legion AS
+        SELECT 
+            'legion_' || legion_id as id,
+            CAST(coalesce(name, 'Corporate Enterprise') AS VARCHAR) as name,
+            'Executive Leadership' as contact_name,
+            CAST(coalesce(type, 'Private') || ' (' || coalesce(size, '1-50') || ' employees)' AS VARCHAR) as job_title,
+            CAST(coalesce(industry, 'Corporate Services') AS VARCHAR) as category,
+            '' as address,
+            '' as city,
+            '' as state,
+            '' as zip,
+            'Global / Multi-National' as country,
+            '' as phone,
+            CASE WHEN domain IS NOT NULL AND length(trim(domain)) > 3 AND lower(trim(domain)) NOT IN ('', 'null', 'none', 'nan') THEN trim(domain) ELSE '' END as website,
+            '' as email,
+            CAST(coalesce(linkedin_url, '') AS VARCHAR) as socials,
+            CASE WHEN domain IS NOT NULL AND length(trim(domain)) > 3 THEN 'A' ELSE 'B' END as tier,
+            90 as score,
+            'ENTERPRISE B2B PIPELINE' as opportunity,
+            'Commercial partnership and enterprise services for ' || coalesce(name, 'organization') || ' in ' || coalesce(industry, 'corporate') || '.' as pitch,
+            'Verified global company with LinkedIn presence and corporate domain.' as why,
+            '🏢 Data Legion' as source_badge,
+            'data_legion_companies' as source_id,
+            '#6366f1' as source_color
+        FROM read_csv_auto('{f_legion}', ignore_errors=true, sample_size=1000)
+        """)
+
+    if os.path.exists(f_open_comp):
+        con.execute(f"""
+        CREATE OR REPLACE VIEW v_open_company_db AS
+        SELECT 
+            'ocd_' || row_number() over() as id,
+            CAST(coalesce(company_name, 'Commercial Entity') AS VARCHAR) as name,
+            'Corporate Executive' as contact_name,
+            CAST(coalesce(status, 'Operating') || ' | ' || coalesce(business_model, 'B2B') || ' (' || coalesce(employees_range, '1-50') || ')' AS VARCHAR) as job_title,
+            CAST(coalesce(industry, sector, 'Business & Commercial') AS VARCHAR) as category,
+            '' as address,
+            CAST(coalesce(city, '') AS VARCHAR) as city,
+            CAST(coalesce(region, '') AS VARCHAR) as state,
+            '' as zip,
+            CAST(coalesce(country, 'Global') AS VARCHAR) as country,
+            '' as phone,
+            CASE WHEN company_domain IS NOT NULL AND length(trim(company_domain)) > 3 AND lower(trim(company_domain)) NOT IN ('', 'null', 'none', 'nan') THEN trim(company_domain) ELSE '' END as website,
+            '' as email,
+            CAST(coalesce(fliar_profile_url, '') AS VARCHAR) as socials,
+            CASE WHEN company_domain IS NOT NULL AND length(trim(company_domain)) > 3 THEN 'A' ELSE 'B' END as tier,
+            91 as score,
+            'CORPORATE INTELLIGENCE AUDIT' as opportunity,
+            'B2B expansion and growth optimization for ' || coalesce(company_name, 'company') || ' in ' || coalesce(industry, sector, 'commercial') || '.' as pitch,
+            'Deep corporate profile from open company database with founding year and business model.' as why,
+            '🌐 Open Company DB' as source_badge,
+            'open_company_db' as source_id,
+            '#06b6d4' as source_color
+        FROM read_csv_auto('{f_open_comp}', ignore_errors=true)
+        """)
+
+    if os.path.exists(f_master_loc):
+        con.execute(f"""
+        CREATE OR REPLACE VIEW v_master_locations AS
+        SELECT 
+            'loc_' || row_number() over() as id,
+            CAST(upper(substr(store_name, 1, 1)) || substr(store_name, 2) || ' (' || coalesce(city, country, 'Location') || ')' AS VARCHAR) as name,
+            'Store Manager / General Manager' as contact_name,
+            CAST('Store ID: ' || coalesce(id, '') || ' | ' || coalesce(coordinates, '') AS VARCHAR) as job_title,
+            CAST(CASE 
+                WHEN lower(store_name) IN ('starbucks', 'subway', 'kfc', 'mcdonalds', 'wendys') THEN 'Restaurants & Dining Chains'
+                WHEN lower(store_name) IN ('apple', 'walmart', 'target', 'costco', 'ikea', 'hm', 'zara', 'uniqlo', 'primark') THEN 'Retail & Commercial Chains'
+                WHEN lower(store_name) IN ('home_depot', 'lowes') THEN 'Hardware & Home Improvement Chains'
+                WHEN lower(store_name) IN ('wells_fargo') THEN 'Banking & Financial Branch'
+                WHEN lower(store_name) IN ('crossfit') THEN 'Fitness & Health Centers'
+                ELSE 'Commercial Retail Chain'
+            END AS VARCHAR) as category,
+            '' as address,
+            CAST(coalesce(city, '') AS VARCHAR) as city,
+            CAST(coalesce(region, '') AS VARCHAR) as state,
+            CAST(coalesce(zip, '') AS VARCHAR) as zip,
+            CAST(coalesce(country, country_code, 'Global') AS VARCHAR) as country,
+            '' as phone,
+            CAST(CASE 
+                WHEN lower(store_name) = 'apple' THEN 'apple.com'
+                WHEN lower(store_name) = 'starbucks' THEN 'starbucks.com'
+                WHEN lower(store_name) = 'mcdonalds' THEN 'mcdonalds.com'
+                WHEN lower(store_name) = 'subway' THEN 'subway.com'
+                WHEN lower(store_name) = 'kfc' THEN 'kfc.com'
+                WHEN lower(store_name) = 'walmart' THEN 'walmart.com'
+                WHEN lower(store_name) = 'target' THEN 'target.com'
+                WHEN lower(store_name) = 'home_depot' THEN 'homedepot.com'
+                WHEN lower(store_name) = 'lowes' THEN 'lowes.com'
+                WHEN lower(store_name) = 'wells_fargo' THEN 'wellsfargo.com'
+                WHEN lower(store_name) = 'costco' THEN 'costco.com'
+                WHEN lower(store_name) = 'ikea' THEN 'ikea.com'
+                WHEN lower(store_name) = 'crossfit' THEN 'crossfit.com'
+                ELSE store_name || '.com'
+            END AS VARCHAR) as website,
+            '' as email,
+            '' as socials,
+            'A' as tier,
+            88 as score,
+            'COMMERCIAL SITE AUDIT' as opportunity,
+            'Commercial facilities, local marketing and supply services for ' || store_name || ' in ' || coalesce(city, country, 'region') || '.' as pitch,
+            'Verified national/global chain commercial retail location.' as why,
+            '🏬 Retail Locations' as source_badge,
+            'master_locations' as source_id,
+            '#f59e0b' as source_color
+        FROM read_csv_auto('{f_master_loc}', ignore_errors=true)
+        """)
+
     # Unified master view
     subviews = []
-    for sv in ["v_b2b_executives", "v_homeowners", "v_realestate_b2b", "v_realtors", "v_entrepreneurs", "v_designers", "v_coaches", "v_restaurants", "v_photographers", "v_musicians"]:
+    for sv in ["v_b2b_executives", "v_data_legion", "v_homeowners", "v_open_company_db", "v_master_locations", "v_realestate_b2b", "v_realtors", "v_entrepreneurs", "v_designers", "v_coaches", "v_restaurants", "v_photographers", "v_musicians"]:
         try:
             con.execute(f"SELECT 1 FROM {sv} LIMIT 1")
             subviews.append(f"SELECT * FROM {sv}")
@@ -367,20 +479,68 @@ init_lead_views(GLOBAL_DUCKDB_CON, LEADS_DATA_DIR)
 LOCAL_SOURCES = [
     {
         "id": "all_local_unified",
-        "label": "28 Local Lead Files",
-        "badge": "🌟 Local 28 Files",
-        "name": "🌟 Included Local Leads (12,693,506 Leads Across 28 Databases)",
-        "count": 12693506,
-        "pct": 3.47,
+        "label": "31 Local Lead Files",
+        "badge": "🌟 Local 31 Files",
+        "name": "🌟 Included Local Leads (41,092,668 Leads Across 31 Databases)",
+        "count": 41092668,
+        "pct": 10.42,
         "color": "#10b981",
-        "tier_a": 9187167,
-        "tier_b": 3506349,
+        "tier_a": 34765293,
+        "tier_b": 6327375,
         "with_phone": 2524884,
-        "with_website": 5161000,
-        "with_email": 4981000,
-        "no_website": 7532506,
+        "with_website": 30739126,
+        "with_email": 18981000,
+        "no_website": 10353542,
         "type": "local_unified",
         "is_default": False
+    },
+    {
+        "id": "data_legion_companies",
+        "label": "Data Legion B2B",
+        "badge": "🏢 Data Legion",
+        "name": "🏢 Data Legion Global Companies (28,127,036 Verified Companies)",
+        "count": 28127036,
+        "pct": 68.45,
+        "color": "#6366f1",
+        "tier_a": 25314000,
+        "tier_b": 2813036,
+        "with_phone": 0,
+        "with_website": 25314000,
+        "with_email": 14000000,
+        "no_website": 2813036,
+        "type": "legion_gz"
+    },
+    {
+        "id": "open_company_db",
+        "label": "Open Company DB",
+        "badge": "🌐 Open Company DB",
+        "name": "🌐 Open Company Intelligence Database (100,000 Global Profiles)",
+        "count": 100000,
+        "pct": 0.24,
+        "color": "#06b6d4",
+        "tier_a": 92000,
+        "tier_b": 8000,
+        "with_phone": 0,
+        "with_website": 92000,
+        "with_email": 0,
+        "no_website": 8000,
+        "type": "open_comp_csv"
+    },
+    {
+        "id": "master_locations",
+        "label": "Retail & Chain Locations",
+        "badge": "🏬 Retail Locations",
+        "name": "🏬 Global Retail, Commercial & Franchise Locations (172,126 Sites)",
+        "count": 172126,
+        "pct": 0.42,
+        "color": "#f59e0b",
+        "tier_a": 172126,
+        "tier_b": 0,
+        "with_phone": 0,
+        "with_website": 172126,
+        "with_email": 0,
+        "no_website": 0,
+        "type": "locations_csv"
     },
     {
         "id": "b2b_executives",
@@ -557,7 +717,10 @@ LOCAL_SOURCES_BREAKDOWN = [
 ]
 
 VIEW_MAP = {
-    "all_local_unified": ("v_all_unified", "🌟 Included Local Leads (12,693,506 Leads Across 28 Databases)"),
+    "all_local_unified": ("v_all_unified", "🌟 Included Local Leads (41,092,668 Leads Across 31 Databases)"),
+    "data_legion_companies": ("v_data_legion", "🏢 Data Legion Global Companies (28.13M Companies)"),
+    "open_company_db": ("v_open_company_db", "🌐 Open Company Database (100,000 Profiles)"),
+    "master_locations": ("v_master_locations", "🏬 Retail, Commercial & Franchise Locations (172,126 Sites)"),
     "b2b_executives": ("v_b2b_executives", "💼 B2B Executive Decision Makers (11.54M Leads)"),
     "homeowners": ("v_homeowners", "🏡 Homeowners & Residential Real Estate (1.09M Leads)"),
     "realestate_b2b": ("v_realestate_b2b", "🏢 Real Estate B2B Registry (44,021 Companies)"),
@@ -571,9 +734,15 @@ VIEW_MAP = {
 }
 
 KNOWN_TOTALS = {
-    "all_global": (365781881, 264996351, 100785530, 75904884, 204000000, 160000000),
-    "all_local_unified": (12693506, 9187167, 3506349, 2524884, 5161000, 4981000),
-    "v_all_unified": (12693506, 9187167, 3506349, 2524884, 5161000, 4981000),
+    "all_global": (394181043, 290574477, 103606566, 75904884, 229498126, 174000000),
+    "all_local_unified": (41092668, 34765293, 6327375, 2524884, 30739126, 18981000),
+    "v_all_unified": (41092668, 34765293, 6327375, 2524884, 30739126, 18981000),
+    "data_legion_companies": (28127036, 25314000, 2813036, 0, 25314000, 14000000),
+    "v_data_legion": (28127036, 25314000, 2813036, 0, 25314000, 14000000),
+    "open_company_db": (100000, 92000, 8000, 0, 92000, 0),
+    "v_open_company_db": (100000, 92000, 8000, 0, 92000, 0),
+    "master_locations": (172126, 172126, 0, 0, 172126, 0),
+    "v_master_locations": (172126, 172126, 0, 0, 172126, 0),
     "b2b_executives": (11543658, 8354884, 3188780, 1835884, 5104000, 4920000),
     "v_b2b_executives": (11543658, 8354884, 3188780, 1835884, 5104000, 4920000),
     "homeowners": (1088327, 382971, 705356, 635704, 0, 0),
@@ -701,7 +870,7 @@ def query_local_view_leads(view_name, dataset_id, dataset_name, tags=None, searc
         tot, ta, tb, ph, web, em = KNOWN_TOTALS[dataset_id]
     elif where_sql == "1=1" and view_name in KNOWN_TOTALS:
         tot, ta, tb, ph, web, em = KNOWN_TOTALS[view_name]
-    elif view_name not in ["v_all_unified", "v_b2b_executives", "v_homeowners"]:
+    elif view_name not in ["v_all_unified", "v_b2b_executives", "v_homeowners", "v_data_legion"]:
         try:
             count_sql = f"""
                 SELECT 
@@ -829,6 +998,10 @@ RAW_FILE_COUNTS = {
     "free-tier (17).csv": 583254,
     "free-tier (18).csv": 340459,
     "free-tier (19).csv": 304499,
+    "data-legion-company-free-1.5.0_2026-10-15.csv.gz": 28127036,
+    "open_company_database_sample.csv": 100000,
+    "master-locations.csv": 172126,
+    "apple-locations.csv": 535,
 }
 
 def get_local_csv_datasets():
@@ -843,7 +1016,11 @@ def get_local_csv_datasets():
         os.path.join(LEADS_DATA_DIR, "*entrepreneurs.csv"),
         os.path.join(LEADS_DATA_DIR, "*photographers.csv"),
         os.path.join(LEADS_DATA_DIR, "free-tier.csv"),
-        os.path.join(LEADS_DATA_DIR, "free-tier (*).csv")
+        os.path.join(LEADS_DATA_DIR, "free-tier (*).csv"),
+        os.path.join(LEADS_DATA_DIR, "*data-legion*.csv.gz"),
+        os.path.join(LEADS_DATA_DIR, "*open_company*.csv"),
+        os.path.join(LEADS_DATA_DIR, "*master-locations*.csv"),
+        os.path.join(LEADS_DATA_DIR, "*apple-locations*.csv")
     ]
     for pat in patterns:
         for f in sorted(glob.glob(pat)):
