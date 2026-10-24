@@ -350,7 +350,7 @@ def init_lead_views(con, data_dir):
 
     # Unified master view
     subviews = []
-    for sv in ["v_restaurants", "v_realtors", "v_coaches", "v_designers", "v_entrepreneurs", "v_photographers", "v_musicians", "v_realestate_b2b", "v_homeowners", "v_b2b_executives"]:
+    for sv in ["v_b2b_executives", "v_homeowners", "v_realestate_b2b", "v_realtors", "v_entrepreneurs", "v_designers", "v_coaches", "v_restaurants", "v_photographers", "v_musicians"]:
         try:
             con.execute(f"SELECT 1 FROM {sv} LIMIT 1")
             subviews.append(f"SELECT * FROM {sv}")
@@ -557,7 +557,6 @@ LOCAL_SOURCES_BREAKDOWN = [
 ]
 
 VIEW_MAP = {
-    "all_global": ("v_all_unified", "🌐 ALL LEADS UNIFIED (215,789,714 Leads Across All Databases & Files)"),
     "all_local_unified": ("v_all_unified", "🌟 Included Local Leads (12,701,349 Leads Across 28 Databases)"),
     "b2b_executives": ("v_b2b_executives", "💼 B2B Executive Decision Makers (11.55M Leads)"),
     "homeowners": ("v_homeowners", "🏡 Homeowners & Residential Real Estate (1.09M Leads)"),
