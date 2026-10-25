@@ -4,6 +4,7 @@
    ========================================================================== */
 
 :root {
+  color-scheme: dark;
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-mono: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
 
@@ -70,6 +71,7 @@
 
 /* Light Theme Overrides */
 html[data-theme="light"] {
+  color-scheme: light;
   --bg-canvas: #f8fafc;
   --bg-sidebar: #ffffff;
   --bg-topbar: rgba(255, 255, 255, 0.9);
@@ -100,6 +102,54 @@ html[data-theme="light"] {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+}
+
+/* ==========================================================================
+   UNIVERSAL SELECT & DROPDOWN STYLING (FIX CONTRAST IN DARK/LIGHT MODE)
+   ========================================================================== */
+select {
+  color-scheme: dark !important;
+  background-color: #11141e !important;
+  color: #f8fafc !important;
+}
+
+select option,
+select optgroup {
+  color-scheme: dark !important;
+  background-color: #11141e !important;
+  color: #f8fafc !important;
+  font-size: 13px !important;
+  padding: 8px 12px !important;
+}
+
+select option:checked {
+  background-color: #2563eb !important;
+  color: #ffffff !important;
+  font-weight: 600 !important;
+}
+
+select option:hover,
+select option:focus {
+  background-color: #1d4ed8 !important;
+  color: #ffffff !important;
+}
+
+html[data-theme="light"] select {
+  color-scheme: light !important;
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+}
+
+html[data-theme="light"] select option,
+html[data-theme="light"] select optgroup {
+  color-scheme: light !important;
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+}
+
+html[data-theme="light"] select option:checked {
+  background-color: #2563eb !important;
+  color: #ffffff !important;
 }
 
 body {
@@ -476,15 +526,22 @@ body {
 
 .dataset-select-compact {
   height: 32px;
-  background: var(--bg-surface);
+  background-color: #11141e !important;
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
-  color: var(--text-primary);
+  color: #f8fafc !important;
   padding: 0 10px;
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
   outline: none;
+  color-scheme: dark !important;
+}
+
+.dataset-select-compact option {
+  background-color: #11141e !important;
+  color: #f8fafc !important;
+  padding: 8px 12px;
 }
 
 .dataset-select-compact:focus {
@@ -1114,9 +1171,9 @@ body {
 .dataset-pill-select {
   appearance: none;
   -webkit-appearance: none;
-  background: transparent;
+  background-color: #11141e !important;
   border: none;
-  color: var(--text-primary);
+  color: #f8fafc !important;
   font-size: 12.5px;
   font-weight: 600;
   padding: 0 28px 0 0;
@@ -1124,6 +1181,13 @@ body {
   cursor: pointer;
   outline: none;
   max-width: 250px;
+  color-scheme: dark !important;
+}
+
+.dataset-pill-select option {
+  background-color: #11141e !important;
+  color: #f8fafc !important;
+  padding: 8px 12px;
 }
 
 .dataset-pill-wrapper::after {
@@ -1388,14 +1452,21 @@ body {
   flex: 1;
   appearance: none;
   -webkit-appearance: none;
-  background: transparent;
+  background-color: #11141e !important;
   border: none;
   outline: none;
-  color: var(--text-primary);
+  color: #f8fafc !important;
   font-size: 12px;
   padding: 0 24px 0 8px;
   height: 100%;
   cursor: pointer;
+  color-scheme: dark !important;
+}
+
+.shelf-select option {
+  background-color: #11141e !important;
+  color: #f8fafc !important;
+  padding: 8px 12px;
 }
 
 .shelf-input-wrap::after {
@@ -1539,13 +1610,19 @@ body {
 
 .page-size-select {
   height: 28px;
-  background: var(--bg-surface);
+  background-color: #11141e !important;
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);
-  color: var(--text-primary);
+  color: #f8fafc !important;
   font-size: 12px;
   padding: 0 8px;
   cursor: pointer;
+  color-scheme: dark !important;
+}
+
+.page-size-select option {
+  background-color: #11141e !important;
+  color: #f8fafc !important;
 }
 
 .table-container-elevated {
