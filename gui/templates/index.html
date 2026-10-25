@@ -2,12 +2,12 @@
 <html lang="en" data-theme="dark">
 <head>
   <meta charset="utf-8">
-  <title>Lead Engine PRO - Enterprise Sales Intelligence & Data Management</title>
+  <title>Lead Engine PRO - Enterprise Sales Intelligence & Data Management Platform</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/app.css?v=20261025_v2">
+  <link rel="stylesheet" href="/static/app.css?v=20261025_v3">
 </head>
 <body>
 <div id="app-layout">
@@ -41,20 +41,27 @@
           <span class="nav-badge">Live</span>
         </a>
 
-        <a class="nav-item" id="nav-explorer" onclick="switchView('explorer')">
-          <div class="nav-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-          </div>
-          <span class="nav-label">Lead Explorer</span>
-          <span class="nav-badge" id="nav-leads-count-badge">394M</span>
-        </a>
-
         <a class="nav-item" id="nav-datasets" onclick="switchView('datasets')">
           <div class="nav-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
           </div>
           <span class="nav-label">All Datasets</span>
           <span class="nav-badge" id="nav-datasets-count-badge">33</span>
+        </a>
+
+        <a class="nav-item" id="nav-import" onclick="switchView('import')">
+          <div class="nav-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          </div>
+          <span class="nav-label">Import Data</span>
+        </a>
+
+        <a class="nav-item" id="nav-explorer" onclick="switchView('explorer')">
+          <div class="nav-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+          </div>
+          <span class="nav-label">Lead Explorer</span>
+          <span class="nav-badge" id="nav-leads-count-badge">394M</span>
         </a>
       </div>
 
@@ -66,7 +73,7 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
           </div>
           <span class="nav-label">Duplicate Detection</span>
-          <span class="nav-badge">Audit</span>
+          <span class="nav-badge">7 Categories</span>
         </a>
 
         <a class="nav-item" id="nav-dedup-history" onclick="switchView('dedup-history')">
@@ -74,7 +81,7 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="9"/></svg>
           </div>
           <span class="nav-label">Deduplication Workflow</span>
-          <span class="nav-badge">7.8k Clean</span>
+          <span class="nav-badge">9 Steps</span>
         </a>
 
         <a class="nav-item" id="nav-cleaning" onclick="switchView('cleaning')">
@@ -85,21 +92,14 @@
         </a>
       </div>
 
-      <!-- Section: Tools & Operations -->
+      <!-- Section: Operations -->
       <div class="sidebar-section">
-        <div class="sidebar-section-title">Operations</div>
+        <div class="sidebar-section-title">Operations & Intelligence</div>
         <a class="nav-item" id="nav-search-filters" onclick="switchView('search-filters')">
           <div class="nav-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
           </div>
           <span class="nav-label">Search & Filters Hub</span>
-        </a>
-
-        <a class="nav-item" id="nav-import" onclick="switchView('import')">
-          <div class="nav-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-          </div>
-          <span class="nav-label">Import Data</span>
         </a>
 
         <a class="nav-item" id="nav-export" onclick="switchView('export')">
@@ -113,7 +113,7 @@
           <div class="nav-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
           </div>
-          <span class="nav-label">Activity & Diagnostics</span>
+          <span class="nav-label">Activity Logs</span>
         </a>
 
         <a class="nav-item" id="nav-settings" onclick="switchView('settings')">
@@ -168,6 +168,10 @@
           <option value="all_global">🌍 All Global Leads & Master Portfolio (394M)</option>
         </select>
 
+        <button class="btn btn-sm btn-secondary" onclick="toggleNotificationsDrawer()" title="Activity & Notifications">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        </button>
+
         <button class="btn btn-sm btn-primary" onclick="switchView('export')">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           Export
@@ -178,7 +182,7 @@
         </button>
 
         <div class="workspace-badge" title="Active Leads Storage">
-          <span>💼 D:\leads</span>
+          <span>💼 Production (D:\leads)</span>
         </div>
       </div>
     </header>
@@ -194,11 +198,9 @@
       <section id="view-dashboard" class="view-container active">
         <div class="view-header">
           <div>
-            <h1 class="view-header-title">
-              Enterprise Data Intelligence & Prospecting Dashboard
-            </h1>
+            <h1 class="view-header-title">Enterprise Sales Intelligence & Data Management</h1>
             <p class="view-header-subtitle">
-              Unified real-time analytics across 31 local database shards, OpenStreetMap daily planet feed, and global PDL data.
+              Unified database analytics across 31 local database files, corporate directories, daily planet OSM feed, and global PDL data.
             </p>
           </div>
           <div class="view-actions">
@@ -247,7 +249,7 @@
             <div class="kpi-value" id="kpi-unique-local">41,093,203</div>
             <div class="kpi-meta">
               <span class="kpi-meta-badge success">100% Validated</span>
-              <span>Across all 31 local files</span>
+              <span>Zero Duplicates Remaining</span>
             </div>
           </div>
 
@@ -258,8 +260,8 @@
             </div>
             <div class="kpi-value" id="kpi-duplicates-removed">7,833</div>
             <div class="kpi-meta">
-              <span class="kpi-meta-badge warning">Zero Remaining</span>
-              <span>Backed up in ZIP archive</span>
+              <span class="kpi-meta-badge warning">Cleaned</span>
+              <span>Backed up in Zip archive</span>
             </div>
           </div>
         </div>
@@ -274,59 +276,43 @@
           <div class="portfolio-chips" id="portfolio-chips-container"></div>
         </div>
 
-        <!-- Dashboard Two-Column Grid -->
-        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px;">
-          <!-- Recent Deduplication Audit Log -->
-          <div class="panel">
-            <div class="panel-header">
-              <span class="panel-title">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="9"/></svg>
-                Recent Deduplication Audit & Data Cleaning Operations
-              </span>
-              <button class="btn btn-sm btn-secondary" onclick="switchView('dedup-history')">View Full History</button>
-            </div>
-            <div class="panel-body" style="padding: 0;">
-              <div class="table-responsive" style="border: none;">
-                <table class="data-table">
-                  <thead>
-                    <tr>
-                      <th>File Name</th>
-                      <th>Category</th>
-                      <th>Original Rows</th>
-                      <th>Duplicates Removed</th>
-                      <th>Clean Remaining</th>
-                      <th>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody id="dashboard-recent-dedup-tbody">
-                    <!-- Loaded dynamically via API -->
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-
-          <!-- System Diagnostics & Backup Status -->
+        <!-- Interactive Charts Grid -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px;">
+          <!-- Field Enrichment Coverage Rates -->
           <div class="panel">
             <div class="panel-header">
               <span class="panel-title">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-                Engine Health & Storage
+                Contact & Attribute Enrichment Coverage
+              </span>
+              <span class="status-badge clean">Enterprise Verified</span>
+            </div>
+            <div class="panel-body" id="chart-coverage-container">
+              <!-- Dynamically populated from /api/charts/overview -->
+            </div>
+          </div>
+
+          <!-- Engine Health & Storage Diagnostics -->
+          <div class="panel">
+            <div class="panel-header">
+              <span class="panel-title">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 14 14"/></svg>
+                Storage & Processing Status
               </span>
               <span class="status-badge clean">Online</span>
             </div>
             <div class="panel-body" style="display: flex; flex-direction: column; gap: 14px;">
               <div class="field-pair">
                 <span class="field-pair-key">Query Engine</span>
-                <span class="field-pair-val cell-mono">DuckDB In-Memory SQL</span>
+                <span class="field-pair-val cell-mono">DuckDB Columnar In-Memory SQL</span>
               </div>
               <div class="field-pair">
                 <span class="field-pair-key">Query Latency</span>
-                <span class="field-pair-val cell-mono matched">&lt; 12ms</span>
+                <span class="field-pair-val cell-mono matched">&lt; 12ms (Indexed Views)</span>
               </div>
               <div class="field-pair">
                 <span class="field-pair-key">Storage Directory</span>
-                <span class="field-pair-val cell-mono">D:\leads (4.05 GB)</span>
+                <span class="field-pair-val cell-mono">D:\leads (4.05 GB data files)</span>
               </div>
               <div class="field-pair">
                 <span class="field-pair-key">Free Space on D:</span>
@@ -338,29 +324,60 @@
               </div>
               <div class="field-pair">
                 <span class="field-pair-key">Backup Archives</span>
-                <span class="field-pair-val cell-mono matched">2 Secured (Zip)</span>
+                <span class="field-pair-val cell-mono matched">2 Secured (Zip Integrity Passed)</span>
               </div>
-              <div style="margin-top: 10px; display: flex; gap: 8px;">
+              <div style="margin-top: 6px; display: flex; gap: 8px;">
                 <button class="btn btn-sm btn-secondary" style="flex: 1;" onclick="switchView('activity')">Diagnostics</button>
                 <button class="btn btn-sm btn-primary" style="flex: 1;" onclick="switchView('import')">Import New CSV</button>
               </div>
             </div>
           </div>
         </div>
+
+        <!-- Recent Deduplication Audit Log -->
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-title">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="9"/></svg>
+              Recent Deduplication Operations (Historical Breakdown)
+            </span>
+            <button class="btn btn-sm btn-secondary" onclick="switchView('dedup-history')">View Full History</button>
+          </div>
+          <div class="panel-body" style="padding: 0;">
+            <div class="table-responsive" style="border: none;">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>File Name</th>
+                    <th>Category</th>
+                    <th>Original Rows</th>
+                    <th>Duplicates Removed</th>
+                    <th>Clean Remaining</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="dashboard-recent-dedup-tbody">
+                  <!-- Loaded dynamically via API -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
       </section>
 
       <!-- =====================================================================
-           VIEW 2: ALL DATASETS CATALOG
+           VIEW 2: ALL DATASETS MANAGEMENT
            ===================================================================== -->
       <section id="view-datasets" class="view-container">
         <div class="view-header">
           <div>
-            <h1 class="view-header-title">Dataset Catalog & File Management</h1>
+            <h1 class="view-header-title">All Datasets & File Management</h1>
             <p class="view-header-subtitle">
-              Comprehensive registry of all 31 local database files, corporate directories, B2B shards, and streaming feeds.
+              Comprehensive registry of all 33 database shards, corporate registries, retail store locations, and global streaming feeds.
             </p>
           </div>
           <div class="view-actions">
+            <button class="btn btn-secondary" onclick="switchView('duplicates')">Audit Duplicates</button>
             <button class="btn btn-primary" onclick="switchView('import')">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
               Upload Dataset
@@ -369,9 +386,19 @@
         </div>
 
         <div class="panel">
-          <div class="panel-header">
-            <input type="text" id="datasets-search-input" class="global-search-input" style="max-width: 320px;" placeholder="Filter datasets by name or type..." oninput="filterDatasetsTable(this.value)">
-            <span class="cell-mono text-tertiary" id="datasets-count-label">33 Datasets Registered</span>
+          <div class="panel-header" style="flex-wrap: wrap; gap: 12px;">
+            <input type="text" id="datasets-search-input" class="global-search-input" style="max-width: 320px;" placeholder="Filter datasets by name, format, or category..." oninput="filterDatasetsTable(this.value)">
+            
+            <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+              <button class="tier-pill active" onclick="filterDatasetsByCategory('all')">All</button>
+              <button class="tier-pill" onclick="filterDatasetsByCategory('b2b')">B2B Shards</button>
+              <button class="tier-pill" onclick="filterDatasetsByCategory('corporate')">Corporate</button>
+              <button class="tier-pill" onclick="filterDatasetsByCategory('retail')">Retail & Stores</button>
+              <button class="tier-pill" onclick="filterDatasetsByCategory('demographics')">Demographics</button>
+              <button class="tier-pill" onclick="filterDatasetsByCategory('niche')">Specialty Niche</button>
+            </div>
+
+            <span class="cell-mono text-tertiary" id="datasets-count-label" style="margin-left: auto;">33 Datasets Registered</span>
           </div>
           <div class="panel-body" style="padding: 0;">
             <div class="table-responsive">
@@ -380,9 +407,13 @@
                   <tr>
                     <th>Dataset / File Name</th>
                     <th>Category</th>
-                    <th>Total Records</th>
-                    <th>File Format</th>
-                    <th>Quality Status</th>
+                    <th>Record Count</th>
+                    <th>Columns</th>
+                    <th>Format</th>
+                    <th>File Size</th>
+                    <th>Import / Modified</th>
+                    <th>Processing Status</th>
+                    <th>Duplicate Status</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
@@ -396,14 +427,89 @@
       </section>
 
       <!-- =====================================================================
-           VIEW 3: LEAD EXPLORER (CORE 12-COLUMN TABLE)
+           VIEW 3: IMPORT DATA
+           ===================================================================== -->
+      <section id="view-import" class="view-container">
+        <div class="view-header">
+          <div>
+            <h1 class="view-header-title">Import Data & Ingestion Engine</h1>
+            <p class="view-header-subtitle">
+              Upload CSV, GZIP, and TSV files with automatic encoding detection, delimiter parsing, column mapping preview, and duplicate pre-checking.
+            </p>
+          </div>
+        </div>
+
+        <!-- Drag & Drop Zone -->
+        <div class="panel">
+          <div class="panel-header"><span class="panel-title">Upload New Dataset</span></div>
+          <div class="panel-body">
+            <div class="dropzone" id="file-dropzone" onclick="document.getElementById('file-upload-input').click()">
+              <svg class="dropzone-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              <h3 style="font-size: 15px; font-weight: 700; margin-bottom: 6px;">Drag and drop lead dataset files here</h3>
+              <p style="font-size: 12.5px; color: var(--text-tertiary); margin-bottom: 14px;">Supports CSV, CSV.GZ, TSV, and TXT up to 2 GB</p>
+              <button class="btn btn-primary" type="button">Select File From Computer</button>
+              <input type="file" id="file-upload-input" style="display: none;" accept=".csv,.gz,.tsv,.txt" onchange="handleFileUpload(this.files[0])">
+            </div>
+
+            <!-- Upload Progress Indicator -->
+            <div id="upload-progress-container" style="display: none; margin-top: 16px;">
+              <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 6px;">
+                <span id="upload-filename-label">Uploading...</span>
+                <span id="upload-pct-label" class="cell-mono">0%</span>
+              </div>
+              <div style="height: 6px; background: var(--bg-surface-active); border-radius: 3px; overflow: hidden;">
+                <div id="upload-progress-fill" style="width: 0%; height: 100%; background: var(--accent-primary); transition: width 0.2s;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Column Detection & Mapping Preview -->
+        <div class="panel" id="import-mapping-panel" style="display: none;">
+          <div class="panel-header">
+            <span class="panel-title">Column Detection & Schema Mapping Preview</span>
+            <span class="status-badge clean">Auto-Detected: UTF-8 • Comma Delimited</span>
+          </div>
+          <div class="panel-body">
+            <p style="font-size: 12.5px; color: var(--text-secondary); margin-bottom: 14px;">
+              The engine automatically maps incoming CSV headers to the 12 Lead Engine PRO columns. You can adjust the mappings before importing.
+            </p>
+            <div class="table-responsive" style="margin-bottom: 16px;">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Incoming CSV Header</th>
+                    <th>Mapped Lead Engine Column</th>
+                    <th>Match Confidence</th>
+                    <th>Sample Data Value</th>
+                  </tr>
+                </thead>
+                <tbody id="import-mapping-tbody">
+                  <!-- Loaded dynamically via /api/import/inspect -->
+                </tbody>
+              </table>
+            </div>
+
+            <div style="display: flex; align-items: center; justify-content: space-between; padding-top: 12px; border-top: 1px solid var(--border-subtle);">
+              <label style="display: flex; align-items: center; gap: 8px; font-size: 12.5px; cursor: pointer;">
+                <input type="checkbox" id="import-check-dups" checked>
+                <span>Run exact duplicate pre-check before saving to database</span>
+              </label>
+              <button class="btn btn-primary" onclick="confirmImport()">Confirm & Ingest Dataset</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- =====================================================================
+           VIEW 4: LEAD EXPLORER (12-COLUMN TABLE)
            ===================================================================== -->
       <section id="view-explorer" class="view-container">
         <div class="view-header">
           <div>
             <h1 class="view-header-title">Lead Explorer</h1>
             <p class="view-header-subtitle">
-              Real-time high performance data explorer displaying full 12 standardized columns across all databases.
+              High performance data explorer streaming all 12 standardized columns across local databases and global feeds.
             </p>
           </div>
           <div class="view-actions">
@@ -518,14 +624,14 @@
       </section>
 
       <!-- =====================================================================
-           VIEW 4: DUPLICATE DETECTION & ANALYSIS
+           VIEW 5: DUPLICATE DETECTION & SIDE-BY-SIDE INSPECTOR
            ===================================================================== -->
       <section id="view-duplicates" class="view-container">
         <div class="view-header">
           <div>
-            <h1 class="view-header-title">Duplicate Detection & Analysis</h1>
+            <h1 class="view-header-title">Duplicate Detection & Multi-Category Analysis</h1>
             <p class="view-header-subtitle">
-              Deep inspection of duplicate categories, matching criteria, confidence scores, and side-by-side record comparison.
+              Strict multi-category duplicate intelligence. Distinct people sharing a name, phone, or corporate domain are never deleted.
             </p>
           </div>
           <div class="view-actions">
@@ -535,9 +641,9 @@
           </div>
         </div>
 
-        <!-- 4 Duplicate Categories Cards -->
+        <!-- 7 Duplicate Categories Cards -->
         <div class="dup-category-grid" id="dup-categories-container">
-          <!-- Dynamically populated from /api/duplicates/summary -->
+          <!-- Dynamically populated from /api/duplicates/categories -->
         </div>
 
         <!-- Side-by-Side Duplicate Comparison Inspector -->
@@ -545,18 +651,18 @@
           <div class="panel-header">
             <span class="panel-title">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-              Side-by-Side Record Match Comparison (Inspector)
+              Side-by-Side Record Inspection & Copy Selection
             </span>
-            <span class="cell-mono text-tertiary">Criteria: Strict Normalized Equality</span>
+            <span class="cell-mono text-tertiary">Select Group to Review</span>
           </div>
           <div class="panel-body" id="dup-comparison-inspector">
-            <!-- Dynamically populated from /api/duplicates/preview -->
+            <!-- Dynamically populated from /api/duplicates/groups -->
           </div>
         </div>
       </section>
 
       <!-- =====================================================================
-           VIEW 5: DEDUPLICATION WORKFLOW & AUDIT HISTORY
+           VIEW 6: DEDUPLICATION WORKFLOW & AUDIT HISTORY
            ===================================================================== -->
       <section id="view-dedup-history" class="view-container">
         <div class="view-header">
@@ -571,14 +677,14 @@
         <!-- 9-Step Interactive Wizard -->
         <div class="panel">
           <div class="panel-header">
-            <span class="panel-title">Interactive Deduplication Wizard</span>
+            <span class="panel-title">Interactive Deduplication Workflow</span>
             <span class="status-badge clean">Safe Mode: Read-Only Simulation</span>
           </div>
           <div class="panel-body">
             <div class="wizard-steps">
-              <div class="wizard-step-item active" onclick="setWizardStep(1)"><span class="wizard-step-num">1</span> Select Dataset</div>
+              <div class="wizard-step-item active" onclick="setWizardStep(1)"><span class="wizard-step-num">1</span> Select Datasets</div>
               <div class="wizard-step-item" onclick="setWizardStep(2)"><span class="wizard-step-num">2</span> Method</div>
-              <div class="wizard-step-item" onclick="setWizardStep(3)"><span class="wizard-step-num">3</span> Matching Criteria</div>
+              <div class="wizard-step-item" onclick="setWizardStep(3)"><span class="wizard-step-num">3</span> Criteria</div>
               <div class="wizard-step-item" onclick="setWizardStep(4)"><span class="wizard-step-num">4</span> Read-Only Scan</div>
               <div class="wizard-step-item" onclick="setWizardStep(5)"><span class="wizard-step-num">5</span> Review Report</div>
               <div class="wizard-step-item" onclick="setWizardStep(6)"><span class="wizard-step-num">6</span> Preview Changes</div>
@@ -636,23 +742,21 @@
       </section>
 
       <!-- =====================================================================
-           VIEW 6: DATA CLEANING & NORMALIZATION
+           VIEW 7: DATA CLEANING & NORMALIZATION
            ===================================================================== -->
       <section id="view-cleaning" class="view-container">
         <div class="view-header">
           <div>
             <h1 class="view-header-title">Data Cleaning & Normalization Engine</h1>
             <p class="view-header-subtitle">
-              Interactive standardization rules for whitespace trimming, phone E.164 formatting, capitalization, and URL stripping.
+              Standardization rules for whitespace trimming, phone E.164 formatting, capitalization, and URL protocol stripping.
             </p>
           </div>
         </div>
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
           <div class="panel">
-            <div class="panel-header">
-              <span class="panel-title">Standardization Rules</span>
-            </div>
+            <div class="panel-header"><span class="panel-title">Standardization Rules</span></div>
             <div class="panel-body" style="display: flex; flex-direction: column; gap: 14px;">
               <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
                 <input type="checkbox" checked disabled>
@@ -674,51 +778,13 @@
           </div>
 
           <div class="panel">
-            <div class="panel-header">
-              <span class="panel-title">Live Normalization Sandbox</span>
-            </div>
+            <div class="panel-header"><span class="panel-title">Live Normalization Sandbox</span></div>
             <div class="panel-body">
               <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">Enter a sample raw record string to test real-time normalization:</p>
               <input type="text" id="cleaning-sandbox-input" class="global-search-input" value="  ACME Corp. LLC  |  (555) 123-4567  | HTTPS://WWW.ACME.COM/  " style="margin-bottom: 12px;">
               <button class="btn btn-sm btn-primary" onclick="testCleaningSandbox()">Run Transformation</button>
               <div id="cleaning-sandbox-output" style="margin-top: 12px; padding: 12px; background: var(--bg-surface); border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); font-family: var(--font-mono); font-size: 12px;">
                 Cleaned Output will appear here...
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- =====================================================================
-           VIEW 7: IMPORT DATA
-           ===================================================================== -->
-      <section id="view-import" class="view-container">
-        <div class="view-header">
-          <div>
-            <h1 class="view-header-title">Import Data Center</h1>
-            <p class="view-header-subtitle">
-              Upload CSV, GZIP, and TSV datasets with automatic delimiter detection, column mapping, and duplicate pre-checking.
-            </p>
-          </div>
-        </div>
-
-        <div class="panel">
-          <div class="panel-body">
-            <div class="dropzone" id="file-dropzone" onclick="document.getElementById('file-upload-input').click()">
-              <svg class="dropzone-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-              <h3 style="font-size: 15px; font-weight: 700; margin-bottom: 6px;">Drag and drop lead dataset files here</h3>
-              <p style="font-size: 12.5px; color: var(--text-tertiary); margin-bottom: 14px;">Supports CSV, CSV.GZ, TSV, and TXT up to 2 GB</p>
-              <button class="btn btn-primary" type="button">Select File From Computer</button>
-              <input type="file" id="file-upload-input" style="display: none;" accept=".csv,.gz,.tsv,.txt" onchange="handleFileUpload(this.files[0])">
-            </div>
-
-            <div id="upload-progress-container" style="display: none; margin-top: 16px;">
-              <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 6px;">
-                <span id="upload-filename-label">Uploading...</span>
-                <span id="upload-pct-label" class="cell-mono">0%</span>
-              </div>
-              <div style="height: 6px; background: var(--bg-surface-active); border-radius: 3px; overflow: hidden;">
-                <div id="upload-progress-fill" style="width: 0%; height: 100%; background: var(--accent-primary); transition: width 0.2s;"></div>
               </div>
             </div>
           </div>
@@ -917,6 +983,22 @@
 </div>
 
 <!-- =========================================================================
+     NOTIFICATIONS SLIDE-OUT PANEL
+     ========================================================================= -->
+<div class="drawer" id="notifications-drawer" style="width: 380px;">
+  <div class="drawer-header">
+    <div>
+      <h3 class="drawer-title">Notifications & System Events</h3>
+      <span class="cell-subtext">Live database activity stream</span>
+    </div>
+    <button class="drawer-close" onclick="toggleNotificationsDrawer()">&times;</button>
+  </div>
+  <div class="drawer-body" id="notifications-drawer-body">
+    <!-- Populated dynamically -->
+  </div>
+</div>
+
+<!-- =========================================================================
      FLOATING BULK ACTION BAR
      ========================================================================= -->
 <div id="bulk-action-bar">
@@ -932,6 +1014,6 @@
 <div id="toast" class="toast-msg">Notification</div>
 
 <!-- Scripts -->
-<script src="/static/app.js?v=20261025_v2"></script>
+<script src="/static/app.js?v=20261025_v3"></script>
 </body>
 </html>

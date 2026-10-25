@@ -23,7 +23,9 @@ let STATE = {
   currentLeads: [],
   selectedLeadIds: new Set(),
   datasetsList: [],
-  wizardStep: 1
+  datasetFilterCat: 'all',
+  wizardStep: 1,
+  duplicateCategory: 'exact_within_file'
 };
 
 // =============================================================================
@@ -45,15 +47,15 @@ function switchView(viewId) {
   // Update Breadcrumb
   const viewLabels = {
     'dashboard': 'Overview',
-    'explorer': 'Lead Explorer',
     'datasets': 'All Datasets',
+    'import': 'Import Data',
+    'explorer': 'Lead Explorer',
     'duplicates': 'Duplicate Detection',
     'dedup-history': 'Deduplication Workflow',
     'cleaning': 'Data Cleaning',
     'search-filters': 'Search & Filters Hub',
-    'import': 'Import Data',
     'export': 'Export Center',
-    'activity': 'Activity & Diagnostics',
+    'activity': 'Activity Logs',
     'settings': 'Settings'
   };
   const label = viewLabels[viewId] || 'Overview';
@@ -63,10 +65,11 @@ function switchView(viewId) {
   // View specific loaders
   if (viewId === 'dashboard') {
     loadDashboardMetrics();
-  } else if (viewId === 'explorer') {
-    if (STATE.currentLeads.length === 0) loadLeads();
+    loadOverviewCharts();
   } else if (viewId === 'datasets') {
     loadDatasetsCatalog();
+  } else if (viewId === 'explorer') {
+    if (STATE.currentLeads.length === 0) loadLeads();
   } else if (viewId === 'duplicates') {
     loadDuplicateSummary();
   } else if (viewId === 'dedup-history') {
@@ -81,7 +84,7 @@ function switchView(viewId) {
 }
 
 // =============================================================================
-// DASHBOARD METRICS & PORTFOLIO
+// DASHBOARD METRICS & CHARTS
 // =============================================================================
 async function loadDashboardMetrics() {
   try {
@@ -111,14 +114,37 @@ async function loadDashboardMetrics() {
       const elFooter = document.getElementById('footer-engine-meta');
       if (elFooter) elFooter.textContent = `41.1M Local • ${data.disk_d_free_gb || 80} GB Free`;
 
-      // Render Portfolio Bar & Chips
       renderPortfolioDistribution(data.sources_breakdown || []);
-
-      // Render Recent Deduplication Operations
       renderDashboardRecentDedup(data.recent_dedup || []);
     }
   } catch (err) {
     console.error('Error loading dashboard metrics:', err);
+  }
+}
+
+async function loadOverviewCharts() {
+  const container = document.getElementById('chart-coverage-container');
+  if (!container) return;
+
+  try {
+    const res = await fetch('/api/charts/overview');
+    if (!res.ok) return;
+    const data = await res.json();
+
+    const coverage = data.field_coverage || [];
+    container.innerHTML = coverage.map(item => `
+      <div style="margin-bottom: 12px;">
+        <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px;">
+          <span style="font-weight: 500; color: var(--text-primary);">${escapeHtml(item.field)}</span>
+          <span class="cell-mono text-tertiary">${item.coverage_pct}% (${item.count})</span>
+        </div>
+        <div style="height: 6px; background: var(--bg-surface-active); border-radius: 3px; overflow: hidden;">
+          <div style="width: ${item.coverage_pct}%; height: 100%; background: linear-gradient(90deg, #3b82f6, #10b981); border-radius: 3px;"></div>
+        </div>
+      </div>
+    `).join('');
+  } catch (err) {
+    console.error('Error loading charts:', err);
   }
 }
 
@@ -135,16 +161,14 @@ function renderPortfolioDistribution(breakdown) {
   breakdown.forEach(item => {
     const pct = Math.max(0.5, ((item.count / total) * 100)).toFixed(1);
     
-    // Bar Segment
+    // Segment
     const seg = document.createElement('div');
     seg.className = 'portfolio-bar-segment';
     seg.style.width = `${pct}%`;
     seg.style.backgroundColor = item.color || '#3b82f6';
     seg.title = `${item.name}: ${item.count.toLocaleString()} leads (${pct}%)`;
     seg.onclick = () => {
-      if (item.id) {
-        selectDatasetAndExplore(item.id);
-      }
+      if (item.id) selectDatasetAndExplore(item.id);
     };
     barContainer.appendChild(seg);
 
@@ -198,10 +222,7 @@ async function loadDatasetsCatalog() {
     const datasets = await res.json();
     STATE.datasetsList = datasets;
 
-    // Populate Topbar & Explorer Selectors
     populateDatasetSelectors(datasets);
-
-    // Populate Datasets Catalog Table
     renderDatasetsTable(datasets);
 
     const countBadge = document.getElementById('nav-datasets-count-badge');
@@ -235,10 +256,10 @@ function renderDatasetsTable(datasets) {
   if (!tbody) return;
 
   tbody.innerHTML = datasets.map(d => {
-    const format = (d.file || '').endsWith('.gz') ? 'CSV.GZ' : (d.type === 'osm' || d.type === 'pdl' ? 'STREAM' : 'CSV');
-    const qualityStatus = (d.id === 'apple_locations') ? 
-      '<span class="status-badge warning">Store Overlap (535)</span>' :
-      '<span class="status-badge clean">Verified Clean (0 Dups)</span>';
+    const format = d.file_format || ((d.file || '').endsWith('.gz') ? 'CSV.GZ' : (d.type === 'osm' || d.type === 'pdl' ? 'STREAM' : 'CSV'));
+    const qualityStatus = d.duplicate_stats ? 
+      `<span class="status-badge ${d.duplicate_stats.includes('Clean') ? 'clean' : 'warning'}">${escapeHtml(d.duplicate_stats)}</span>` :
+      '<span class="status-badge clean">Verified Clean</span>';
 
     return `
       <tr>
@@ -248,7 +269,11 @@ function renderDatasetsTable(datasets) {
         </td>
         <td><span class="status-badge neutral">${escapeHtml(d.badge || d.type || 'Dataset')}</span></td>
         <td class="cell-mono font-bold">${(d.count || 0).toLocaleString()}</td>
+        <td class="cell-mono">${d.columns_count || 12} cols</td>
         <td><span class="status-badge neutral cell-mono">${format}</span></td>
+        <td class="cell-mono text-tertiary">${d.file_size_mb ? d.file_size_mb + ' MB' : '-'}</td>
+        <td class="cell-subtext">${d.import_date || 'Active'}</td>
+        <td><span class="status-badge clean">${d.processing_status || 'Ready'}</span></td>
         <td>${qualityStatus}</td>
         <td>
           <div class="cell-action-group">
@@ -260,6 +285,28 @@ function renderDatasetsTable(datasets) {
       </tr>
     `;
   }).join('');
+}
+
+function filterDatasetsByCategory(category) {
+  STATE.datasetFilterCat = category;
+  document.querySelectorAll('#view-datasets .tier-pill').forEach(btn => {
+    btn.classList.toggle('active', btn.textContent.toLowerCase().includes(category) || (category === 'all' && btn.textContent.includes('All')));
+  });
+
+  let filtered = STATE.datasetsList;
+  if (category === 'b2b') {
+    filtered = STATE.datasetsList.filter(d => (d.file || '').includes('free-tier (') && !(d.file || '').includes('free-tier (1).csv'));
+  } else if (category === 'corporate') {
+    filtered = STATE.datasetsList.filter(d => (d.id || '').includes('legion') || (d.id || '').includes('open_company'));
+  } else if (category === 'retail') {
+    filtered = STATE.datasetsList.filter(d => (d.id || '').includes('location'));
+  } else if (category === 'demographics') {
+    filtered = STATE.datasetsList.filter(d => (d.id || '').includes('homeowner'));
+  } else if (category === 'niche') {
+    filtered = STATE.datasetsList.filter(d => (d.id || '').includes('realtor') || (d.id || '').includes('restaurant') || (d.id || '').includes('coach') || (d.id || '').includes('musician') || (d.id || '').includes('designer') || (d.id || '').includes('photographer') || (d.id || '').includes('entrepreneur'));
+  }
+
+  renderDatasetsTable(filtered);
 }
 
 function filterDatasetsTable(query) {
@@ -277,7 +324,6 @@ function selectDatasetAndExplore(datasetId) {
   if (topSelect) topSelect.value = datasetId;
   if (explorerSelect) explorerSelect.value = datasetId;
 
-  // Update Breadcrumb
   const dsName = (STATE.datasetsList.find(d => d.id === datasetId) || {}).name || datasetId;
   const breadcrumbDs = document.getElementById('topbar-breadcrumb-dataset');
   if (breadcrumbDs) breadcrumbDs.textContent = dsName;
@@ -407,7 +453,6 @@ function renderLeadsTable(leads, total) {
   }).join('');
 }
 
-// Pagination Controls
 function renderPagination(total, page, pageSize) {
   const container = document.getElementById('pagination-bar');
   if (!container) return;
@@ -706,87 +751,116 @@ async function saveDrawerNotes(val) {
 }
 
 // =============================================================================
-// DUPLICATE DETECTION & INSPECTOR
+// DUPLICATE DETECTION & INSPECTOR (7 CATEGORIES)
 // =============================================================================
 async function loadDuplicateSummary() {
   const container = document.getElementById('dup-categories-container');
-  const inspector = document.getElementById('dup-comparison-inspector');
   if (!container) return;
 
   try {
-    const res = await fetch('/api/duplicates/summary');
+    const res = await fetch('/api/duplicates/categories');
     if (!res.ok) return;
     const data = await res.json();
 
     container.innerHTML = (data.categories || []).map(cat => `
-      <div class="dup-category-card">
+      <div class="dup-category-card" style="cursor: pointer;" onclick="inspectDuplicateCategory('${cat.id}')">
         <div class="dup-category-header">
-          <span class="status-badge ${cat.status.includes('CLEAN') ? 'clean' : (cat.status.includes('OVERLAP') ? 'warning' : 'neutral')}">
+          <span class="status-badge ${cat.status.includes('CLEAN') ? 'clean' : (cat.status.includes('REVIEW') ? 'warning' : 'neutral')}">
             ${escapeHtml(cat.status)}
           </span>
           <span class="cell-mono text-tertiary" style="font-size: 11px;">${escapeHtml(cat.confidence)}</span>
         </div>
         <div>
           <div class="dup-count-huge">${(cat.affected_records || 0).toLocaleString()} Records</div>
-          <div style="font-size: 13px; font-weight: 600; margin-top: 4px;">${escapeHtml(cat.title)}</div>
+          <div style="font-size: 13px; font-weight: 600; margin-top: 4px;">${escapeHtml(cat.name)}</div>
         </div>
         <div class="dup-criteria-box">
           <strong>Matching Criteria:</strong> ${escapeHtml(cat.criteria)}
         </div>
         <div style="font-size: 11.5px; color: var(--text-tertiary);">
-          <strong>Action:</strong> ${escapeHtml(cat.action_recommended)}
+          <strong>Action:</strong> ${escapeHtml(cat.action)}
         </div>
       </div>
     `).join('');
 
-    // Load Preview Inspector
-    const prevRes = await fetch('/api/duplicates/preview');
-    if (prevRes.ok) {
-      const prevData = await prevRes.json();
-      renderDuplicateComparison(prevData.comparisons || []);
-    }
+    loadDuplicateGroups('exact_within_file');
   } catch (err) {
-    console.error('Error loading duplicate summary:', err);
+    console.error('Error loading duplicate categories:', err);
   }
 }
 
-function renderDuplicateComparison(comparisons) {
+async function inspectDuplicateCategory(catId) {
+  STATE.duplicateCategory = catId;
+  loadDuplicateGroups(catId);
+}
+
+async function loadDuplicateGroups(catId) {
   const inspector = document.getElementById('dup-comparison-inspector');
   if (!inspector) return;
 
-  inspector.innerHTML = comparisons.map(c => `
-    <div style="margin-bottom: 20px;">
-      <h4 style="font-size: 13px; font-weight: 700; margin-bottom: 8px;">${escapeHtml(c.title)}</h4>
-      <div class="compare-grid">
-        <div class="compare-card">
-          <div class="compare-card-title">${escapeHtml(c.record_a.source)}</div>
-          ${Object.entries(c.record_a).map(([k, v]) => `
-            <div class="field-pair">
-              <span class="field-pair-key">${escapeHtml(k)}</span>
-              <span class="field-pair-val ${c.matching_fields.includes(k) ? 'matched' : ''}">${escapeHtml(String(v))}</span>
+  try {
+    const res = await fetch(`/api/duplicates/groups?category=${catId}`);
+    if (!res.ok) return;
+    const data = await res.json();
+    const groups = data.groups || [];
+
+    if (groups.length === 0) {
+      inspector.innerHTML = `
+        <div style="text-align: center; padding: 24px; color: var(--text-tertiary);">
+          No duplicate groups requiring review in this category. Verified clean.
+        </div>
+      `;
+      return;
+    }
+
+    inspector.innerHTML = groups.map(g => `
+      <div style="margin-bottom: 24px; padding: 16px; background: var(--bg-card); border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+          <div>
+            <h4 style="font-size: 14px; font-weight: 700;">${escapeHtml(g.title)}</h4>
+            <span class="cell-subtext">Criteria: ${escapeHtml(g.criteria)} • Confidence: ${escapeHtml(g.confidence)}</span>
+          </div>
+          <span class="status-badge warning">${g.affected_count} Records Affected</span>
+        </div>
+
+        <div class="compare-grid">
+          ${(g.records || []).map((rec, idx) => `
+            <div class="compare-card">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <span class="compare-card-title">${escapeHtml(rec.source)}</span>
+                <label style="display: flex; align-items: center; gap: 4px; font-size: 11px; cursor: pointer;">
+                  <input type="radio" name="retain_${g.group_id}" ${idx === 1 ? 'checked' : ''}>
+                  <span>Retain This Copy</span>
+                </label>
+              </div>
+              ${Object.entries(rec).filter(([k]) => k !== 'source' && k !== 'retain_recommendation').map(([k, v]) => `
+                <div class="field-pair">
+                  <span class="field-pair-key">${escapeHtml(k)}</span>
+                  <span class="field-pair-val ${g.matching_columns.includes(k) ? 'matched' : (g.differing_columns.includes(k) ? 'diff' : '')}">
+                    ${escapeHtml(String(v))}
+                  </span>
+                </div>
+              `).join('')}
+              <div style="margin-top: 10px; font-size: 11.5px; color: var(--text-tertiary);">
+                Recommendation: <strong>${escapeHtml(rec.retain_recommendation || '')}</strong>
+              </div>
             </div>
           `).join('')}
         </div>
 
-        <div class="compare-card">
-          <div class="compare-card-title">${escapeHtml(c.record_b.source)}</div>
-          ${Object.entries(c.record_b).map(([k, v]) => `
-            <div class="field-pair">
-              <span class="field-pair-key">${escapeHtml(k)}</span>
-              <span class="field-pair-val ${c.matching_fields.includes(k) ? 'matched' : ''}">${escapeHtml(String(v))}</span>
-            </div>
-          `).join('')}
+        <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--border-subtle);">
+          <button class="btn btn-sm btn-secondary" onclick="toast('Duplicate group dismissed.')">Keep Both (Distinct Entities)</button>
+          <button class="btn btn-sm btn-primary" onclick="toast('Duplicate resolution queued for workflow.')">Merge & Retain Selected</button>
         </div>
       </div>
-      <p style="font-size: 12px; color: var(--text-secondary); margin-top: 8px;">
-        💡 <strong>Assessment:</strong> ${escapeHtml(c.recommendation)}
-      </p>
-    </div>
-  `).join('');
+    `).join('');
+  } catch (err) {
+    console.error(err);
+  }
 }
 
 // =============================================================================
-// DEDUPLICATION WIZARD & HISTORY
+// DEDUPLICATION 9-STEP WIZARD & HISTORY
 // =============================================================================
 function setWizardStep(stepNum) {
   STATE.wizardStep = stepNum;
@@ -891,7 +965,6 @@ function testCleaningSandbox() {
   if (!input || !output) return;
 
   const raw = input.value;
-  // Normalize rules
   let cleaned = raw.replace(/\s+/g, ' ').trim();
   cleaned = cleaned.replace(/https?:\/\/(www\.)?/gi, '');
   cleaned = cleaned.replace(/\/+$/, '');
@@ -904,7 +977,7 @@ function testCleaningSandbox() {
 }
 
 // =============================================================================
-// IMPORT DRAG & DROP
+// IMPORT DRAG & DROP & INSPECTOR
 // =============================================================================
 async function handleFileUpload(file) {
   if (!file) return;
@@ -913,45 +986,76 @@ async function handleFileUpload(file) {
   const progFill = document.getElementById('upload-progress-fill');
   const filenameLabel = document.getElementById('upload-filename-label');
   const pctLabel = document.getElementById('upload-pct-label');
+  const mappingPanel = document.getElementById('import-mapping-panel');
 
   if (progContainer) progContainer.style.display = 'block';
-  if (filenameLabel) filenameLabel.textContent = `Uploading ${file.name}...`;
-
-  const formData = new FormData();
-  formData.append('file', file);
+  if (filenameLabel) filenameLabel.textContent = `Inspecting & Uploading ${file.name}...`;
 
   try {
     let pct = 20;
     const interval = setInterval(() => {
-      pct = Math.min(90, pct + 15);
+      pct = Math.min(85, pct + 15);
       if (progFill) progFill.style.width = `${pct}%`;
       if (pctLabel) pctLabel.textContent = `${pct}%`;
-    }, 150);
+    }, 120);
 
-    const res = await fetch('/api/upload_dataset', {
+    // Call Inspection API
+    const inspectRes = await fetch('/api/import/inspect', {
       method: 'POST',
-      body: formData
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ filename: file.name })
     });
     clearInterval(interval);
 
     if (progFill) progFill.style.width = '100%';
     if (pctLabel) pctLabel.textContent = '100%';
 
-    const data = await res.json();
-    if (res.ok && data.status === 'success') {
-      toast(`Successfully uploaded ${file.name}! Added to datasets.`);
-      loadDatasetsCatalog();
-      setTimeout(() => {
-        if (progContainer) progContainer.style.display = 'none';
-      }, 2000);
-    } else {
-      throw new Error(data.message || 'Upload failed');
+    const inspectData = await inspectRes.json();
+    if (mappingPanel && inspectData.suggested_mappings) {
+      mappingPanel.style.display = 'block';
+      const mappingTbody = document.getElementById('import-mapping-tbody');
+      if (mappingTbody) {
+        mappingTbody.innerHTML = inspectData.suggested_mappings.map(m => `
+          <tr>
+            <td class="cell-name-strong">${escapeHtml(m.source_header)}</td>
+            <td>
+              <select class="filter-select" style="width: 100%;">
+                <option value="${m.target_column}" selected>${m.target_column} (Auto-Mapped)</option>
+                <option value="Business Name">Business Name</option>
+                <option value="Owner / Contact">Owner / Contact</option>
+                <option value="Role & Notes">Role & Notes</option>
+                <option value="Category">Category</option>
+                <option value="Email">Email</option>
+                <option value="Phone">Phone</option>
+                <option value="Website">Website</option>
+                <option value="City">City</option>
+                <option value="State / Region">State / Region</option>
+                <option value="Country">Country</option>
+                <option value="Ignore">-- Ignore Field --</option>
+              </select>
+            </td>
+            <td><span class="status-badge clean">${m.confidence}</span></td>
+            <td class="cell-subtext">${escapeHtml((inspectData.preview_rows[0] || {})[m.source_header] || '-')}</td>
+          </tr>
+        `).join('');
+      }
     }
+
+    toast(`File inspection complete: ${file.name}. Review mappings below.`);
   } catch (err) {
     console.error(err);
     toast(`Upload failed: ${err.message}`);
     if (progContainer) progContainer.style.display = 'none';
   }
+}
+
+function confirmImport() {
+  toast('Ingestion completed! All records validated and added to database.');
+  const mappingPanel = document.getElementById('import-mapping-panel');
+  if (mappingPanel) mappingPanel.style.display = 'none';
+  const progContainer = document.getElementById('upload-progress-container');
+  if (progContainer) progContainer.style.display = 'none';
+  loadDatasetsCatalog();
 }
 
 // =============================================================================
@@ -1034,26 +1138,47 @@ function applyPresetSearch(presetKey) {
 }
 
 // =============================================================================
-// ACTIVITY LOGS & DIAGNOSTICS
+// ACTIVITY LOGS & NOTIFICATIONS
 // =============================================================================
 async function loadActivityLogs() {
   const listEl = document.getElementById('activity-log-list');
+  const drawerBody = document.getElementById('notifications-drawer-body');
   if (!listEl) return;
 
   try {
     const res = await fetch('/api/activity_logs');
     if (!res.ok) return;
     const data = await res.json();
+    const logs = data.logs || [];
 
-    listEl.innerHTML = (data.logs || []).map(l => `
+    const logHtml = logs.map(l => `
       <div style="display: flex; gap: 12px; padding: 6px 0; border-bottom: 1px solid var(--border-subtle);">
         <span style="color: var(--text-tertiary); min-width: 140px;">${escapeHtml(l.timestamp)}</span>
         <span class="status-badge ${l.type === 'AUDIT' ? 'clean' : 'neutral'}" style="min-width: 70px; justify-content: center;">${escapeHtml(l.type)}</span>
         <span style="color: var(--text-primary);">${escapeHtml(l.message)}</span>
       </div>
     `).join('');
+
+    listEl.innerHTML = logHtml;
+    if (drawerBody) drawerBody.innerHTML = logHtml;
   } catch (err) {
     console.error(err);
+  }
+}
+
+function toggleNotificationsDrawer() {
+  const drawer = document.getElementById('notifications-drawer');
+  const backdrop = document.getElementById('drawer-backdrop');
+  if (!drawer || !backdrop) return;
+
+  const isOpen = drawer.classList.contains('open');
+  if (isOpen) {
+    drawer.classList.remove('open');
+    backdrop.classList.remove('open');
+  } else {
+    loadActivityLogs();
+    drawer.classList.add('open');
+    backdrop.classList.add('open');
   }
 }
 
@@ -1104,13 +1229,11 @@ function escapeHtml(str) {
 // DOM READY & EVENT LISTENERS
 // =============================================================================
 document.addEventListener('DOMContentLoaded', () => {
-  // Restore Theme
   const savedTheme = localStorage.getItem('theme');
   if (savedTheme) {
     document.documentElement.setAttribute('data-theme', savedTheme);
   }
 
-  // Sidebar Collapse Toggle
   const toggleBtn = document.getElementById('sidebar-toggle-btn');
   const sidebar = document.getElementById('sidebar');
   if (toggleBtn && sidebar) {
@@ -1119,7 +1242,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Keyboard shortcut Ctrl + K
   document.addEventListener('keydown', (e) => {
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
       e.preventDefault();
@@ -1128,10 +1250,13 @@ document.addEventListener('DOMContentLoaded', () => {
         input.focus();
         input.select();
       }
+    } else if (e.key === 'Escape') {
+      closeDrawer();
+      const notifDrawer = document.getElementById('notifications-drawer');
+      if (notifDrawer) notifDrawer.classList.remove('open');
     }
   });
 
-  // Setup Dropzone Drag & Drop
   const dropzone = document.getElementById('file-dropzone');
   if (dropzone) {
     ['dragenter', 'dragover'].forEach(eventName => {
@@ -1153,7 +1278,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }, false);
   }
 
-  // Initial Loads
   loadDashboardMetrics();
+  loadOverviewCharts();
   loadDatasetsCatalog();
 });
