@@ -94,7 +94,7 @@ async function loadDashboardMetrics() {
 
     if (data.status === 'success') {
       const elPortfolio = document.getElementById('kpi-total-portfolio');
-      if (elPortfolio) elPortfolio.textContent = (data.total_portfolio || 394181043).toLocaleString();
+      if (elPortfolio) elPortfolio.textContent = (data.total_portfolio || 735223078).toLocaleString();
 
       const elDatasets = document.getElementById('kpi-datasets-count');
       if (elDatasets) elDatasets.textContent = data.dataset_count || 33;
@@ -235,7 +235,8 @@ async function loadDatasetsCatalog() {
 }
 
 function formatDatasetOptionLabel(d) {
-  if (d.id === 'all_global') return 'All Leads Unified · 394.2M';
+  if (d.id === 'all_global') return 'All Leads Unified · 735.2M';
+  if (d.id === 'odo_senzing') return '🏢 ODO Senzing · 341.0M';
   let name = (d.label || d.name || d.id || '').trim();
   // Strip emojis & leading punctuation
   name = name.replace(/^[^\w\s]+/g, '').trim();

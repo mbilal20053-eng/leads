@@ -61,7 +61,7 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
           </div>
           <span class="nav-label">Lead Explorer</span>
-          <span class="nav-badge" id="nav-leads-count-badge">394M</span>
+          <span class="nav-badge" id="nav-leads-count-badge">735M</span>
         </a>
       </div>
 
@@ -157,7 +157,7 @@
           <span class="search-icon-adornment">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
           </span>
-          <input type="text" id="global-search-input" class="global-search-input" placeholder="Search across 394M records (company, name, phone, domain)..." oninput="handleSearchInput(this.value)">
+          <input type="text" id="global-search-input" class="global-search-input" placeholder="Search across 735M records (company, name, phone, domain)..." oninput="handleSearchInput(this.value)">
           <span class="search-kbd-shortcut">Ctrl K</span>
         </div>
       </div>
@@ -165,7 +165,8 @@
       <div class="topbar-right">
         <!-- Quick Dataset Selector -->
         <select id="topbar-dataset-select" class="dataset-select-compact" onchange="onDatasetChange(this.value)">
-          <option value="all_global">🌍 All Global Leads & Master Portfolio (394M)</option>
+          <option value="all_global">🌍 All Global Leads & Master Portfolio (735M)</option>
+          <option value="odo_senzing">🏢 ODO Senzing: Global Entities & Orgs (341M)</option>
         </select>
 
         <button class="btn btn-sm btn-secondary" onclick="toggleNotificationsDrawer()" title="Activity & Notifications">
@@ -222,10 +223,10 @@
               <span class="kpi-label">Total Unified Portfolio</span>
               <div class="kpi-icon">🌍</div>
             </div>
-            <div class="kpi-value" id="kpi-total-portfolio">394,181,043</div>
+            <div class="kpi-value" id="kpi-total-portfolio">735,223,078</div>
             <div class="kpi-meta">
               <span class="kpi-meta-badge success">Live Master Feed</span>
-              <span>41.1M Local + 353M Global</span>
+              <span>41.1M Local + 694M Global</span>
             </div>
           </div>
 
@@ -270,7 +271,7 @@
         <div class="portfolio-card">
           <div class="portfolio-header">
             <span class="portfolio-title">Dataset Allocation & Category Distribution</span>
-            <span class="cell-mono text-tertiary">394,181,043 Leads Indexed</span>
+            <span class="cell-mono text-tertiary">735,223,078 Leads Indexed</span>
           </div>
           <div class="portfolio-bar" id="portfolio-bar-container"></div>
           <div class="portfolio-chips" id="portfolio-chips-container"></div>
@@ -516,13 +517,13 @@
               </span>
             </div>
             <p class="view-header-subtitle">
-              High-speed query engine streaming all 12 standardized enterprise columns across 394M+ global and local records.
+              High-speed query engine streaming all 12 standardized enterprise columns across 735M+ global and local records.
             </p>
           </div>
           <div class="explorer-header-right">
             <div class="stats-pill-match">
               <span class="stats-pill-indicator"></span>
-              <span class="stats-pill-count font-mono" id="total-count-badge">394,181,043</span>
+              <span class="stats-pill-count font-mono" id="total-count-badge">735,223,078</span>
               <span class="stats-pill-label">leads matching</span>
             </div>
             <div class="view-actions">
@@ -547,7 +548,8 @@
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
               </span>
               <select id="filter-dataset" class="dataset-pill-select" onchange="onDatasetChange(this.value)">
-                <option value="all_global">All Leads Unified · 394.2M</option>
+                <option value="all_global">All Leads Unified · 735.2M</option>
+                <option value="odo_senzing">🏢 ODO Senzing (21.4 GB) · 341.0M</option>
               </select>
             </div>
 
@@ -1149,7 +1151,7 @@
     <div class="modal-header">
       <div class="modal-title-wrap">
         <h3 class="modal-title">Industry & Category Hierarchy Directory</h3>
-        <span class="modal-subtitle">14 Major Business Sectors encompassing 295 Minor Verticals across 394M+ global records</span>
+        <span class="modal-subtitle">14 Major Business Sectors encompassing 295 Minor Verticals across 735M+ global records</span>
       </div>
       <button class="modal-close-btn" onclick="closeCategoriesModal()">&times;</button>
     </div>
