@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/app.css?v=20261025_v5">
+  <link rel="stylesheet" href="/static/app.css?v=20261025_v7">
 </head>
 <body>
 <div id="app-layout">
@@ -153,11 +153,11 @@
       </div>
 
       <div class="topbar-center">
-        <div class="global-search-wrapper">
+        <div class="global-search-wrapper" onclick="openCommandPalette()" style="cursor: pointer;">
           <span class="search-icon-adornment">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
           </span>
-          <input type="text" id="global-search-input" class="global-search-input" placeholder="Search across 735M records (company, name, phone, domain)..." oninput="handleSearchInput(this.value)">
+          <input type="text" id="global-search-input" class="global-search-input" placeholder="Search across 735M records (Ctrl+K for Command Palette)..." onfocus="openCommandPalette()" readonly style="cursor: pointer;">
           <span class="search-kbd-shortcut">Ctrl K</span>
         </div>
       </div>
@@ -374,7 +374,7 @@
           <div>
             <h1 class="view-header-title">All Datasets & File Management</h1>
             <p class="view-header-subtitle">
-              Comprehensive registry of all 33 database shards, corporate registries, retail store locations, and global streaming feeds.
+              Comprehensive registry of 65 database shards, enterprise B2B registries, retail store locations, ODO Senzing, and global streaming feeds.
             </p>
           </div>
           <div class="view-actions">
@@ -386,33 +386,48 @@
           </div>
         </div>
 
+        <!-- Floating Bulk Action Bar for Datasets -->
+        <div class="table-bulk-bar" id="datasets-bulk-bar">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span class="bulk-count-badge" id="datasets-selected-count">0</span>
+            <span style="font-size: 13px; font-weight: 600;">Datasets Selected</span>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <button class="btn btn-sm btn-secondary" onclick="bulkAuditSelectedDatasets()">Audit Selected Duplicates</button>
+            <button class="btn btn-sm btn-primary" onclick="bulkExportSelectedDatasets()">Batch Export Selected</button>
+            <button class="btn btn-sm btn-secondary" onclick="clearDatasetsSelection()">Clear</button>
+          </div>
+        </div>
+
         <div class="panel">
           <div class="panel-header" style="flex-wrap: wrap; gap: 12px;">
             <input type="text" id="datasets-search-input" class="global-search-input" style="max-width: 320px;" placeholder="Filter datasets by name, format, or category..." oninput="filterDatasetsTable(this.value)">
             
             <div style="display: flex; gap: 6px; flex-wrap: wrap;">
-              <button class="tier-pill active" onclick="filterDatasetsByCategory('all')">All</button>
+              <button class="tier-pill active" onclick="filterDatasetsByCategory('all')">All (65)</button>
               <button class="tier-pill" onclick="filterDatasetsByCategory('b2b')">B2B Shards</button>
               <button class="tier-pill" onclick="filterDatasetsByCategory('corporate')">Corporate</button>
               <button class="tier-pill" onclick="filterDatasetsByCategory('retail')">Retail & Stores</button>
               <button class="tier-pill" onclick="filterDatasetsByCategory('demographics')">Demographics</button>
               <button class="tier-pill" onclick="filterDatasetsByCategory('niche')">Specialty Niche</button>
+              <button class="tier-pill" onclick="filterDatasetsByCategory('streaming')">Global Feeds</button>
             </div>
 
-            <span class="cell-mono text-tertiary" id="datasets-count-label" style="margin-left: auto;">33 Datasets Registered</span>
+            <span class="cell-mono text-tertiary" id="datasets-count-label" style="margin-left: auto;">65 Datasets Registered</span>
           </div>
           <div class="panel-body" style="padding: 0;">
             <div class="table-responsive">
               <table class="data-table">
                 <thead>
                   <tr>
-                    <th>Dataset / File Name</th>
+                    <th style="width: 38px; text-align: center;"><input type="checkbox" id="datasets-select-all" onchange="toggleSelectAllDatasets(this.checked)" title="Select all datasets"></th>
+                    <th class="sortable" onclick="sortDatasetsTable('name')">Dataset / File Name ↕</th>
                     <th>Category</th>
-                    <th>Record Count</th>
+                    <th class="sortable" onclick="sortDatasetsTable('count')">Record Count ↕</th>
                     <th>Columns</th>
-                    <th>Format</th>
-                    <th>File Size</th>
-                    <th>Import / Modified</th>
+                    <th class="sortable" onclick="sortDatasetsTable('format')">Format ↕</th>
+                    <th class="sortable" onclick="sortDatasetsTable('size')">File Size ↕</th>
+                    <th class="sortable" onclick="sortDatasetsTable('date')">Import / Modified ↕</th>
                     <th>Processing Status</th>
                     <th>Duplicate Status</th>
                     <th>Actions</th>
@@ -915,7 +930,12 @@
             <div class="panel-body">
               <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">Enter a sample raw record string to test real-time normalization:</p>
               <input type="text" id="cleaning-sandbox-input" class="global-search-input" value="  ACME Corp. LLC  |  (555) 123-4567  | HTTPS://WWW.ACME.COM/  " style="margin-bottom: 12px;">
-              <button class="btn btn-sm btn-primary" onclick="testCleaningSandbox()">Run Transformation</button>
+              <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px;">
+                <button class="btn btn-sm btn-primary" onclick="testCleaningSandbox()">Run Transformation</button>
+                <button class="btn btn-sm btn-secondary" onclick="applyCleaningPreset('url')">Preset: Dirty URL</button>
+                <button class="btn btn-sm btn-secondary" onclick="applyCleaningPreset('phone')">Preset: Phone E.164</button>
+                <button class="btn btn-sm btn-secondary" onclick="applyCleaningPreset('spaces')">Preset: Whitespace</button>
+              </div>
               <div id="cleaning-sandbox-output" style="margin-top: 12px; padding: 12px; background: var(--bg-surface); border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); font-family: var(--font-mono); font-size: 12px;">
                 Cleaned Output will appear here...
               </div>
@@ -931,7 +951,78 @@
         <div class="view-header">
           <div>
             <h1 class="view-header-title">Search & Advanced Filters Hub</h1>
-            <p class="view-header-subtitle">Multi-field query builder and instant prospecting presets for rapid lead discovery.</p>
+            <p class="view-header-subtitle">Multi-field query builder and instant prospecting presets for rapid lead discovery across 735M+ records.</p>
+          </div>
+        </div>
+
+        <!-- Multi-Field Lead Query Builder -->
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-title">Multi-Field Lead Query Builder</span>
+            <span class="cell-mono text-tertiary">Real-Time Column Filter Matrix</span>
+          </div>
+          <div class="panel-body">
+            <div class="query-builder-grid">
+              <div class="query-field-group">
+                <label class="query-field-label">Company / Business Name</label>
+                <input type="text" id="qb-company" class="console-search-input" placeholder="e.g. Apex, BioGenesis, Clinic...">
+              </div>
+              <div class="query-field-group">
+                <label class="query-field-label">Contact Person / Job Title</label>
+                <input type="text" id="qb-contact" class="console-search-input" placeholder="e.g. Director, Founder, CEO...">
+              </div>
+              <div class="query-field-group">
+                <label class="query-field-label">Industry & Major Sector</label>
+                <select id="qb-category" class="filter-select">
+                  <option value="all">All Sectors & Verticals</option>
+                  <option value="Tech, Software & IT">Tech, Software & IT</option>
+                  <option value="Healthcare & Medical">Healthcare & Medical</option>
+                  <option value="Hospitality, Restaurants & Travel">Hospitality & Restaurants</option>
+                  <option value="Real Estate & Property Development">Real Estate & Property</option>
+                  <option value="Finance, Banking & Insurance">Finance & Banking</option>
+                  <option value="Construction & Building Trades">Construction & Trades</option>
+                  <option value="Retail, Fashion & Consumer Goods">Retail & Consumer Goods</option>
+                </select>
+              </div>
+              <div class="query-field-group">
+                <label class="query-field-label">US State / Region</label>
+                <select id="qb-state" class="filter-select">
+                  <option value="all">All 50 States</option>
+                  <option value="CA">California (CA)</option>
+                  <option value="TX">Texas (TX)</option>
+                  <option value="NY">New York (NY)</option>
+                  <option value="FL">Florida (FL)</option>
+                  <option value="IL">Illinois (IL)</option>
+                  <option value="GA">Georgia (GA)</option>
+                  <option value="NC">North Carolina (NC)</option>
+                  <option value="OH">Ohio (OH)</option>
+                  <option value="PA">Pennsylvania (PA)</option>
+                  <option value="WA">Washington (WA)</option>
+                </select>
+              </div>
+            </div>
+            <div style="display: flex; gap: 20px; align-items: center; flex-wrap: wrap; margin-bottom: 20px; padding: 12px 16px; background: var(--bg-surface-active); border-radius: var(--radius-md);">
+              <span style="font-size: 12px; font-weight: 700; color: var(--text-primary);">Quality Requirements:</span>
+              <label style="display: flex; align-items: center; gap: 6px; font-size: 12px; cursor: pointer;">
+                <input type="checkbox" id="qb-has-phone">
+                <span>Must have direct phone</span>
+              </label>
+              <label style="display: flex; align-items: center; gap: 6px; font-size: 12px; cursor: pointer;">
+                <input type="checkbox" id="qb-has-website">
+                <span>Must have active website</span>
+              </label>
+              <label style="display: flex; align-items: center; gap: 6px; font-size: 12px; cursor: pointer;">
+                <input type="checkbox" id="qb-has-email">
+                <span>Must have contact email</span>
+              </label>
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 10px;">
+              <button class="btn btn-secondary" onclick="resetQueryBuilder()">Reset Criteria</button>
+              <button class="btn btn-primary" onclick="applyQueryBuilder()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                Apply & Launch in Lead Explorer
+              </button>
+            </div>
           </div>
         </div>
 
@@ -950,6 +1041,10 @@
               <h4 style="font-weight: 700; margin-bottom: 6px;">🏢 Commercial Real Estate Properties</h4>
               <p style="font-size: 12px; color: var(--text-secondary);">44k property owners, building addresses, and commercial asset managers.</p>
             </div>
+            <div class="compare-card" style="cursor: pointer;" onclick="applyPresetSearch('odo_senzing_orgs')">
+              <h4 style="font-weight: 700; margin-bottom: 6px;">🏢 ODO Senzing Enterprise Entities</h4>
+              <p style="font-size: 12px; color: var(--text-secondary);">341M BrightQuery entity-resolved corporate registrations with Placekey spatial IDs.</p>
+            </div>
           </div>
         </div>
       </section>
@@ -960,14 +1055,65 @@
       <section id="view-export" class="view-container">
         <div class="view-header">
           <div>
-            <h1 class="view-header-title">Export Center</h1>
+            <h1 class="view-header-title">Export Center & Batch Dispatch</h1>
             <p class="view-header-subtitle">Custom batch range export with streaming download in CSV, Excel, and JSON formats.</p>
           </div>
         </div>
 
         <div class="panel">
           <div class="panel-header"><span class="panel-title">Batch Range Export Configuration</span></div>
-          <div class="panel-body" style="display: flex; flex-direction: column; gap: 18px;">
+          <div class="panel-body" style="display: flex; flex-direction: column; gap: 20px;">
+            
+            <!-- Target Dataset & Format -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+              <div class="query-field-group">
+                <label class="query-field-label">Target Dataset Source</label>
+                <select id="export-dataset-select" class="filter-select">
+                  <option value="all_global">🌍 All Global Leads Unified (735.2M)</option>
+                  <option value="odo_senzing">🏢 ODO Senzing Commercial Entities (341.0M)</option>
+                  <option value="planet_daily_osm">🌍 Planet Daily OSM POIs (150.0M)</option>
+                  <option value="all_local_unified">🌟 All Local Databases Unified (41.1M)</option>
+                  <option value="data_legion_companies">🏢 Data Legion Global Companies (28.1M)</option>
+                  <option value="b2b_executives">💼 B2B Executive Decision Makers (11.5M)</option>
+                </select>
+              </div>
+              <div class="query-field-group">
+                <label class="query-field-label">Export File Format</label>
+                <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                  <button type="button" class="tier-pill active" onclick="setExportFormat('csv')">CSV (.csv)</button>
+                  <button type="button" class="tier-pill" onclick="setExportFormat('xlsx')">Excel (.xlsx)</button>
+                  <button type="button" class="tier-pill" onclick="setExportFormat('json')">JSON (.json)</button>
+                  <button type="button" class="tier-pill" onclick="setExportFormat('tsv')">TSV (.tsv)</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Column Selection -->
+            <div>
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <label class="query-field-label">Enterprise Columns to Include</label>
+                <div style="display: flex; gap: 8px;">
+                  <button type="button" class="btn btn-ghost btn-xs" onclick="toggleAllExportCols(true)">Select All</button>
+                  <button type="button" class="btn btn-ghost btn-xs" onclick="toggleAllExportCols(false)">Deselect All</button>
+                </div>
+              </div>
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 8px; padding: 12px; background: var(--bg-surface-active); border-radius: var(--radius-md);">
+                <label style="display: flex; align-items: center; gap: 6px; font-size: 12px; cursor: pointer;"><input type="checkbox" class="export-col-cb" value="name" checked><span>Business Name</span></label>
+                <label style="display: flex; align-items: center; gap: 6px; font-size: 12px; cursor: pointer;"><input type="checkbox" class="export-col-cb" value="contact" checked><span>Owner / Contact</span></label>
+                <label style="display: flex; align-items: center; gap: 6px; font-size: 12px; cursor: pointer;"><input type="checkbox" class="export-col-cb" value="role" checked><span>Role & Title</span></label>
+                <label style="display: flex; align-items: center; gap: 6px; font-size: 12px; cursor: pointer;"><input type="checkbox" class="export-col-cb" value="category" checked><span>Category</span></label>
+                <label style="display: flex; align-items: center; gap: 6px; font-size: 12px; cursor: pointer;"><input type="checkbox" class="export-col-cb" value="phone" checked><span>Phone</span></label>
+                <label style="display: flex; align-items: center; gap: 6px; font-size: 12px; cursor: pointer;"><input type="checkbox" class="export-col-cb" value="email" checked><span>Email</span></label>
+                <label style="display: flex; align-items: center; gap: 6px; font-size: 12px; cursor: pointer;"><input type="checkbox" class="export-col-cb" value="website" checked><span>Website</span></label>
+                <label style="display: flex; align-items: center; gap: 6px; font-size: 12px; cursor: pointer;"><input type="checkbox" class="export-col-cb" value="address" checked><span>Street Address</span></label>
+                <label style="display: flex; align-items: center; gap: 6px; font-size: 12px; cursor: pointer;"><input type="checkbox" class="export-col-cb" value="city" checked><span>City</span></label>
+                <label style="display: flex; align-items: center; gap: 6px; font-size: 12px; cursor: pointer;"><input type="checkbox" class="export-col-cb" value="state" checked><span>State / Region</span></label>
+                <label style="display: flex; align-items: center; gap: 6px; font-size: 12px; cursor: pointer;"><input type="checkbox" class="export-col-cb" value="country" checked><span>Country</span></label>
+                <label style="display: flex; align-items: center; gap: 6px; font-size: 12px; cursor: pointer;"><input type="checkbox" class="export-col-cb" value="socials" checked><span>Socials / Placekey</span></label>
+              </div>
+            </div>
+
+            <!-- Row Range -->
             <div class="range-box">
               <div>
                 <strong style="display: block; font-size: 13px; margin-bottom: 4px;">Lead Row Range:</strong>
@@ -989,11 +1135,11 @@
               <button class="btn btn-sm btn-secondary" onclick="setExportNextBatch()">Next Batch ⏩</button>
             </div>
 
-            <div style="display: flex; align-items: center; justify-content: space-between; padding-top: 12px; border-top: 1px solid var(--border-subtle);">
+            <div style="display: flex; align-items: center; justify-content: space-between; padding-top: 14px; border-top: 1px solid var(--border-subtle);">
               <span id="export-preview-label" class="cell-mono text-tertiary">Ready to export 5,000 leads (Rows 1 to 5,000)</span>
               <button class="btn btn-primary" onclick="triggerRangeExport()">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                Download Leads CSV
+                Download Export File
               </button>
             </div>
           </div>
@@ -1028,27 +1174,118 @@
         <div class="view-header">
           <div>
             <h1 class="view-header-title">Platform & Database Settings</h1>
-            <p class="view-header-subtitle">Interface preferences, table layout density, and DuckDB configuration.</p>
+            <p class="view-header-subtitle">Architecture parameters, storage directories, DuckDB memory specs, and data safety policies.</p>
           </div>
         </div>
 
-        <div class="panel" style="max-width: 640px;">
-          <div class="panel-body" style="display: flex; flex-direction: column; gap: 16px;">
+        <div class="settings-grid">
+          <!-- Storage Architecture Card -->
+          <div class="settings-card">
+            <div class="settings-card-header">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+              <span class="settings-card-title">Storage Architecture & Paths</span>
+            </div>
+            <div class="field-pair">
+              <span>Production Leads Directory</span>
+              <span class="cell-mono text-tertiary">D:\leads (73.2 GB Free)</span>
+            </div>
+            <div class="field-pair">
+              <span>Verified Backup Archives</span>
+              <span class="cell-mono text-tertiary">C:\Users\billu\ (13.4 GB Free)</span>
+            </div>
+            <div class="field-pair">
+              <span>Export Output Directory</span>
+              <span class="cell-mono text-tertiary">D:\leads\exports\</span>
+            </div>
+            <div class="field-pair">
+              <span>Active Master Archives</span>
+              <span class="status-badge clean">2 Zip Backups Verified</span>
+            </div>
+          </div>
+
+          <!-- DuckDB Engine Specs Card -->
+          <div class="settings-card">
+            <div class="settings-card-header">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
+              <span class="settings-card-title">DuckDB Columnar In-Memory Engine</span>
+            </div>
+            <div class="field-pair">
+              <span>Execution Engine</span>
+              <span class="cell-mono font-bold" style="color: var(--accent-primary);">DuckDB Vectorized SQL</span>
+            </div>
+            <div class="field-pair">
+              <span>Spatial Extension (ST_ReadOSM)</span>
+              <span class="status-badge clean">Installed & Active</span>
+            </div>
+            <div class="field-pair">
+              <span>Multi-Core Threads Allocated</span>
+              <span class="cell-mono">4 Cores (Auto-Scale)</span>
+            </div>
+            <div class="field-pair">
+              <span>Zipfile Zero-Disk Streaming</span>
+              <span class="status-badge clean">Enabled (0.08s avg)</span>
+            </div>
+          </div>
+
+          <!-- Enterprise Data Safety Policies Card -->
+          <div class="settings-card">
+            <div class="settings-card-header">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              <span class="settings-card-title">Enterprise Data Safety Policies</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <strong style="display: block; font-size: 13px;">Require Explicit Confirmation</strong>
+                <span style="font-size: 11.5px; color: var(--text-tertiary);">Modal dialog required before any deletion</span>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" checked disabled>
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <strong style="display: block; font-size: 13px;">Pre-Deduplication Backup Archive</strong>
+                <span style="font-size: 11.5px; color: var(--text-tertiary);">Automated complete zip snapshot before dedup</span>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" checked disabled>
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <strong style="display: block; font-size: 13px;">Corporate Switchboard Shield</strong>
+                <span style="font-size: 11.5px; color: var(--text-tertiary);">Protects distinct colleagues sharing company PBX</span>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" checked disabled>
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Interface & Appearance Card -->
+          <div class="settings-card">
+            <div class="settings-card-header">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/></svg>
+              <span class="settings-card-title">Interface Preferences</span>
+            </div>
             <div class="field-pair">
               <span>Theme Appearance</span>
               <button class="btn btn-sm btn-secondary" onclick="toggleTheme()">Toggle Dark / Light</button>
             </div>
             <div class="field-pair">
-              <span>Default Page Size</span>
+              <span>Default Explorer Page Size</span>
               <select class="filter-select" onchange="onPageSizeChange(this.value)">
                 <option value="25">25 records</option>
-                <option value="50" selected>50 records</option>
-                <option value="100">100 records</option>
+                <option value="50" selected>50 records (Standard)</option>
+                <option value="100">100 records (Expanded)</option>
               </select>
             </div>
             <div class="field-pair">
-              <span>DuckDB Memory Limit</span>
-              <span class="cell-mono text-tertiary">Automatic (In-Memory Columnar)</span>
+              <span>Table Visual Density</span>
+              <span class="cell-mono text-tertiary">Compact High-Information</span>
             </div>
           </div>
         </div>
@@ -1192,10 +1429,102 @@
   </div>
 </div>
 
+<!-- =========================================================================
+     GLOBAL COMMAND PALETTE MODAL (Ctrl+K / Cmd+K)
+     ========================================================================= -->
+<div class="cmd-palette-backdrop" id="cmd-palette-modal" style="display: none;" onclick="if(event.target===this)closeCommandPalette()">
+  <div class="cmd-palette-modal">
+    <div class="cmd-palette-header">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" id="cmd-palette-input" class="cmd-palette-input" placeholder="Type a command or search datasets..." oninput="filterCommandPalette(this.value)">
+      <span class="cmd-palette-kbd">ESC</span>
+    </div>
+    <div class="cmd-palette-body" id="cmd-palette-results">
+      <div class="cmd-palette-group-title">Navigation & Views</div>
+      <div class="cmd-palette-item" onclick="cmdPaletteNavigate('dashboard')">
+        <div class="cmd-palette-item-left">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
+          <span>Overview Dashboard</span>
+        </div>
+        <span class="cmd-palette-kbd">1</span>
+      </div>
+      <div class="cmd-palette-item" onclick="cmdPaletteNavigate('datasets')">
+        <div class="cmd-palette-item-left">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+          <span>All Datasets (65 Registered)</span>
+        </div>
+        <span class="cmd-palette-kbd">2</span>
+      </div>
+      <div class="cmd-palette-item" onclick="cmdPaletteNavigate('explorer')">
+        <div class="cmd-palette-item-left">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+          <span>Lead Explorer (735M Leads Console)</span>
+        </div>
+        <span class="cmd-palette-kbd">3</span>
+      </div>
+      <div class="cmd-palette-item" onclick="cmdPaletteNavigate('duplicates')">
+        <div class="cmd-palette-item-left">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+          <span>Duplicate Detection (7 Categories)</span>
+        </div>
+        <span class="cmd-palette-kbd">4</span>
+      </div>
+      <div class="cmd-palette-item" onclick="cmdPaletteNavigate('dedup-history')">
+        <div class="cmd-palette-item-left">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="9"/></svg>
+          <span>9-Step Deduplication Workflow</span>
+        </div>
+        <span class="cmd-palette-kbd">5</span>
+      </div>
+      <div class="cmd-palette-item" onclick="cmdPaletteNavigate('cleaning')">
+        <div class="cmd-palette-item-left">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4"/><path d="m4.93 4.93 2.83 2.83"/><path d="M2 12h4"/><path d="m4.93 19.07 2.83-2.83"/><path d="M12 22v-4"/><path d="m19.07 19.07-2.83-2.83"/><path d="M22 12h-4"/><path d="m19.07 4.93-2.83 2.83"/></svg>
+          <span>Data Cleaning & Normalization</span>
+        </div>
+        <span class="cmd-palette-kbd">6</span>
+      </div>
+      <div class="cmd-palette-item" onclick="cmdPaletteNavigate('export')">
+        <div class="cmd-palette-item-left">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          <span>Export Center</span>
+        </div>
+        <span class="cmd-palette-kbd">7</span>
+      </div>
+
+      <div class="cmd-palette-group-title">Quick Actions</div>
+      <div class="cmd-palette-item" onclick="cmdPaletteAction('explore_senzing')">
+        <div class="cmd-palette-item-left">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          <span>Explore 🏢 ODO Senzing Dataset (341M Leads)</span>
+        </div>
+        <span class="cmd-palette-kbd">Return</span>
+      </div>
+      <div class="cmd-palette-item" onclick="cmdPaletteAction('simulate_dedup')">
+        <div class="cmd-palette-item-left">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          <span>Run Read-Only Deduplication Scan</span>
+        </div>
+        <span class="cmd-palette-kbd">Return</span>
+      </div>
+      <div class="cmd-palette-item" onclick="cmdPaletteAction('toggle_theme')">
+        <div class="cmd-palette-item-left">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/></svg>
+          <span>Toggle Color Theme</span>
+        </div>
+        <span class="cmd-palette-kbd">T</span>
+      </div>
+    </div>
+    <div class="cmd-palette-footer">
+      <span>Use <kbd>↑</kbd> <kbd>↓</kbd> to navigate</span>
+      <span>Press <kbd>ESC</kbd> to exit</span>
+    </div>
+  </div>
+</div>
+
 <!-- Toast Message -->
 <div id="toast" class="toast-msg">Notification</div>
 
 <!-- Scripts -->
-<script src="/static/app.js?v=20261025_v5"></script>
+<script src="/static/app.js?v=20261025_v7"></script>
 </body>
 </html>
