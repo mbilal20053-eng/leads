@@ -1,0 +1,937 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <title>Lead Engine PRO - Enterprise Sales Intelligence & Data Management</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/app.css?v=20261025_v2">
+</head>
+<body>
+<div id="app-layout">
+
+  <!-- =========================================================================
+       SIDEBAR NAVIGATION
+       ========================================================================= -->
+  <aside id="sidebar">
+    <div class="sidebar-header">
+      <a href="#" class="brand-link" onclick="switchView('dashboard'); return false;">
+        <div class="brand-icon">LE</div>
+        <div class="brand-title">
+          <span>Lead Engine</span>
+          <span class="brand-badge">PRO</span>
+        </div>
+      </a>
+      <button class="sidebar-collapse-btn" id="sidebar-toggle-btn" title="Toggle Sidebar">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
+    </div>
+
+    <div class="sidebar-nav-container">
+      <!-- Section: Platform -->
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Platform</div>
+        <a class="nav-item active" id="nav-dashboard" onclick="switchView('dashboard')">
+          <div class="nav-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
+          </div>
+          <span class="nav-label">Overview</span>
+          <span class="nav-badge">Live</span>
+        </a>
+
+        <a class="nav-item" id="nav-explorer" onclick="switchView('explorer')">
+          <div class="nav-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+          </div>
+          <span class="nav-label">Lead Explorer</span>
+          <span class="nav-badge" id="nav-leads-count-badge">394M</span>
+        </a>
+
+        <a class="nav-item" id="nav-datasets" onclick="switchView('datasets')">
+          <div class="nav-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+          </div>
+          <span class="nav-label">All Datasets</span>
+          <span class="nav-badge" id="nav-datasets-count-badge">33</span>
+        </a>
+      </div>
+
+      <!-- Section: Data Quality & Deduplication -->
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Data Quality & Deduplication</div>
+        <a class="nav-item" id="nav-duplicates" onclick="switchView('duplicates')">
+          <div class="nav-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+          </div>
+          <span class="nav-label">Duplicate Detection</span>
+          <span class="nav-badge">Audit</span>
+        </a>
+
+        <a class="nav-item" id="nav-dedup-history" onclick="switchView('dedup-history')">
+          <div class="nav-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="9"/></svg>
+          </div>
+          <span class="nav-label">Deduplication Workflow</span>
+          <span class="nav-badge">7.8k Clean</span>
+        </a>
+
+        <a class="nav-item" id="nav-cleaning" onclick="switchView('cleaning')">
+          <div class="nav-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 2v4"/><path d="m4.93 4.93 2.83 2.83"/><path d="M2 12h4"/><path d="m4.93 19.07 2.83-2.83"/><path d="M12 22v-4"/><path d="m19.07 19.07-2.83-2.83"/><path d="M22 12h-4"/><path d="m19.07 4.93-2.83 2.83"/></svg>
+          </div>
+          <span class="nav-label">Data Cleaning</span>
+        </a>
+      </div>
+
+      <!-- Section: Tools & Operations -->
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Operations</div>
+        <a class="nav-item" id="nav-search-filters" onclick="switchView('search-filters')">
+          <div class="nav-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+          </div>
+          <span class="nav-label">Search & Filters Hub</span>
+        </a>
+
+        <a class="nav-item" id="nav-import" onclick="switchView('import')">
+          <div class="nav-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          </div>
+          <span class="nav-label">Import Data</span>
+        </a>
+
+        <a class="nav-item" id="nav-export" onclick="switchView('export')">
+          <div class="nav-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          </div>
+          <span class="nav-label">Export Center</span>
+        </a>
+
+        <a class="nav-item" id="nav-activity" onclick="switchView('activity')">
+          <div class="nav-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          </div>
+          <span class="nav-label">Activity & Diagnostics</span>
+        </a>
+
+        <a class="nav-item" id="nav-settings" onclick="switchView('settings')">
+          <div class="nav-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          </div>
+          <span class="nav-label">Settings</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- Sidebar Footer -->
+    <div class="sidebar-footer">
+      <div class="engine-status-indicator">
+        <div class="pulse-dot"></div>
+        <div class="sidebar-footer-text">
+          <strong>DuckDB Columnar</strong>
+          <span id="footer-engine-meta">41.1M Local • 80 GB Free</span>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- =========================================================================
+       MAIN WRAPPER & TOP NAVIGATION BAR
+       ========================================================================= -->
+  <main id="main-wrapper">
+    <header id="topbar">
+      <div class="topbar-left">
+        <div class="breadcrumbs">
+          <span class="breadcrumb-item">Lead Engine</span>
+          <span class="breadcrumb-separator">/</span>
+          <span class="breadcrumb-current" id="topbar-breadcrumb-view">Overview</span>
+          <span class="breadcrumb-separator">/</span>
+          <span class="breadcrumb-item" id="topbar-breadcrumb-dataset">All Global Feeds</span>
+        </div>
+      </div>
+
+      <div class="topbar-center">
+        <div class="global-search-wrapper">
+          <span class="search-icon-adornment">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          </span>
+          <input type="text" id="global-search-input" class="global-search-input" placeholder="Search across 394M records (company, name, phone, domain)..." oninput="handleSearchInput(this.value)">
+          <span class="search-kbd-shortcut">Ctrl K</span>
+        </div>
+      </div>
+
+      <div class="topbar-right">
+        <!-- Quick Dataset Selector -->
+        <select id="topbar-dataset-select" class="dataset-select-compact" onchange="onDatasetChange(this.value)">
+          <option value="all_global">🌍 All Global Leads & Master Portfolio (394M)</option>
+        </select>
+
+        <button class="btn btn-sm btn-primary" onclick="switchView('export')">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Export
+        </button>
+
+        <button class="btn-icon" id="theme-toggle-btn" onclick="toggleTheme()" title="Toggle Theme">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+        </button>
+
+        <div class="workspace-badge" title="Active Leads Storage">
+          <span>💼 D:\leads</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- =========================================================================
+         PAGE CONTENT VIEWS
+         ========================================================================= -->
+    <div id="page-content">
+
+      <!-- =====================================================================
+           VIEW 1: OVERVIEW / DASHBOARD
+           ===================================================================== -->
+      <section id="view-dashboard" class="view-container active">
+        <div class="view-header">
+          <div>
+            <h1 class="view-header-title">
+              Enterprise Data Intelligence & Prospecting Dashboard
+            </h1>
+            <p class="view-header-subtitle">
+              Unified real-time analytics across 31 local database shards, OpenStreetMap daily planet feed, and global PDL data.
+            </p>
+          </div>
+          <div class="view-actions">
+            <button class="btn btn-secondary" onclick="switchView('duplicates')">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              Duplicate Audit
+            </button>
+            <button class="btn btn-primary" onclick="switchView('explorer')">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/></svg>
+              Explore All Leads
+            </button>
+          </div>
+        </div>
+
+        <!-- 4 Key Stat Cards -->
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-label">Total Unified Portfolio</span>
+              <div class="kpi-icon">🌍</div>
+            </div>
+            <div class="kpi-value" id="kpi-total-portfolio">394,181,043</div>
+            <div class="kpi-meta">
+              <span class="kpi-meta-badge success">Live Master Feed</span>
+              <span>41.1M Local + 353M Global</span>
+            </div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-label">Active Datasets & Shards</span>
+              <div class="kpi-icon">📁</div>
+            </div>
+            <div class="kpi-value" id="kpi-datasets-count">33</div>
+            <div class="kpi-meta">
+              <span class="kpi-meta-badge info">Indexed</span>
+              <span>31 Local Files + 2 Streaming</span>
+            </div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-label">Verified Unique Local Records</span>
+              <div class="kpi-icon">⚡</div>
+            </div>
+            <div class="kpi-value" id="kpi-unique-local">41,093,203</div>
+            <div class="kpi-meta">
+              <span class="kpi-meta-badge success">100% Validated</span>
+              <span>Across all 31 local files</span>
+            </div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-label">Exact Duplicates Removed</span>
+              <div class="kpi-icon">🛡️</div>
+            </div>
+            <div class="kpi-value" id="kpi-duplicates-removed">7,833</div>
+            <div class="kpi-meta">
+              <span class="kpi-meta-badge warning">Zero Remaining</span>
+              <span>Backed up in ZIP archive</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Global Portfolio Distribution -->
+        <div class="portfolio-card">
+          <div class="portfolio-header">
+            <span class="portfolio-title">Dataset Allocation & Category Distribution</span>
+            <span class="cell-mono text-tertiary">394,181,043 Leads Indexed</span>
+          </div>
+          <div class="portfolio-bar" id="portfolio-bar-container"></div>
+          <div class="portfolio-chips" id="portfolio-chips-container"></div>
+        </div>
+
+        <!-- Dashboard Two-Column Grid -->
+        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px;">
+          <!-- Recent Deduplication Audit Log -->
+          <div class="panel">
+            <div class="panel-header">
+              <span class="panel-title">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="9"/></svg>
+                Recent Deduplication Audit & Data Cleaning Operations
+              </span>
+              <button class="btn btn-sm btn-secondary" onclick="switchView('dedup-history')">View Full History</button>
+            </div>
+            <div class="panel-body" style="padding: 0;">
+              <div class="table-responsive" style="border: none;">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>File Name</th>
+                      <th>Category</th>
+                      <th>Original Rows</th>
+                      <th>Duplicates Removed</th>
+                      <th>Clean Remaining</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody id="dashboard-recent-dedup-tbody">
+                    <!-- Loaded dynamically via API -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- System Diagnostics & Backup Status -->
+          <div class="panel">
+            <div class="panel-header">
+              <span class="panel-title">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                Engine Health & Storage
+              </span>
+              <span class="status-badge clean">Online</span>
+            </div>
+            <div class="panel-body" style="display: flex; flex-direction: column; gap: 14px;">
+              <div class="field-pair">
+                <span class="field-pair-key">Query Engine</span>
+                <span class="field-pair-val cell-mono">DuckDB In-Memory SQL</span>
+              </div>
+              <div class="field-pair">
+                <span class="field-pair-key">Query Latency</span>
+                <span class="field-pair-val cell-mono matched">&lt; 12ms</span>
+              </div>
+              <div class="field-pair">
+                <span class="field-pair-key">Storage Directory</span>
+                <span class="field-pair-val cell-mono">D:\leads (4.05 GB)</span>
+              </div>
+              <div class="field-pair">
+                <span class="field-pair-key">Free Space on D:</span>
+                <span class="field-pair-val cell-mono matched" id="dash-disk-d">79.9 GB Free</span>
+              </div>
+              <div class="field-pair">
+                <span class="field-pair-key">Free Space on C:</span>
+                <span class="field-pair-val cell-mono" id="dash-disk-c">13.4 GB Free</span>
+              </div>
+              <div class="field-pair">
+                <span class="field-pair-key">Backup Archives</span>
+                <span class="field-pair-val cell-mono matched">2 Secured (Zip)</span>
+              </div>
+              <div style="margin-top: 10px; display: flex; gap: 8px;">
+                <button class="btn btn-sm btn-secondary" style="flex: 1;" onclick="switchView('activity')">Diagnostics</button>
+                <button class="btn btn-sm btn-primary" style="flex: 1;" onclick="switchView('import')">Import New CSV</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- =====================================================================
+           VIEW 2: ALL DATASETS CATALOG
+           ===================================================================== -->
+      <section id="view-datasets" class="view-container">
+        <div class="view-header">
+          <div>
+            <h1 class="view-header-title">Dataset Catalog & File Management</h1>
+            <p class="view-header-subtitle">
+              Comprehensive registry of all 31 local database files, corporate directories, B2B shards, and streaming feeds.
+            </p>
+          </div>
+          <div class="view-actions">
+            <button class="btn btn-primary" onclick="switchView('import')">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              Upload Dataset
+            </button>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <input type="text" id="datasets-search-input" class="global-search-input" style="max-width: 320px;" placeholder="Filter datasets by name or type..." oninput="filterDatasetsTable(this.value)">
+            <span class="cell-mono text-tertiary" id="datasets-count-label">33 Datasets Registered</span>
+          </div>
+          <div class="panel-body" style="padding: 0;">
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Dataset / File Name</th>
+                    <th>Category</th>
+                    <th>Total Records</th>
+                    <th>File Format</th>
+                    <th>Quality Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="datasets-table-tbody">
+                  <!-- Dynamically populated from /api/datasets -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- =====================================================================
+           VIEW 3: LEAD EXPLORER (CORE 12-COLUMN TABLE)
+           ===================================================================== -->
+      <section id="view-explorer" class="view-container">
+        <div class="view-header">
+          <div>
+            <h1 class="view-header-title">Lead Explorer</h1>
+            <p class="view-header-subtitle">
+              Real-time high performance data explorer displaying full 12 standardized columns across all databases.
+            </p>
+          </div>
+          <div class="view-actions">
+            <button class="btn btn-secondary" onclick="exportCurrentLeads()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/></svg>
+              Quick Export
+            </button>
+            <button class="btn btn-primary" onclick="switchView('export')">Batch Range Export</button>
+          </div>
+        </div>
+
+        <!-- Filter Toolbar -->
+        <div class="filter-toolbar">
+          <div class="filter-row-primary">
+            <select id="filter-dataset" class="filter-select" onchange="onDatasetChange(this.value)" style="min-width: 240px;">
+              <option value="all_global">🌍 All Global Leads & Master Portfolio (394M)</option>
+            </select>
+
+            <div class="tier-pills-group">
+              <button class="tier-pill active" onclick="setTierFilter('all')">All Tiers</button>
+              <button class="tier-pill" onclick="setTierFilter('A')">Tier A (High Score)</button>
+              <button class="tier-pill" onclick="setTierFilter('B')">Tier B</button>
+              <button class="tier-pill" onclick="setTierFilter('C')">Tier C</button>
+            </div>
+
+            <select id="filter-country" class="filter-select" onchange="onCountryChange(this.value)">
+              <option value="all">🌐 All Countries</option>
+              <option value="United States">🇺🇸 United States</option>
+              <option value="United Kingdom">🇬🇧 United Kingdom</option>
+              <option value="Canada">🇨🇦 Canada</option>
+              <option value="Australia">🇦🇺 Australia</option>
+            </select>
+
+            <select id="filter-state" class="filter-select" onchange="onFilterChange()">
+              <option value="all">📍 All States / Regions</option>
+            </select>
+
+            <label style="display: flex; align-items: center; gap: 6px; font-size: 12px; cursor: pointer;">
+              <input type="checkbox" id="filter-has-phone" onchange="toggleHasPhone()">
+              <span>Must have Phone 📞</span>
+            </label>
+
+            <button class="btn btn-sm btn-secondary" onclick="resetFilters()">Reset Filters</button>
+          </div>
+
+          <div class="filter-row-secondary">
+            <select id="filter-major-category" class="filter-select" onchange="onMajorCatChange(this.value)">
+              <option value="all">📂 Major Category: All</option>
+            </select>
+
+            <button class="btn btn-sm btn-secondary" onclick="openCategoriesModal()">
+              Browse Minor Categories Hierarchy...
+            </button>
+
+            <select id="filter-opp" class="filter-select" onchange="onOppChange(this.value)">
+              <option value="all">💡 Opportunity Type: All</option>
+              <option value="no_website">No Website (Urgent Web Pitch)</option>
+              <option value="audit">Direct Prospect Audit</option>
+            </select>
+
+            <select id="filter-crm-status" class="filter-select" onchange="onFilterChange()">
+              <option value="all">🏷️ CRM Pipeline Status: All</option>
+              <option value="new">New Lead</option>
+              <option value="contacted">Contacted</option>
+              <option value="interested">Interested</option>
+              <option value="meeting">Meeting Booked</option>
+              <option value="not_interested">Not Interested</option>
+              <option value="won">Client Won</option>
+            </select>
+
+            <div style="margin-left: auto; display: flex; align-items: center; gap: 8px;">
+              <span class="cell-mono text-tertiary" id="total-count-badge">Loading...</span>
+              <select id="page-size-select" class="filter-select" onchange="onPageSizeChange(this.value)">
+                <option value="25">25 per page</option>
+                <option value="50" selected>50 per page</option>
+                <option value="100">100 per page</option>
+                <option value="250">250 per page</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- 12-Column Leads Table -->
+        <div class="table-responsive" style="max-height: 65vh;">
+          <table class="data-table" id="leads-table">
+            <thead>
+              <tr>
+                <th style="width: 38px;"><input type="checkbox" id="select-all-leads" onchange="toggleSelectAllRows(this.checked)"></th>
+                <th onclick="setSort('name')" style="cursor: pointer;">Business Name ↕</th>
+                <th>Owner / Contact</th>
+                <th>Role & Notes</th>
+                <th onclick="setSort('category')" style="cursor: pointer;">Category ↕</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Website</th>
+                <th>Address</th>
+                <th>City</th>
+                <th>State / Region</th>
+                <th>Country</th>
+                <th>Socials</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="leads-table-tbody">
+              <!-- Dynamically populated from /api/leads -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Pagination Bar -->
+        <div class="pagination-container" id="pagination-bar"></div>
+      </section>
+
+      <!-- =====================================================================
+           VIEW 4: DUPLICATE DETECTION & ANALYSIS
+           ===================================================================== -->
+      <section id="view-duplicates" class="view-container">
+        <div class="view-header">
+          <div>
+            <h1 class="view-header-title">Duplicate Detection & Analysis</h1>
+            <p class="view-header-subtitle">
+              Deep inspection of duplicate categories, matching criteria, confidence scores, and side-by-side record comparison.
+            </p>
+          </div>
+          <div class="view-actions">
+            <button class="btn btn-primary" onclick="switchView('dedup-history')">
+              Launch Deduplication Workflow
+            </button>
+          </div>
+        </div>
+
+        <!-- 4 Duplicate Categories Cards -->
+        <div class="dup-category-grid" id="dup-categories-container">
+          <!-- Dynamically populated from /api/duplicates/summary -->
+        </div>
+
+        <!-- Side-by-Side Duplicate Comparison Inspector -->
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-title">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              Side-by-Side Record Match Comparison (Inspector)
+            </span>
+            <span class="cell-mono text-tertiary">Criteria: Strict Normalized Equality</span>
+          </div>
+          <div class="panel-body" id="dup-comparison-inspector">
+            <!-- Dynamically populated from /api/duplicates/preview -->
+          </div>
+        </div>
+      </section>
+
+      <!-- =====================================================================
+           VIEW 5: DEDUPLICATION WORKFLOW & AUDIT HISTORY
+           ===================================================================== -->
+      <section id="view-dedup-history" class="view-container">
+        <div class="view-header">
+          <div>
+            <h1 class="view-header-title">9-Step Deduplication Workflow & Audit History</h1>
+            <p class="view-header-subtitle">
+              Step-by-step verified deduplication pipeline. Backups required prior to modifications; all original schemas preserved.
+            </p>
+          </div>
+        </div>
+
+        <!-- 9-Step Interactive Wizard -->
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-title">Interactive Deduplication Wizard</span>
+            <span class="status-badge clean">Safe Mode: Read-Only Simulation</span>
+          </div>
+          <div class="panel-body">
+            <div class="wizard-steps">
+              <div class="wizard-step-item active" onclick="setWizardStep(1)"><span class="wizard-step-num">1</span> Select Dataset</div>
+              <div class="wizard-step-item" onclick="setWizardStep(2)"><span class="wizard-step-num">2</span> Method</div>
+              <div class="wizard-step-item" onclick="setWizardStep(3)"><span class="wizard-step-num">3</span> Matching Criteria</div>
+              <div class="wizard-step-item" onclick="setWizardStep(4)"><span class="wizard-step-num">4</span> Read-Only Scan</div>
+              <div class="wizard-step-item" onclick="setWizardStep(5)"><span class="wizard-step-num">5</span> Review Report</div>
+              <div class="wizard-step-item" onclick="setWizardStep(6)"><span class="wizard-step-num">6</span> Preview Changes</div>
+              <div class="wizard-step-item" onclick="setWizardStep(7)"><span class="wizard-step-num">7</span> Confirm & Backup</div>
+              <div class="wizard-step-item" onclick="setWizardStep(8)"><span class="wizard-step-num">8</span> Verify Cleaned</div>
+              <div class="wizard-step-item" onclick="setWizardStep(9)"><span class="wizard-step-num">9</span> Export Clean</div>
+            </div>
+
+            <div id="wizard-content-box" style="background: var(--bg-surface); padding: 20px; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
+              <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;">
+                <div>
+                  <h3 style="font-size: 14px; font-weight: 700; margin-bottom: 4px;">Run Read-Only Deduplication Simulation</h3>
+                  <p style="font-size: 12.5px; color: var(--text-secondary);">Select a dataset and matching rule to compute potential duplicates without deleting or touching any data.</p>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                  <select id="wizard-dataset-select" class="filter-select">
+                    <option value="master_locations">master-locations.csv (172,126 records)</option>
+                    <option value="apple_locations">apple-locations.csv (535 records)</option>
+                    <option value="open_company_db">open_company_database_sample.csv (100,000 records)</option>
+                  </select>
+                  <button class="btn btn-primary" onclick="runSimulatedDedup()">Simulate Scan</button>
+                </div>
+              </div>
+              <div id="wizard-simulation-output" style="margin-top: 16px; display: none;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Historical File-by-File Audit Table -->
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-title">Completed Deduplication Operations History (28 Original Files)</span>
+            <span class="cell-mono text-tertiary">Archive: leads_original_backup_20261024.zip</span>
+          </div>
+          <div class="panel-body" style="padding: 0;">
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>File Name</th>
+                    <th>Database Type</th>
+                    <th>Original Analyzed</th>
+                    <th>Exact Duplicates Removed</th>
+                    <th>Remaining Clean Records</th>
+                    <th>Backup Archive</th>
+                  </tr>
+                </thead>
+                <tbody id="dedup-history-table-tbody">
+                  <!-- Dynamically populated from /api/duplicates/summary -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- =====================================================================
+           VIEW 6: DATA CLEANING & NORMALIZATION
+           ===================================================================== -->
+      <section id="view-cleaning" class="view-container">
+        <div class="view-header">
+          <div>
+            <h1 class="view-header-title">Data Cleaning & Normalization Engine</h1>
+            <p class="view-header-subtitle">
+              Interactive standardization rules for whitespace trimming, phone E.164 formatting, capitalization, and URL stripping.
+            </p>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+          <div class="panel">
+            <div class="panel-header">
+              <span class="panel-title">Standardization Rules</span>
+            </div>
+            <div class="panel-body" style="display: flex; flex-direction: column; gap: 14px;">
+              <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                <input type="checkbox" checked disabled>
+                <span><strong>Whitespace & Unicode Normalization:</strong> Strips non-breaking spaces, zero-width chars, and trims edges.</span>
+              </label>
+              <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                <input type="checkbox" checked disabled>
+                <span><strong>Phone Standardization:</strong> Strips invalid characters; preserves national 10-digit and international E.164.</span>
+              </label>
+              <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                <input type="checkbox" checked disabled>
+                <span><strong>URL & Domain Normalization:</strong> Strips `https://`, `http://`, `www.` and trailing slashes for clean matching.</span>
+              </label>
+              <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                <input type="checkbox" checked disabled>
+                <span><strong>Capitalization Rules:</strong> Title Case for business names and cities; lowercase for emails and domains.</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-header">
+              <span class="panel-title">Live Normalization Sandbox</span>
+            </div>
+            <div class="panel-body">
+              <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">Enter a sample raw record string to test real-time normalization:</p>
+              <input type="text" id="cleaning-sandbox-input" class="global-search-input" value="  ACME Corp. LLC  |  (555) 123-4567  | HTTPS://WWW.ACME.COM/  " style="margin-bottom: 12px;">
+              <button class="btn btn-sm btn-primary" onclick="testCleaningSandbox()">Run Transformation</button>
+              <div id="cleaning-sandbox-output" style="margin-top: 12px; padding: 12px; background: var(--bg-surface); border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); font-family: var(--font-mono); font-size: 12px;">
+                Cleaned Output will appear here...
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- =====================================================================
+           VIEW 7: IMPORT DATA
+           ===================================================================== -->
+      <section id="view-import" class="view-container">
+        <div class="view-header">
+          <div>
+            <h1 class="view-header-title">Import Data Center</h1>
+            <p class="view-header-subtitle">
+              Upload CSV, GZIP, and TSV datasets with automatic delimiter detection, column mapping, and duplicate pre-checking.
+            </p>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-body">
+            <div class="dropzone" id="file-dropzone" onclick="document.getElementById('file-upload-input').click()">
+              <svg class="dropzone-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              <h3 style="font-size: 15px; font-weight: 700; margin-bottom: 6px;">Drag and drop lead dataset files here</h3>
+              <p style="font-size: 12.5px; color: var(--text-tertiary); margin-bottom: 14px;">Supports CSV, CSV.GZ, TSV, and TXT up to 2 GB</p>
+              <button class="btn btn-primary" type="button">Select File From Computer</button>
+              <input type="file" id="file-upload-input" style="display: none;" accept=".csv,.gz,.tsv,.txt" onchange="handleFileUpload(this.files[0])">
+            </div>
+
+            <div id="upload-progress-container" style="display: none; margin-top: 16px;">
+              <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 6px;">
+                <span id="upload-filename-label">Uploading...</span>
+                <span id="upload-pct-label" class="cell-mono">0%</span>
+              </div>
+              <div style="height: 6px; background: var(--bg-surface-active); border-radius: 3px; overflow: hidden;">
+                <div id="upload-progress-fill" style="width: 0%; height: 100%; background: var(--accent-primary); transition: width 0.2s;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- =====================================================================
+           VIEW 8: SEARCH & FILTERS HUB
+           ===================================================================== -->
+      <section id="view-search-filters" class="view-container">
+        <div class="view-header">
+          <div>
+            <h1 class="view-header-title">Search & Advanced Filters Hub</h1>
+            <p class="view-header-subtitle">Multi-field query builder and instant prospecting presets for rapid lead discovery.</p>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header"><span class="panel-title">Instant Prospecting Presets</span></div>
+          <div class="panel-body" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px;">
+            <div class="compare-card" style="cursor: pointer;" onclick="applyPresetSearch('phone_decision_makers')">
+              <h4 style="font-weight: 700; margin-bottom: 6px;">📞 Verified Direct Owner Phones</h4>
+              <p style="font-size: 12px; color: var(--text-secondary);">Filters leads with verified direct phone numbers ready for outbound sales calls.</p>
+            </div>
+            <div class="compare-card" style="cursor: pointer;" onclick="applyPresetSearch('no_website_webdev')">
+              <h4 style="font-weight: 700; margin-bottom: 6px;">🌐 Companies With No Website</h4>
+              <p style="font-size: 12px; color: var(--text-secondary);">High-urgency prospects without an online web presence (prime web development pitch).</p>
+            </div>
+            <div class="compare-card" style="cursor: pointer;" onclick="applyPresetSearch('cre_realestate')">
+              <h4 style="font-weight: 700; margin-bottom: 6px;">🏢 Commercial Real Estate Properties</h4>
+              <p style="font-size: 12px; color: var(--text-secondary);">44k property owners, building addresses, and commercial asset managers.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- =====================================================================
+           VIEW 9: EXPORT CENTER
+           ===================================================================== -->
+      <section id="view-export" class="view-container">
+        <div class="view-header">
+          <div>
+            <h1 class="view-header-title">Export Center</h1>
+            <p class="view-header-subtitle">Custom batch range export with streaming download in CSV, Excel, and JSON formats.</p>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header"><span class="panel-title">Batch Range Export Configuration</span></div>
+          <div class="panel-body" style="display: flex; flex-direction: column; gap: 18px;">
+            <div class="range-box">
+              <div>
+                <strong style="display: block; font-size: 13px; margin-bottom: 4px;">Lead Row Range:</strong>
+                <span style="font-size: 12px; color: var(--text-secondary);">Specify starting lead # and ending lead # (up to 50,000 per batch)</span>
+              </div>
+              <div class="range-inputs">
+                <span>From:</span>
+                <input type="number" id="export-range-from" class="range-input" value="1" min="1" onchange="updateExportRangePreview()">
+                <span>To:</span>
+                <input type="number" id="export-range-to" class="range-input" value="5000" min="1" onchange="updateExportRangePreview()">
+              </div>
+            </div>
+
+            <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+              <button class="btn btn-sm btn-secondary" onclick="setExportRange(1, 5000)">1 - 5,000</button>
+              <button class="btn btn-sm btn-secondary" onclick="setExportRange(5001, 10000)">5,001 - 10,000</button>
+              <button class="btn btn-sm btn-secondary" onclick="setExportRange(10001, 25000)">10,001 - 25,000</button>
+              <button class="btn btn-sm btn-secondary" onclick="setExportRange(25001, 50000)">25,001 - 50,000</button>
+              <button class="btn btn-sm btn-secondary" onclick="setExportNextBatch()">Next Batch ⏩</button>
+            </div>
+
+            <div style="display: flex; align-items: center; justify-content: space-between; padding-top: 12px; border-top: 1px solid var(--border-subtle);">
+              <span id="export-preview-label" class="cell-mono text-tertiary">Ready to export 5,000 leads (Rows 1 to 5,000)</span>
+              <button class="btn btn-primary" onclick="triggerRangeExport()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Download Leads CSV
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- =====================================================================
+           VIEW 10: ACTIVITY LOGS & DIAGNOSTICS
+           ===================================================================== -->
+      <section id="view-activity" class="view-container">
+        <div class="view-header">
+          <div>
+            <h1 class="view-header-title">Activity Logs & Engine Diagnostics</h1>
+            <p class="view-header-subtitle">Real-time database operations audit, DuckDB memory specs, and system health.</p>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header"><span class="panel-title">Real-Time Event Stream</span></div>
+          <div class="panel-body" style="padding: 0;">
+            <div id="activity-log-list" style="max-height: 400px; overflow-y: auto; padding: 14px; font-family: var(--font-mono); font-size: 12px; display: flex; flex-direction: column; gap: 8px;">
+              <!-- Dynamically populated from /api/activity_logs -->
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- =====================================================================
+           VIEW 11: SETTINGS
+           ===================================================================== -->
+      <section id="view-settings" class="view-container">
+        <div class="view-header">
+          <div>
+            <h1 class="view-header-title">Platform & Database Settings</h1>
+            <p class="view-header-subtitle">Interface preferences, table layout density, and DuckDB configuration.</p>
+          </div>
+        </div>
+
+        <div class="panel" style="max-width: 640px;">
+          <div class="panel-body" style="display: flex; flex-direction: column; gap: 16px;">
+            <div class="field-pair">
+              <span>Theme Appearance</span>
+              <button class="btn btn-sm btn-secondary" onclick="toggleTheme()">Toggle Dark / Light</button>
+            </div>
+            <div class="field-pair">
+              <span>Default Page Size</span>
+              <select class="filter-select" onchange="onPageSizeChange(this.value)">
+                <option value="25">25 records</option>
+                <option value="50" selected>50 records</option>
+                <option value="100">100 records</option>
+              </select>
+            </div>
+            <div class="field-pair">
+              <span>DuckDB Memory Limit</span>
+              <span class="cell-mono text-tertiary">Automatic (In-Memory Columnar)</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+</div>
+
+<!-- =========================================================================
+     SLIDE-OUT LEAD DOSSIER DRAWER
+     ========================================================================= -->
+<div class="drawer-backdrop" id="drawer-backdrop" onclick="closeDrawer()"></div>
+<div class="drawer" id="lead-drawer">
+  <div class="drawer-header">
+    <div>
+      <h2 class="drawer-title" id="drawer-name">Lead Dossier</h2>
+      <span class="cell-subtext" id="drawer-cat">Category</span>
+    </div>
+    <button class="drawer-close" onclick="closeDrawer()">&times;</button>
+  </div>
+  <div class="drawer-body">
+    <div class="dossier-box">
+      <div class="dossier-box-title">Contact & Communication</div>
+      <div class="field-pair">
+        <span class="field-pair-key">Contact Person</span>
+        <span class="field-pair-val" id="drawer-contact">-</span>
+      </div>
+      <div class="field-pair">
+        <span class="field-pair-key">Phone Number</span>
+        <span class="field-pair-val" id="drawer-phone">-</span>
+      </div>
+      <div class="field-pair">
+        <span class="field-pair-key">Email Address</span>
+        <span class="field-pair-val" id="drawer-email">-</span>
+      </div>
+      <div class="field-pair">
+        <span class="field-pair-key">Website</span>
+        <span class="field-pair-val" id="drawer-website">-</span>
+      </div>
+      <div class="field-pair">
+        <span class="field-pair-key">Location</span>
+        <span class="field-pair-val" id="drawer-location">-</span>
+      </div>
+    </div>
+
+    <div class="dossier-box">
+      <div class="dossier-box-title">Cold Outreach Pitch Script</div>
+      <div class="pitch-quote" id="drawer-pitch">Pitch script loading...</div>
+    </div>
+
+    <div class="dossier-box">
+      <div class="dossier-box-title">CRM Pipeline Status & Notes</div>
+      <select id="drawer-status-select" class="filter-select" style="width: 100%; margin-bottom: 12px;" onchange="saveDrawerStatus(this.value)">
+        <option value="new">New Lead</option>
+        <option value="contacted">Contacted</option>
+        <option value="interested">Interested</option>
+        <option value="meeting">Meeting Booked</option>
+        <option value="not_interested">Not Interested</option>
+        <option value="won">Client Won</option>
+      </select>
+      <textarea id="drawer-notes" class="global-search-input" style="width: 100%; height: 80px; padding: 8px; font-family: var(--font-sans);" placeholder="Add custom notes..." onblur="saveDrawerNotes(this.value)"></textarea>
+    </div>
+  </div>
+</div>
+
+<!-- =========================================================================
+     FLOATING BULK ACTION BAR
+     ========================================================================= -->
+<div id="bulk-action-bar">
+  <span class="bulk-count-badge" id="bulk-selected-count">0</span>
+  <span style="font-size: 13px; font-weight: 600;">Selected Leads</span>
+  <button class="btn btn-sm btn-secondary" onclick="copySelectedEmails()">Copy Emails</button>
+  <button class="btn btn-sm btn-secondary" onclick="copySelectedPhones()">Copy Phones</button>
+  <button class="btn btn-sm btn-primary" onclick="exportSelectedLeads()">Export Selected</button>
+  <button class="btn btn-sm btn-secondary" onclick="clearSelection()">Clear</button>
+</div>
+
+<!-- Toast Message -->
+<div id="toast" class="toast-msg">Notification</div>
+
+<!-- Scripts -->
+<script src="/static/app.js?v=20261025_v2"></script>
+</body>
+</html>
