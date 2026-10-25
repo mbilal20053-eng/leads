@@ -234,14 +234,27 @@ async function loadDatasetsCatalog() {
   }
 }
 
+function formatDatasetOptionLabel(d) {
+  if (d.id === 'all_global') return 'All Leads Unified · 394.2M';
+  let name = (d.label || d.name || d.id || '').trim();
+  // Strip emojis & leading punctuation
+  name = name.replace(/^[^\w\s]+/g, '').trim();
+  // Strip trailing parenthesis notes
+  name = name.replace(/\s*\([^\)]*\)\s*$/g, '').trim();
+  if (name.length > 28) {
+    name = name.substring(0, 26) + '…';
+  }
+  const countStr = d.count ? ` · ${formatCompact(d.count)}` : '';
+  return `${name}${countStr}`;
+}
+
 function populateDatasetSelectors(datasets) {
   const topSelect = document.getElementById('topbar-dataset-select');
   const explorerSelect = document.getElementById('filter-dataset');
   if (!topSelect || !explorerSelect) return;
 
   const optionsHtml = datasets.map(d => {
-    const countStr = d.count ? ` (${formatCompact(d.count)})` : '';
-    return `<option value="${escapeHtml(d.id)}">${escapeHtml(d.name)}${countStr}</option>`;
+    return `<option value="${escapeHtml(d.id)}">${escapeHtml(formatDatasetOptionLabel(d))}</option>`;
   }).join('');
 
   topSelect.innerHTML = optionsHtml;
@@ -377,8 +390,26 @@ async function loadLeads() {
     STATE.totalLeads = data.total || 0;
 
     if (totalBadge) {
-      totalBadge.textContent = `${STATE.totalLeads.toLocaleString()} leads match`;
+      totalBadge.textContent = Number(STATE.totalLeads).toLocaleString();
     }
+
+    const viewSummary = document.getElementById('table-view-summary');
+    if (viewSummary) {
+      const fromRow = STATE.totalLeads > 0 ? (STATE.page - 1) * STATE.pageSize + 1 : 0;
+      const toRow = Math.min(STATE.page * STATE.pageSize, STATE.totalLeads);
+      viewSummary.textContent = `Showing ${fromRow.toLocaleString()} - ${toRow.toLocaleString()} of ${STATE.totalLeads.toLocaleString()} leads`;
+    }
+
+    if (data.major_categories && data.major_categories.length > 0) {
+      populateMajorCategories(data.major_categories);
+    }
+    if (data.states && data.states.length > 0) {
+      populateStates(data.states);
+    }
+    if (data.categories_hierarchy) {
+      CATEGORIES_CACHE = data.categories_hierarchy;
+    }
+    updateActiveFilterTags();
 
     renderLeadsTable(STATE.currentLeads, STATE.totalLeads);
     renderPagination(STATE.totalLeads, STATE.page, STATE.pageSize);
@@ -498,6 +529,15 @@ function setSort(col) {
     STATE.sortBy = col;
     STATE.sortDir = 'asc';
   }
+
+  // Update table header sorting chevrons
+  document.querySelectorAll('.sort-icon').forEach(icon => icon.classList.remove('active'));
+  const icon = document.getElementById(`sort-icon-${col}`);
+  if (icon) {
+    icon.classList.add('active');
+    icon.style.transform = STATE.sortDir === 'desc' ? 'rotate(180deg)' : 'none';
+  }
+
   loadLeads();
 }
 
@@ -517,17 +557,66 @@ function handleSearchInput(val) {
   searchDebounceTimeout = setTimeout(() => {
     STATE.search = val.trim();
     STATE.page = 1;
+    updateActiveFilterTags();
     loadLeads();
-  }, 300);
+  }, 250);
+}
+
+function handleExplorerSearch(val) {
+  const clearBtn = document.getElementById('explorer-search-clear');
+  if (clearBtn) clearBtn.style.display = val.length > 0 ? 'inline-block' : 'none';
+  
+  // Keep topbar search in sync
+  const topSearch = document.getElementById('global-search-input');
+  if (topSearch && topSearch.value !== val) topSearch.value = val;
+
+  handleSearchInput(val);
+}
+
+function clearExplorerSearch() {
+  const input = document.getElementById('explorer-inline-search');
+  if (input) input.value = '';
+  handleExplorerSearch('');
 }
 
 function setTierFilter(tier) {
   STATE.tier = tier;
   STATE.page = 1;
-  document.querySelectorAll('.tier-pill').forEach(btn => {
-    btn.classList.toggle('active', btn.textContent.includes(tier.toUpperCase()) || (tier === 'all' && btn.textContent.includes('All')));
+
+  document.querySelectorAll('.segment-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.tier === tier);
   });
+
+  updateActiveFilterTags();
   loadLeads();
+}
+
+function toggleQuickChip(chipType) {
+  if (chipType === 'phone') {
+    STATE.hasPhone = !STATE.hasPhone;
+    const btn = document.getElementById('chip-phone');
+    if (btn) btn.classList.toggle('active', STATE.hasPhone);
+  } else if (chipType === 'email') {
+    STATE.hasEmail = !STATE.hasEmail;
+    const btn = document.getElementById('chip-email');
+    if (btn) btn.classList.toggle('active', STATE.hasEmail);
+  } else if (chipType === 'website') {
+    STATE.hasWebsite = !STATE.hasWebsite;
+    const btn = document.getElementById('chip-website');
+    if (btn) btn.classList.toggle('active', STATE.hasWebsite);
+  }
+
+  STATE.page = 1;
+  updateActiveFilterTags();
+  loadLeads();
+}
+
+function toggleFilterShelf() {
+  const shelf = document.getElementById('console-filter-shelf');
+  const btn = document.getElementById('btn-toggle-filters');
+  if (!shelf) return;
+  const isExpanded = shelf.classList.toggle('expanded');
+  if (btn) btn.classList.toggle('active', isExpanded);
 }
 
 function onFilterChange() {
@@ -536,26 +625,128 @@ function onFilterChange() {
   if (stateEl) STATE.state = stateEl.value;
   if (crmEl) STATE.crmStatus = crmEl.value;
   STATE.page = 1;
+  updateActiveFilterTags();
   loadLeads();
 }
 
 function onCountryChange(val) {
   STATE.country = val;
   STATE.page = 1;
+  updateActiveFilterTags();
+  loadLeads();
+}
+
+function onMajorCatChange(val) {
+  STATE.majorCategory = val;
+  STATE.page = 1;
+  updateActiveFilterTags();
   loadLeads();
 }
 
 function onOppChange(val) {
   STATE.opportunity = val;
   STATE.page = 1;
+  updateActiveFilterTags();
   loadLeads();
 }
 
 function toggleHasPhone() {
-  const el = document.getElementById('filter-has-phone');
-  STATE.hasPhone = el ? el.checked : false;
-  STATE.page = 1;
-  loadLeads();
+  toggleQuickChip('phone');
+}
+
+function updateActiveFilterTags() {
+  const bar = document.getElementById('active-filter-tags-bar');
+  const list = document.getElementById('active-tags-list');
+  const badge = document.getElementById('active-filters-badge');
+  if (!bar || !list) return;
+
+  const tags = [];
+  if (STATE.search) {
+    tags.push({ label: `Search: "${STATE.search}"`, clear: () => clearExplorerSearch() });
+  }
+  if (STATE.tier && STATE.tier !== 'all') {
+    tags.push({ label: `Tier: ${STATE.tier}`, clear: () => setTierFilter('all') });
+  }
+  if (STATE.hasPhone) {
+    tags.push({ label: 'With Phone', clear: () => toggleQuickChip('phone') });
+  }
+  if (STATE.hasEmail) {
+    tags.push({ label: 'With Email', clear: () => toggleQuickChip('email') });
+  }
+  if (STATE.hasWebsite) {
+    tags.push({ label: 'With Website', clear: () => toggleQuickChip('website') });
+  }
+  if (STATE.country && STATE.country !== 'all') {
+    tags.push({ label: `Country: ${STATE.country}`, clear: () => {
+      const el = document.getElementById('filter-country');
+      if (el) el.value = 'all';
+      onCountryChange('all');
+    }});
+  }
+  if (STATE.state && STATE.state !== 'all') {
+    tags.push({ label: `State: ${STATE.state}`, clear: () => {
+      const el = document.getElementById('filter-state');
+      if (el) el.value = 'all';
+      onFilterChange();
+    }});
+  }
+  if (STATE.majorCategory && STATE.majorCategory !== 'all') {
+    tags.push({ label: `Industry: ${STATE.majorCategory}`, clear: () => {
+      const el = document.getElementById('filter-major-category');
+      if (el) el.value = 'all';
+      onMajorCatChange('all');
+    }});
+  }
+  if (STATE.category && STATE.category !== 'all') {
+    tags.push({ label: `Category: ${STATE.category}`, clear: () => {
+      STATE.category = 'all';
+      const lbl = document.getElementById('selected-subcat-label');
+      if (lbl) lbl.textContent = 'Hierarchy Picker (295)...';
+      updateActiveFilterTags();
+      loadLeads();
+    }});
+  }
+  if (STATE.opportunity && STATE.opportunity !== 'all') {
+    const oppLabels = { 'no_website': 'No Website Target', 'audit': 'Direct Audit' };
+    tags.push({ label: `Opportunity: ${oppLabels[STATE.opportunity] || STATE.opportunity}`, clear: () => {
+      const el = document.getElementById('filter-opp');
+      if (el) el.value = 'all';
+      onOppChange('all');
+    }});
+  }
+  if (STATE.crmStatus && STATE.crmStatus !== 'all') {
+    tags.push({ label: `CRM: ${STATE.crmStatus}`, clear: () => {
+      const el = document.getElementById('filter-crm-status');
+      if (el) el.value = 'all';
+      onFilterChange();
+    }});
+  }
+
+  if (tags.length > 0) {
+    bar.style.display = 'flex';
+    if (badge) {
+      badge.style.display = 'inline-flex';
+      badge.textContent = tags.length;
+    }
+    list.innerHTML = tags.map((t, idx) => `
+      <span class="filter-tag-chip">
+        <span>${escapeHtml(t.label)}</span>
+        <button type="button" class="filter-tag-remove" onclick="removeActiveFilterByIndex(${idx})">&times;</button>
+      </span>
+    `).join('');
+    window._CURRENT_ACTIVE_TAGS = tags;
+  } else {
+    bar.style.display = 'none';
+    if (badge) badge.style.display = 'none';
+    list.innerHTML = '';
+    window._CURRENT_ACTIVE_TAGS = [];
+  }
+}
+
+function removeActiveFilterByIndex(idx) {
+  if (window._CURRENT_ACTIVE_TAGS && window._CURRENT_ACTIVE_TAGS[idx]) {
+    window._CURRENT_ACTIVE_TAGS[idx].clear();
+  }
 }
 
 function resetFilters() {
@@ -567,22 +758,216 @@ function resetFilters() {
   STATE.category = 'all';
   STATE.opportunity = 'all';
   STATE.hasPhone = false;
+  STATE.hasEmail = false;
+  STATE.hasWebsite = false;
   STATE.crmStatus = 'all';
   STATE.page = 1;
 
   const searchInput = document.getElementById('global-search-input');
   if (searchInput) searchInput.value = '';
-  const phoneCheck = document.getElementById('filter-has-phone');
-  if (phoneCheck) phoneCheck.checked = false;
+  const inlineSearch = document.getElementById('explorer-inline-search');
+  if (inlineSearch) inlineSearch.value = '';
+  const clearBtn = document.getElementById('explorer-search-clear');
+  if (clearBtn) clearBtn.style.display = 'none';
+
+  ['chip-phone', 'chip-email', 'chip-website'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.remove('active');
+  });
+
   const countrySelect = document.getElementById('filter-country');
   if (countrySelect) countrySelect.value = 'all';
+  const stateSelect = document.getElementById('filter-state');
+  if (stateSelect) stateSelect.value = 'all';
+  const majorSelect = document.getElementById('filter-major-category');
+  if (majorSelect) majorSelect.value = 'all';
   const oppSelect = document.getElementById('filter-opp');
   if (oppSelect) oppSelect.value = 'all';
   const crmSelect = document.getElementById('filter-crm-status');
   if (crmSelect) crmSelect.value = 'all';
 
-  setTierFilter('all');
+  const subcatLabel = document.getElementById('selected-subcat-label');
+  if (subcatLabel) subcatLabel.textContent = 'Hierarchy Picker (295)...';
+
+  document.querySelectorAll('.segment-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.tier === 'all');
+  });
+
+  updateActiveFilterTags();
+  loadLeads();
+  showToast('Filters reset to master view');
 }
+
+// Dynamic Categories and States Cache & Population
+let HAS_POPULATED_MAJOR_CATS = false;
+function populateMajorCategories(categories) {
+  if (HAS_POPULATED_MAJOR_CATS) return;
+  const select = document.getElementById('filter-major-category');
+  if (!select) return;
+  const currentVal = select.value;
+  select.innerHTML = '<option value="all">All Major Industries</option>' + categories.map(c => {
+    const name = typeof c === 'string' ? c : (c.name || c.id || '');
+    return `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`;
+  }).join('');
+  select.value = currentVal;
+  HAS_POPULATED_MAJOR_CATS = true;
+}
+
+let HAS_POPULATED_STATES = false;
+function populateStates(states) {
+  if (HAS_POPULATED_STATES) return;
+  const select = document.getElementById('filter-state');
+  if (!select) return;
+  const currentVal = select.value;
+  select.innerHTML = '<option value="all">All States & Regions</option>' + states.map(s => {
+    const name = typeof s === 'string' ? s : (s.name || s.id || '');
+    return `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`;
+  }).join('');
+  select.value = currentVal;
+  HAS_POPULATED_STATES = true;
+}
+
+// Categories Hierarchy Modal Implementation
+let CATEGORIES_CACHE = null;
+let CURRENT_MODAL_MAJOR = 'all';
+
+function openCategoriesModal() {
+  const modal = document.getElementById('categoriesModal');
+  if (!modal) return;
+  modal.style.display = 'flex';
+  renderCategoriesInModal();
+}
+
+function closeCategoriesModal() {
+  const modal = document.getElementById('categoriesModal');
+  if (modal) modal.style.display = 'none';
+}
+
+function quickFilterMajorModal(group) {
+  CURRENT_MODAL_MAJOR = group;
+  document.querySelectorAll('.cat-quick-pill').forEach(btn => {
+    btn.classList.toggle('active', btn.getAttribute('onclick').includes(`'${group}'`));
+  });
+  renderCategoriesInModal();
+}
+
+function filterCategoriesInModal(query) {
+  renderCategoriesInModal(query);
+}
+
+function clearCatModalSearch() {
+  const input = document.getElementById('catModalSearch');
+  if (input) input.value = '';
+  renderCategoriesInModal();
+}
+
+function renderCategoriesInModal(searchQuery = '') {
+  const grid = document.getElementById('categoriesGrid');
+  const countBadge = document.getElementById('catResultsCount');
+  if (!grid) return;
+
+  const hierarchy = CATEGORIES_CACHE || {
+    "Healthcare & Medical": ["Dentists", "Clinics", "Hospitals", "Pharmacies", "Optometrists", "Chiropractors", "Veterinarians"],
+    "Hospitality & Dining": ["Restaurants", "Cafes", "Hotels", "Bars", "Bakeries", "Fast Food", "Catering"],
+    "Real Estate & Property": ["Real Estate Agents", "Property Management", "Commercial Brokers", "Appraisers", "Mortgage Brokers"],
+    "Tech & Software": ["Software Development", "IT Services", "SaaS Providers", "Web Design", "Cybersecurity", "Cloud Solutions"],
+    "Construction & Trades": ["General Contractors", "Electricians", "Plumbers", "Roofing", "HVAC", "Painters", "Landscapers"],
+    "Financial & Banking": ["Accounting", "Financial Advisors", "Tax Preparation", "Investment Banking", "Insurance Agencies"],
+    "Legal & Professional": ["Attorneys & Law Firms", "Consulting", "Marketing Agencies", "Staffing & Recruiting", "Public Relations"],
+    "Automotive & Transport": ["Auto Repair", "Car Dealerships", "Towing", "Logistics & Freight", "Car Wash", "Auto Parts"],
+    "Retail & Consumer": ["Boutiques", "Supermarkets", "Electronics", "Furniture", "Jewelry", "Sporting Goods", "Hardware"],
+    "Fitness & Beauty": ["Gyms & Fitness Centers", "Hair Salons", "Spas & Wellness", "Barbershops", "Nail Salons", "Personal Trainers"],
+    "Creative & Media": ["Photography", "Video Production", "Graphic Design", "Publishing", "Advertising Agencies"],
+    "Education & Non-Profit": ["Private Schools", "Tutoring Centers", "Charities & Foundations", "Daycare & Childcare"],
+    "Manufacturing & Industrial": ["Fabrication", "Machining", "Packaging", "Chemical Manufacturing", "Food Production"]
+  };
+
+  const q = (searchQuery || '').toLowerCase().trim();
+  let totalMatches = 0;
+  let html = '';
+
+  for (const [majorGroup, minors] of Object.entries(hierarchy)) {
+    if (CURRENT_MODAL_MAJOR !== 'all') {
+      const normGroup = majorGroup.toLowerCase().replace(/[^\w]/g, '');
+      const normCurrent = CURRENT_MODAL_MAJOR.toLowerCase().replace(/[^\w]/g, '');
+      if (!normGroup.includes(normCurrent) && !normCurrent.includes(normGroup.substring(0, 5))) {
+        continue;
+      }
+    }
+
+    const filteredMinors = minors.filter(m => !q || m.toLowerCase().includes(q) || majorGroup.toLowerCase().includes(q));
+    if (filteredMinors.length === 0 && q) continue;
+
+    totalMatches += filteredMinors.length;
+    html += `
+      <div class="cat-group-card">
+        <div class="cat-group-header">
+          <span>${escapeHtml(majorGroup)}</span>
+          <span class="cell-subtext">(${filteredMinors.length})</span>
+        </div>
+        <div class="cat-badges-wrap">
+          ${filteredMinors.map(m => `
+            <span class="cat-badge-pill" onclick="selectCategoryFromModal('${escapeHtml(m)}', '${escapeHtml(majorGroup)}')">
+              ${escapeHtml(m)}
+            </span>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  if (countBadge) {
+    countBadge.textContent = `Showing ${totalMatches} matching category verticals`;
+  }
+  grid.innerHTML = html || '<div style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--text-tertiary);">No categories matching search query.</div>';
+}
+
+function selectCategoryFromModal(categoryName, majorGroupName) {
+  STATE.category = categoryName;
+  STATE.majorCategory = majorGroupName;
+  STATE.page = 1;
+
+  const lbl = document.getElementById('selected-subcat-label');
+  if (lbl) lbl.textContent = categoryName;
+
+  const majorSelect = document.getElementById('filter-major-category');
+  if (majorSelect) majorSelect.value = majorGroupName;
+
+  closeCategoriesModal();
+  updateActiveFilterTags();
+  loadLeads();
+  showToast(`Filtered by ${categoryName}`);
+}
+
+function resetAllCategoryFilters() {
+  STATE.category = 'all';
+  STATE.majorCategory = 'all';
+  STATE.page = 1;
+
+  const lbl = document.getElementById('selected-subcat-label');
+  if (lbl) lbl.textContent = 'Hierarchy Picker (295)...';
+
+  const majorSelect = document.getElementById('filter-major-category');
+  if (majorSelect) majorSelect.value = 'all';
+
+  updateActiveFilterTags();
+  loadLeads();
+}
+
+// Global hotkey: press '/' to focus Lead Explorer search
+document.addEventListener('keydown', e => {
+  if (e.key === '/' && !['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) {
+    e.preventDefault();
+    if (STATE.activeView !== 'explorer') {
+      switchView('explorer');
+    }
+    const input = document.getElementById('explorer-inline-search');
+    if (input) {
+      input.focus();
+      input.select();
+    }
+  }
+});
 
 // Multi-select & Bulk Action Bar
 function toggleSelectAllRows(checked) {

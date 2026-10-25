@@ -39,6 +39,7 @@ GUI_DIR = os.path.dirname(os.path.abspath(__file__))
 STATIC_DIR = os.path.join(GUI_DIR, "static")
 TEMPLATES_DIR = os.path.join(GUI_DIR, "templates")
 app = Flask(__name__, static_folder=STATIC_DIR, template_folder=TEMPLATES_DIR)
+app.config['TEMPLATES_AUTO_RELOAD'] = True
 
 from gui.lead_db import (
     LEADS_DATA_DIR, GLOBAL_DUCKDB_CON, LOCAL_SOURCES, LOCAL_SOURCES_BREAKDOWN,

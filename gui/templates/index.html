@@ -502,106 +502,237 @@
       </section>
 
       <!-- =====================================================================
-           VIEW 4: LEAD EXPLORER (12-COLUMN TABLE)
+           VIEW 4: LEAD EXPLORER (12-COLUMN STREAMING CONSOLE)
            ===================================================================== -->
       <section id="view-explorer" class="view-container">
-        <div class="view-header">
-          <div>
-            <h1 class="view-header-title">Lead Explorer</h1>
+        <!-- Explorer Header Bar -->
+        <div class="explorer-header-bar">
+          <div class="explorer-header-left">
+            <div class="explorer-title-group">
+              <h1 class="view-header-title">Lead Explorer</h1>
+              <span class="engine-live-badge">
+                <span class="pulse-dot"></span>
+                DuckDB Stream Active
+              </span>
+            </div>
             <p class="view-header-subtitle">
-              High performance data explorer streaming all 12 standardized columns across local databases and global feeds.
+              High-speed query engine streaming all 12 standardized enterprise columns across 394M+ global and local records.
             </p>
           </div>
-          <div class="view-actions">
-            <button class="btn btn-secondary" onclick="exportCurrentLeads()">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/></svg>
-              Quick Export
-            </button>
-            <button class="btn btn-primary" onclick="switchView('export')">Batch Range Export</button>
+          <div class="explorer-header-right">
+            <div class="stats-pill-match">
+              <span class="stats-pill-indicator"></span>
+              <span class="stats-pill-count font-mono" id="total-count-badge">394,181,043</span>
+              <span class="stats-pill-label">leads matching</span>
+            </div>
+            <div class="view-actions">
+              <button class="btn btn-secondary btn-sm" onclick="exportCurrentLeads()" title="Export current page to CSV">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/></svg>
+                Export View
+              </button>
+              <button class="btn btn-primary btn-sm" onclick="switchView('export')">
+                Batch Range Export
+              </button>
+            </div>
           </div>
         </div>
 
-        <!-- Filter Toolbar -->
-        <div class="filter-toolbar">
-          <div class="filter-row-primary">
-            <select id="filter-dataset" class="filter-select" onchange="onDatasetChange(this.value)" style="min-width: 240px;">
-              <option value="all_global">🌍 All Global Leads & Master Portfolio (394M)</option>
-            </select>
-
-            <div class="tier-pills-group">
-              <button class="tier-pill active" onclick="setTierFilter('all')">All Tiers</button>
-              <button class="tier-pill" onclick="setTierFilter('A')">Tier A (High Score)</button>
-              <button class="tier-pill" onclick="setTierFilter('B')">Tier B</button>
-              <button class="tier-pill" onclick="setTierFilter('C')">Tier C</button>
+        <!-- Modern Query & Filter Command Console -->
+        <div class="explorer-console">
+          <!-- Primary Control Row: Dataset, Search, Tiers, Quick Chips & Action Buttons -->
+          <div class="console-primary-row">
+            <!-- Modern Dataset Pill Selector -->
+            <div class="dataset-pill-wrapper" title="Select target database or source shard">
+              <span class="dataset-pill-icon">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+              </span>
+              <select id="filter-dataset" class="dataset-pill-select" onchange="onDatasetChange(this.value)">
+                <option value="all_global">All Leads Unified · 394.2M</option>
+              </select>
             </div>
 
-            <select id="filter-country" class="filter-select" onchange="onCountryChange(this.value)">
-              <option value="all">🌐 All Countries</option>
-              <option value="United States">🇺🇸 United States</option>
-              <option value="United Kingdom">🇬🇧 United Kingdom</option>
-              <option value="Canada">🇨🇦 Canada</option>
-              <option value="Australia">🇦🇺 Australia</option>
-            </select>
+            <!-- Integrated High-Performance Search Box -->
+            <div class="console-search-box">
+              <svg class="search-box-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input type="text" id="explorer-inline-search" class="console-search-input" placeholder="Search business, owner, email, phone, city..." oninput="handleExplorerSearch(this.value)">
+              <button type="button" class="search-clear-btn" id="explorer-search-clear" onclick="clearExplorerSearch()" title="Clear search" style="display:none;">✕</button>
+              <kbd class="console-kbd" title="Press / to search">/</kbd>
+            </div>
 
-            <select id="filter-state" class="filter-select" onchange="onFilterChange()">
-              <option value="all">📍 All States / Regions</option>
-            </select>
+            <!-- Linear-Style Segmented Tier Selector -->
+            <div class="segmented-tier-control" id="tier-segmented-control">
+              <button type="button" class="segment-btn active" data-tier="all" onclick="setTierFilter('all')">All</button>
+              <button type="button" class="segment-btn" data-tier="A" onclick="setTierFilter('A')" title="Tier A: Verified high-score records">
+                <span class="tier-indicator tier-a"></span>Tier A
+              </button>
+              <button type="button" class="segment-btn" data-tier="B" onclick="setTierFilter('B')" title="Tier B: Standard complete records">
+                <span class="tier-indicator tier-b"></span>Tier B
+              </button>
+              <button type="button" class="segment-btn" data-tier="C" onclick="setTierFilter('C')" title="Tier C: Partial / unverified records">
+                <span class="tier-indicator tier-c"></span>Tier C
+              </button>
+            </div>
 
-            <label style="display: flex; align-items: center; gap: 6px; font-size: 12px; cursor: pointer;">
-              <input type="checkbox" id="filter-has-phone" onchange="toggleHasPhone()">
-              <span>Must have Phone 📞</span>
-            </label>
+            <!-- Quick Boolean Filter Chips -->
+            <div class="quick-chips-group">
+              <button type="button" class="filter-chip" id="chip-phone" onclick="toggleQuickChip('phone')" title="Toggle records with phone numbers">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                <span>Phone</span>
+              </button>
+              <button type="button" class="filter-chip" id="chip-email" onclick="toggleQuickChip('email')" title="Toggle records with email addresses">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                <span>Email</span>
+              </button>
+              <button type="button" class="filter-chip" id="chip-website" onclick="toggleQuickChip('website')" title="Toggle records with websites">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                <span>Website</span>
+              </button>
+            </div>
 
-            <button class="btn btn-sm btn-secondary" onclick="resetFilters()">Reset Filters</button>
+            <!-- Expandable Filters Drawer & Reset -->
+            <div class="console-actions-right">
+              <button type="button" class="btn btn-secondary btn-sm filter-expand-btn" id="btn-toggle-filters" onclick="toggleFilterShelf()">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+                <span>Filters</span>
+                <span class="active-filters-badge" id="active-filters-badge" style="display:none;">0</span>
+              </button>
+              <button type="button" class="btn btn-ghost btn-sm reset-filters-btn" id="btn-reset-filters" onclick="resetFilters()" title="Reset all filters">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+                Reset
+              </button>
+            </div>
           </div>
 
-          <div class="filter-row-secondary">
-            <select id="filter-major-category" class="filter-select" onchange="onMajorCatChange(this.value)">
-              <option value="all">📂 Major Category: All</option>
-            </select>
+          <!-- Secondary Collapsible Shelf: Advanced Drill-Down Filters -->
+          <div class="console-filter-shelf" id="console-filter-shelf">
+            <div class="shelf-grid">
+              <!-- Country Filter -->
+              <div class="shelf-control-group">
+                <label class="shelf-label">Country</label>
+                <div class="shelf-input-wrap">
+                  <svg class="shelf-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                  <select id="filter-country" class="shelf-select" onchange="onCountryChange(this.value)">
+                    <option value="all">All Countries</option>
+                    <option value="United States">🇺🇸 United States</option>
+                    <option value="United Kingdom">🇬🇧 United Kingdom</option>
+                    <option value="Canada">🇨🇦 Canada</option>
+                    <option value="Australia">🇦🇺 Australia</option>
+                    <option value="Germany">🇩🇪 Germany</option>
+                    <option value="France">🇫🇷 France</option>
+                  </select>
+                </div>
+              </div>
 
-            <button class="btn btn-sm btn-secondary" onclick="openCategoriesModal()">
-              Browse Minor Categories Hierarchy...
-            </button>
+              <!-- State / Region Filter -->
+              <div class="shelf-control-group">
+                <label class="shelf-label">State / Region</label>
+                <div class="shelf-input-wrap">
+                  <svg class="shelf-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                  <select id="filter-state" class="shelf-select" onchange="onFilterChange()">
+                    <option value="all">All States & Regions</option>
+                  </select>
+                </div>
+              </div>
 
-            <select id="filter-opp" class="filter-select" onchange="onOppChange(this.value)">
-              <option value="all">💡 Opportunity Type: All</option>
-              <option value="no_website">No Website (Urgent Web Pitch)</option>
-              <option value="audit">Direct Prospect Audit</option>
-            </select>
+              <!-- Major Industry Category -->
+              <div class="shelf-control-group">
+                <label class="shelf-label">Major Industry</label>
+                <div class="shelf-input-wrap">
+                  <svg class="shelf-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+                  <select id="filter-major-category" class="shelf-select" onchange="onMajorCatChange(this.value)">
+                    <option value="all">All Major Industries</option>
+                  </select>
+                </div>
+              </div>
 
-            <select id="filter-crm-status" class="filter-select" onchange="onFilterChange()">
-              <option value="all">🏷️ CRM Pipeline Status: All</option>
-              <option value="new">New Lead</option>
-              <option value="contacted">Contacted</option>
-              <option value="interested">Interested</option>
-              <option value="meeting">Meeting Booked</option>
-              <option value="not_interested">Not Interested</option>
-              <option value="won">Client Won</option>
-            </select>
+              <!-- Sub-Category Modal Launcher -->
+              <div class="shelf-control-group">
+                <label class="shelf-label">Sub-Category</label>
+                <button type="button" class="shelf-btn-modal" onclick="openCategoriesModal()" title="Explore 295 minor vertical categories">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+                  <span id="selected-subcat-label">Hierarchy Picker (295)...</span>
+                </button>
+              </div>
 
-            <div style="margin-left: auto; display: flex; align-items: center; gap: 8px;">
-              <span class="cell-mono text-tertiary" id="total-count-badge">Loading...</span>
-              <select id="page-size-select" class="filter-select" onchange="onPageSizeChange(this.value)">
-                <option value="25">25 per page</option>
-                <option value="50" selected>50 per page</option>
-                <option value="100">100 per page</option>
-                <option value="250">250 per page</option>
+              <!-- Sales Opportunity Filter -->
+              <div class="shelf-control-group">
+                <label class="shelf-label">Sales Opportunity</label>
+                <div class="shelf-input-wrap">
+                  <svg class="shelf-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
+                  <select id="filter-opp" class="shelf-select" onchange="onOppChange(this.value)">
+                    <option value="all">All Opportunities</option>
+                    <option value="no_website">No Website (Web Pitch Target)</option>
+                    <option value="audit">Direct Prospect Audit</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- CRM Pipeline Stage Filter -->
+              <div class="shelf-control-group">
+                <label class="shelf-label">CRM Pipeline Stage</label>
+                <div class="shelf-input-wrap">
+                  <svg class="shelf-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+                  <select id="filter-crm-status" class="shelf-select" onchange="onFilterChange()">
+                    <option value="all">All Pipeline Stages</option>
+                    <option value="new">New Lead</option>
+                    <option value="contacted">Contacted</option>
+                    <option value="interested">Interested</option>
+                    <option value="meeting">Meeting Booked</option>
+                    <option value="not_interested">Not Interested</option>
+                    <option value="won">Client Won</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Active Filter Removable Tags Strip -->
+          <div class="active-filter-tags-bar" id="active-filter-tags-bar" style="display:none;">
+            <span class="active-tags-label">Active Filters:</span>
+            <div class="active-tags-list" id="active-tags-list"></div>
+            <button type="button" class="clear-all-tags-btn" onclick="resetFilters()">Clear all</button>
+          </div>
+        </div>
+
+        <!-- Table View Controls & Row Summary Strip -->
+        <div class="table-view-controls">
+          <div class="table-controls-left">
+            <span class="table-view-summary" id="table-view-summary">Streaming verified records</span>
+            <span class="table-column-badge">12 Standard Columns</span>
+          </div>
+          <div class="table-controls-right">
+            <div class="page-size-selector">
+              <label for="page-size-select">Per page:</label>
+              <select id="page-size-select" class="page-size-select" onchange="onPageSizeChange(this.value)">
+                <option value="25">25 rows</option>
+                <option value="50" selected>50 rows</option>
+                <option value="100">100 rows</option>
+                <option value="250">250 rows</option>
               </select>
             </div>
           </div>
         </div>
 
         <!-- 12-Column Leads Table -->
-        <div class="table-responsive" style="max-height: 65vh;">
+        <div class="table-responsive table-container-elevated" style="max-height: 65vh;">
           <table class="data-table" id="leads-table">
             <thead>
               <tr>
                 <th style="width: 38px;"><input type="checkbox" id="select-all-leads" onchange="toggleSelectAllRows(this.checked)"></th>
-                <th onclick="setSort('name')" style="cursor: pointer;">Business Name ↕</th>
+                <th onclick="setSort('name')" style="cursor: pointer;" title="Sort by Business Name">
+                  <div class="th-sort-wrapper">
+                    <span>Business Name</span>
+                    <svg class="sort-icon" id="sort-icon-name" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 15l5 5 5-5"/><path d="M7 9l5-5 5 5"/></svg>
+                  </div>
+                </th>
                 <th>Owner / Contact</th>
                 <th>Role & Notes</th>
-                <th onclick="setSort('category')" style="cursor: pointer;">Category ↕</th>
+                <th onclick="setSort('category')" style="cursor: pointer;" title="Sort by Category">
+                  <div class="th-sort-wrapper">
+                    <span>Category</span>
+                    <svg class="sort-icon" id="sort-icon-category" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 15l5 5 5-5"/><path d="M7 9l5-5 5 5"/></svg>
+                  </div>
+                </th>
                 <th>Email</th>
                 <th>Phone</th>
                 <th>Website</th>
@@ -610,7 +741,7 @@
                 <th>State / Region</th>
                 <th>Country</th>
                 <th>Socials</th>
-                <th>Actions</th>
+                <th style="text-align: right;">Actions</th>
               </tr>
             </thead>
             <tbody id="leads-table-tbody">
@@ -1010,10 +1141,59 @@
   <button class="btn btn-sm btn-secondary" onclick="clearSelection()">Clear</button>
 </div>
 
+<!-- =========================================================================
+     CATEGORIES HIERARCHY MODAL (14 Major Groups · 295 Verticals)
+     ========================================================================= -->
+<div id="categoriesModal" class="modal-overlay" style="display:none;" onclick="if(event.target===this)closeCategoriesModal()">
+  <div class="categories-modal-content">
+    <div class="modal-header">
+      <div class="modal-title-wrap">
+        <h3 class="modal-title">Industry & Category Hierarchy Directory</h3>
+        <span class="modal-subtitle">14 Major Business Sectors encompassing 295 Minor Verticals across 394M+ global records</span>
+      </div>
+      <button class="modal-close-btn" onclick="closeCategoriesModal()">&times;</button>
+    </div>
+    
+    <div class="categories-modal-body">
+      <!-- Search input for categories -->
+      <div class="cat-search-box">
+        <svg class="search-box-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" id="catModalSearch" class="cat-search-input" placeholder="Search any vertical (e.g. dentist, luxury hotel, software, real estate, plumbing)..." oninput="filterCategoriesInModal(this.value)">
+        <button id="catModalClear" class="search-clear-btn" onclick="clearCatModalSearch()" style="display:none;">✕</button>
+      </div>
+
+      <!-- Quick Major Category Filter Pills -->
+      <div class="cat-quick-pills" id="catQuickPills">
+        <button type="button" class="cat-quick-pill active" onclick="quickFilterMajorModal('all')">All Sectors (14)</button>
+        <button type="button" class="cat-quick-pill" onclick="quickFilterMajorModal('restaurants_hospitality')">🍽️ Hospitality & Dining</button>
+        <button type="button" class="cat-quick-pill" onclick="quickFilterMajorModal('real_estate')">🏢 Real Estate & Property</button>
+        <button type="button" class="cat-quick-pill" onclick="quickFilterMajorModal('healthcare_medical')">🏥 Healthcare & Clinics</button>
+        <button type="button" class="cat-quick-pill" onclick="quickFilterMajorModal('tech_software')">💻 Tech & SaaS</button>
+        <button type="button" class="cat-quick-pill" onclick="quickFilterMajorModal('construction_trades')">🔨 Construction & Trades</button>
+        <button type="button" class="cat-quick-pill" onclick="quickFilterMajorModal('financial_banking')">💳 Finance & Banking</button>
+        <button type="button" class="cat-quick-pill" onclick="quickFilterMajorModal('corporate_professional')">👔 Legal & Professional</button>
+        <button type="button" class="cat-quick-pill" onclick="quickFilterMajorModal('automotive_transport')">🚗 Automotive & Transport</button>
+        <button type="button" class="cat-quick-pill" onclick="quickFilterMajorModal('retail_consumer')">🛍️ Retail & Ecommerce</button>
+      </div>
+
+      <!-- Results Header -->
+      <div class="cat-results-header">
+        <span id="catResultsCount" class="cat-results-count">Showing 14 Major Categories and 295 Minor Verticals</span>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="resetAllCategoryFilters();closeCategoriesModal();">Reset Category Filter</button>
+      </div>
+
+      <!-- Category Cards Grid -->
+      <div class="categories-grid" id="categoriesGrid">
+        <!-- Rendered dynamically via JS -->
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Toast Message -->
 <div id="toast" class="toast-msg">Notification</div>
 
 <!-- Scripts -->
-<script src="/static/app.js?v=20261025_v3"></script>
+<script src="/static/app.js?v=20261025_v4"></script>
 </body>
 </html>
