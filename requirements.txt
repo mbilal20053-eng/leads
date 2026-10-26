@@ -5,5 +5,7 @@ openpyxl>=3.1          # color-tiered XLSX export
 # Optional: the Overture (bulk national dataset) source. The OpenStreetMap source
 # needs nothing beyond requests, so duckdb is only required if you use --sources overture.
 duckdb>=0.9
+xlrd>=2.0.1
+pyarrow>=14.0
 
 # The GUI has its own extra deps — see gui/requirements.txt (Flask, optional pywebview).

@@ -582,36 +582,58 @@
         <!-- STEP 2: Select Files -->
         <div class="panel" id="wizard-step-2" style="display: none;">
           <div class="panel-header">
-            <span class="panel-title">Step 2 — Select CSV Files to Import</span>
+            <span class="panel-title">Step 2 — Select Universal Files to Import</span>
             <span class="status-badge neutral" id="selected-files-count-badge">0 Files Selected</span>
           </div>
           <div class="panel-body">
+            <!-- Universal Formats Badges -->
+            <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; justify-content: center;">
+              <span class="fmt-badge fmt-badge-csv">CSV / TSV / TXT</span>
+              <span class="fmt-badge fmt-badge-excel">Excel (.xlsx, .xls, .xlsm)</span>
+              <span class="fmt-badge fmt-badge-json">JSON / JSONL / NDJSON</span>
+              <span class="fmt-badge fmt-badge-xml">XML</span>
+              <span class="fmt-badge fmt-badge-parquet">Parquet</span>
+              <span class="fmt-badge fmt-badge-zip">ZIP Archive</span>
+              <span class="fmt-badge fmt-badge-gzip">GZIP (.gz)</span>
+            </div>
+
             <!-- Multi-file Dropzone -->
             <div class="dropzone" id="multi-file-dropzone" onclick="document.getElementById('multi-file-upload-input').click()">
               <svg class="dropzone-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-              <h3 style="font-size: 15px; font-weight: 700; margin-bottom: 6px;">Drag and drop one or multiple CSV files here</h3>
+              <h3 style="font-size: 15px; font-weight: 700; margin-bottom: 6px;">Drag and drop one or multiple files here</h3>
               <p style="font-size: 12.5px; color: var(--text-tertiary); margin-bottom: 14px;">
-                Supports CSV, CSV.GZ, TSV, and TXT. Multi-file upload supported under one dataset name.
+                Upload CSV, Excel (XLSX, XLS), JSON, XML, Parquet, or ZIP archives containing supported files.
               </p>
               <button class="btn btn-primary" type="button">Select Files From Computer</button>
-              <input type="file" id="multi-file-upload-input" style="display: none;" accept=".csv,.gz,.tsv,.txt" multiple onchange="handleMultiFileInput(this.files)">
+              <input type="file" id="multi-file-upload-input" style="display: none;" accept=".csv,.tsv,.tab,.txt,.xlsx,.xls,.xlsm,.json,.jsonl,.ndjson,.xml,.parquet,.pq,.zip,.gz,.gzip" multiple onchange="handleMultiFileInput(this.files)">
             </div>
 
             <!-- Staged File Cards List -->
             <div id="staged-files-list-container" style="margin-top: 20px; display: none;">
               <h4 style="font-size: 13px; font-weight: 700; margin-bottom: 10px; color: var(--text-secondary); text-transform: uppercase;">
-                Files Ready for Inspection:
+                Files Staged for Import:
               </h4>
               <div id="staged-files-list"></div>
             </div>
 
+            <!-- Excel Sheet Selection Group (Dynamically displayed when Excel with multiple sheets is present) -->
+            <div id="excel-sheet-selection-card" style="display: none; margin-top: 16px; padding: 14px; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: var(--radius-md);">
+              <div style="font-size: 12.5px; font-weight: 700; color: #10b981; margin-bottom: 6px;">📊 Excel Worksheet Selection</div>
+              <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">
+                Your Excel file contains multiple worksheets. Select which sheet you want to inspect and import:
+              </p>
+              <select id="excel-sheet-selector" class="filter-select" style="max-width: 340px;" onchange="onExcelSheetChange(this.value)">
+                <!-- Dynamically populated -->
+              </select>
+            </div>
+
             <!-- Supported formats and limits info box -->
             <div style="margin-top: 20px; padding: 14px; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); font-size: 12px; color: var(--text-secondary); line-height: 1.5;">
-              <div style="font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">Hosting & Engine Capabilities:</div>
-              • Encodings: Auto-detects UTF-8, UTF-8 BOM, Windows-1252, and ISO-8859-1.<br>
-              • Delimiters: Handles commas (,), semicolons (;), tabs (\t), and pipes (|).<br>
-              • File Limits: Up to 100 MB per file via web streaming; DuckDB reads directly into compressed columnar Parquet.<br>
-              • Safety: Files are verified and staged before committing to the active database.
+              <div style="font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">Universal Engine & Security Architecture:</div>
+              • <strong>Formats Supported:</strong> CSV, TSV, TXT, Excel (XLSX, XLSM, XLS), JSON/JSONL, XML, Parquet, ZIP, and GZIP.<br>
+              • <strong>Security Safeguards:</strong> ZIP bomb decompression checks, path traversal protection, XML entity attack neutralization.<br>
+              • <strong>Precision Typing:</strong> Preserves phone numbers, registration codes, and postal codes as text (leading zeros protected, zero scientific notation).<br>
+              • <strong>Custom Columns:</strong> Add dataset-specific columns before or after importing, with constant or row-by-row values.
             </div>
 
             <!-- Upload progress bar -->
@@ -637,7 +659,7 @@
         <!-- STEP 3: Preview & Schema Mapping & Duplicates -->
         <div class="panel" id="wizard-step-3" style="display: none;">
           <div class="panel-header">
-            <span class="panel-title">Step 3 — Preview Schema Mappings & Configure Deduplication</span>
+            <span class="panel-title">Step 3 — Preview, Column Customization & Deduplication</span>
             <span class="status-badge clean" id="step3-validation-badge">Inspection Complete</span>
           </div>
           <div class="panel-body">
@@ -648,28 +670,49 @@
 
             <!-- Active file summary card -->
             <div id="active-file-meta-card" style="margin-bottom: 16px; padding: 12px 16px; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); display: flex; flex-wrap: wrap; gap: 20px; align-items: center; font-size: 12.5px;">
+              <div><strong>Format:</strong> <span id="meta-format" class="cell-mono">CSV</span></div>
               <div><strong>Detected Encoding:</strong> <span id="meta-encoding" class="cell-mono">UTF-8</span></div>
-              <div><strong>Delimiter:</strong> <span id="meta-delimiter" class="cell-mono">Comma (',')</span></div>
+              <div><strong>Delimiter / Table:</strong> <span id="meta-delimiter" class="cell-mono">Comma (',')</span></div>
               <div><strong>Estimated Rows:</strong> <span id="meta-est-rows" class="cell-mono font-bold">0</span></div>
               <div><strong>Columns Detected:</strong> <span id="meta-cols-count" class="cell-mono">0</span></div>
               <div id="meta-missing-badges"></div>
             </div>
 
+            <!-- Toolbar for Custom Columns and Actions -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;">
+              <div>
+                <h4 style="font-size: 13px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; margin: 0;">
+                  Column Mapping & Schema Customization
+                </h4>
+                <span style="font-size: 12px; color: var(--text-tertiary);">
+                  Rename columns, override types, exclude unneeded fields, or set default fallback values.
+                </span>
+              </div>
+              <div style="display: flex; gap: 8px;">
+                <button class="btn btn-secondary" onclick="openAddCustomColumnModal()" style="border-color: #8b5cf6; color: #a78bfa;">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+                  + Add Custom Column
+                </button>
+              </div>
+            </div>
+
+            <!-- Active Custom Columns Pill Tags -->
+            <div id="wizard-custom-columns-tags" style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px;">
+              <!-- Dynamically populated tags for added custom columns -->
+            </div>
+
             <!-- Column Mapping Table -->
-            <h4 style="font-size: 13px; font-weight: 700; margin-bottom: 8px; color: var(--text-secondary); text-transform: uppercase;">
-              Column Mapping Configuration
-            </h4>
-            <p style="font-size: 12px; color: var(--text-tertiary); margin-bottom: 12px;">
-              Verify that incoming headers map to the appropriate Lead Engine PRO column. Original data is fully preserved.
-            </p>
-            <div class="table-responsive" style="margin-bottom: 20px;">
+            <div class="table-responsive" style="margin-bottom: 24px;">
               <table class="data-table">
                 <thead>
                   <tr>
-                    <th>Incoming CSV Header</th>
-                    <th>Target Lead Engine Column</th>
+                    <th style="width: 40px; text-align: center;">Include</th>
+                    <th>Source Header / Rename</th>
+                    <th>Target Field Mapping</th>
+                    <th>Data Type</th>
+                    <th>Default Fallback (When Empty)</th>
                     <th>Match Confidence</th>
-                    <th>Sample Data Value (Row 1)</th>
+                    <th>Sample Value (Row 1)</th>
                   </tr>
                 </thead>
                 <tbody id="wizard-mapping-tbody">
@@ -678,12 +721,19 @@
               </table>
             </div>
 
-            <!-- Data Preview Sample Table (5 rows) -->
-            <h4 style="font-size: 13px; font-weight: 700; margin-bottom: 8px; color: var(--text-secondary); text-transform: uppercase;">
-              Sample Rows Preview (First 5 Rows)
-            </h4>
-            <div class="table-responsive" style="max-height: 240px; margin-bottom: 24px;">
-              <table class="data-table" id="wizard-sample-rows-table">
+            <!-- Interactive Spreadsheet Editor Preview -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <h4 style="font-size: 13px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; margin: 0;">
+                Interactive Spreadsheet Preview & Row-by-Row Editor
+              </h4>
+              <span id="spreadsheet-edits-count-badge" class="status-badge neutral" style="display: none;">0 Cell Edits</span>
+            </div>
+            <div style="padding: 10px 14px; background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.25); border-radius: var(--radius-md); font-size: 12px; color: #60a5fa; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+              <span>💡</span>
+              <span><strong>Interactive Spreadsheet Editor:</strong> Click any cell to edit individual lead values row-by-row before importing. Added custom columns can be populated with constant defaults or edited directly here.</span>
+            </div>
+            <div class="spreadsheet-container" style="margin-bottom: 24px;">
+              <table class="spreadsheet-table" id="wizard-sample-rows-table">
                 <thead id="wizard-sample-thead"></thead>
                 <tbody id="wizard-sample-tbody"></tbody>
               </table>
@@ -742,6 +792,7 @@
             </div>
           </div>
         </div>
+
 
         <!-- STEP 4: Ingestion Progress & Results -->
         <div class="panel" id="wizard-step-4" style="display: none;">
@@ -2412,6 +2463,193 @@
     </div>
   </div>
 </div>
+
+<!-- =========================================================================
+     ADD CUSTOM COLUMN MODAL (Wizard Step 3)
+     ========================================================================= -->
+<div id="addCustomColumnModal" class="modal-overlay" style="display:none;" onclick="if(event.target===this)closeAddCustomColumnModal()">
+  <div class="categories-modal-content" style="max-width: 540px; border-color: rgba(139, 92, 246, 0.4);">
+    <div class="modal-header" style="border-bottom-color: rgba(139, 92, 246, 0.2);">
+      <div class="modal-title-wrap">
+        <h3 class="modal-title" style="color: #a78bfa;">+ Add Custom Column</h3>
+        <span class="modal-subtitle">Add dataset-specific fields (e.g. Country, Industry, Priority, Notes)</span>
+      </div>
+      <button class="modal-close-btn" onclick="closeAddCustomColumnModal()">&times;</button>
+    </div>
+    <div class="modal-body" style="padding: 22px;">
+      <div style="margin-bottom: 14px;">
+        <label style="font-size: 12px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 6px; display: block;">
+          Column Name <span style="color: var(--accent-primary);">*</span>
+        </label>
+        <input type="text" id="wizard-custom-col-name" class="global-search-input" style="width: 100%; height: 38px;" placeholder="e.g. country, industry, priority, lead_source">
+        <div style="font-size: 11px; color: var(--text-tertiary); margin-top: 4px;">Alphanumeric and underscores (will be saved against every lead in this dataset).</div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 16px;">
+        <div>
+          <label style="font-size: 12px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 6px; display: block;">
+            Data Type
+          </label>
+          <select id="wizard-custom-col-type" class="filter-select" style="width: 100%; height: 38px;">
+            <option value="text">Text (String)</option>
+            <option value="integer">Integer Number</option>
+            <option value="decimal">Decimal Number</option>
+            <option value="boolean">Boolean (True/False)</option>
+            <option value="date">Date (YYYY-MM-DD)</option>
+            <option value="datetime">Datetime</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size: 12px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 6px; display: block;">
+            Population Mode
+          </label>
+          <select id="wizard-custom-col-mode" class="filter-select" style="width: 100%; height: 38px;" onchange="toggleCustomColMode(this.value)">
+            <option value="constant">A. Same value for every row</option>
+            <option value="individual">B. Individual row-by-row values</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="wizard-custom-col-val-group" style="margin-bottom: 18px;">
+        <label id="wizard-custom-col-val-label" style="font-size: 12px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 6px; display: block;">
+          Value for All Rows (or Default)
+        </label>
+        <input type="text" id="wizard-custom-col-val" class="global-search-input" style="width: 100%; height: 38px;" placeholder="e.g. United Kingdom (leave blank if empty)">
+        <div id="wizard-custom-col-val-hint" style="font-size: 11px; color: var(--text-tertiary); margin-top: 4px;">
+          Every imported lead in this dataset will receive this value in this column.
+        </div>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid var(--border-subtle); padding-top: 16px;">
+        <button class="btn btn-secondary" onclick="closeAddCustomColumnModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="confirmAddCustomColumn()" style="background: #8b5cf6; border-color: #8b5cf6;">
+          Add Column to Schema
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- =========================================================================
+     DATASET COLUMN MANAGEMENT MODAL (My Datasets View)
+     ========================================================================= -->
+<div id="datasetColumnsModal" class="modal-overlay" style="display:none;" onclick="if(event.target===this)closeDatasetColumnsModal()">
+  <div class="categories-modal-content" style="max-width: 780px;">
+    <div class="modal-header">
+      <div class="modal-title-wrap">
+        <h3 class="modal-title">Dataset Columns & Schema Manager</h3>
+        <span class="modal-subtitle" id="mgmt-dataset-title">Manage standard and custom attributes for this dataset</span>
+      </div>
+      <button class="modal-close-btn" onclick="closeDatasetColumnsModal()">&times;</button>
+    </div>
+    <div class="modal-body" style="padding: 22px;">
+      <input type="hidden" id="mgmt-dataset-id">
+
+      <!-- Column List Table -->
+      <h4 style="font-size: 13px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 8px;">
+        Dataset Fields & Attributes
+      </h4>
+      <div class="table-responsive" style="max-height: 220px; margin-bottom: 22px; border: 1px solid var(--border-subtle); border-radius: var(--radius-md);">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Column Name</th>
+              <th>Type</th>
+              <th>Category</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="mgmt-columns-tbody">
+            <!-- Dynamically populated -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Add New Column to Existing Dataset Form -->
+      <div style="padding: 16px; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); margin-bottom: 20px;">
+        <h4 style="font-size: 13px; font-weight: 700; color: var(--text-primary); margin-bottom: 10px;">
+          + Add New Column to This Dataset
+        </h4>
+        <div style="display: grid; grid-template-columns: 2fr 1fr 2fr; gap: 12px; margin-bottom: 12px;">
+          <div>
+            <label style="font-size: 11px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; display: block; margin-bottom: 4px;">Column Name</label>
+            <input type="text" id="mgmt-new-col-name" class="global-search-input" style="width: 100%; height: 36px; font-size: 13px;" placeholder="e.g. lead_source">
+          </div>
+          <div>
+            <label style="font-size: 11px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; display: block; margin-bottom: 4px;">Type</label>
+            <select id="mgmt-new-col-type" class="filter-select" style="width: 100%; height: 36px;">
+              <option value="text">Text</option>
+              <option value="integer">Integer</option>
+              <option value="decimal">Decimal</option>
+              <option value="boolean">Boolean</option>
+              <option value="date">Date</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size: 11px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; display: block; margin-bottom: 4px;">Default Value</label>
+            <input type="text" id="mgmt-new-col-default" class="global-search-input" style="width: 100%; height: 36px; font-size: 13px;" placeholder="e.g. Website Signup">
+          </div>
+        </div>
+
+        <div style="margin-bottom: 14px;">
+          <label style="font-size: 11px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; display: block; margin-bottom: 6px;">Scope of Application</label>
+          <div style="display: flex; gap: 16px; font-size: 12px;">
+            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+              <input type="radio" name="mgmt-scope" value="all" checked>
+              <strong>All leads in this dataset</strong> (populates existing rows)
+            </label>
+            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+              <input type="radio" name="mgmt-scope" value="future">
+              <span>Future imports only</span>
+            </label>
+          </div>
+        </div>
+
+        <button class="btn btn-primary" onclick="submitAddColumnToDataset()" style="background: #8b5cf6; border-color: #8b5cf6; font-size: 12.5px;">
+          Add Column to Dataset
+        </button>
+      </div>
+
+      <!-- Footer Actions -->
+      <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-subtle); padding-top: 16px;">
+        <button class="btn btn-secondary" onclick="exportDatasetCustomCsv()" style="display: flex; align-items: center; gap: 6px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Export Dataset with Custom Columns
+        </button>
+        <button class="btn btn-secondary" onclick="closeDatasetColumnsModal()">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- =========================================================================
+     ZIP ARCHIVE ENTRY SELECTOR MODAL
+     ========================================================================= -->
+<div id="zipEntriesModal" class="modal-overlay" style="display:none;" onclick="if(event.target===this)closeZipEntriesModal()">
+  <div class="categories-modal-content" style="max-width: 620px;">
+    <div class="modal-header">
+      <div class="modal-title-wrap">
+        <h3 class="modal-title">Select Files from ZIP Archive</h3>
+        <span class="modal-subtitle">Choose which contained tabular files you want to extract and import</span>
+      </div>
+      <button class="modal-close-btn" onclick="closeZipEntriesModal()">&times;</button>
+    </div>
+    <div class="modal-body" style="padding: 20px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+        <span style="font-size: 12px; color: var(--text-secondary);" id="zip-entries-summary">Discovered 0 supported files</span>
+        <button class="btn btn-secondary" style="font-size: 11px; padding: 4px 8px;" onclick="toggleAllZipEntries()">Toggle All</button>
+      </div>
+      <div id="zip-entries-list" style="max-height: 260px; overflow-y: auto; border: 1px solid var(--border-subtle); border-radius: var(--radius-md); margin-bottom: 16px;">
+        <!-- Dynamically populated entries checklist -->
+      </div>
+      <div style="display: flex; justify-content: flex-end; gap: 10px;">
+        <button class="btn btn-secondary" onclick="closeZipEntriesModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="confirmZipEntriesSelection()">Import Selected Files</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 
 <!-- Toast Message -->
 <div id="toast" class="toast-msg">Notification</div>

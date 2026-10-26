@@ -857,8 +857,9 @@ function renderDatasetsTable(datasets) {
       actionButtons = `
         <div class="cell-action-group">
           <button class="cell-action-btn" onclick="selectDatasetAndExplore('${escapeHtml(d.id)}')" title="Explore Leads">${exploreIcon}<span>Explore</span></button>
+          <button class="cell-action-btn" onclick="openDatasetColumnsModal('${escapeHtml(d.id)}', '${escapeHtml(d.name)}')" title="Manage Columns" style="color: #a78bfa;"><span>⚙️ Columns</span></button>
           <button class="cell-action-btn" onclick="openRenameModal('${escapeHtml(d.id)}', '${escapeHtml(d.name)}')" title="Rename Dataset"><span>✏️ Rename</span></button>
-          <button class="cell-action-btn" onclick="openImportModalForDataset('${escapeHtml(d.id)}', '${escapeHtml(d.name)}')" title="Add More CSVs"><span>➕ Add Files</span></button>
+          <button class="cell-action-btn" onclick="openImportModalForDataset('${escapeHtml(d.id)}', '${escapeHtml(d.name)}')" title="Add More Files"><span>➕ Add Files</span></button>
           <button class="cell-action-btn" onclick="exportImportedDatasetCsv('${escapeHtml(d.id)}')" title="Export Clean CSV">${exportIcon}<span>Export</span></button>
           ${d.rejected_rows ? `<button class="cell-action-btn" onclick="window.open('/api/imported_datasets/${encodeURIComponent(d.id)}/rejections')" title="Download Rejection Report" style="color: #f59e0b;"><span>📋 Errors</span></button>` : ''}
           <button class="cell-action-btn" onclick="openDeleteModal('${escapeHtml(d.id)}', '${escapeHtml(d.name)}')" title="Delete Dataset" style="color: #ef4444;"><span>🗑️ Delete</span></button>
@@ -880,7 +881,7 @@ function renderDatasetsTable(datasets) {
         </td>
         <td>${sourceBadge}</td>
         <td class="cell-mono font-bold">${(d.count || 0).toLocaleString()}</td>
-        <td class="cell-mono">${d.columns_count || 12} cols</td>
+        <td class="cell-mono">${d.is_imported ? `<a href="javascript:void(0)" onclick="openDatasetColumnsModal('${escapeHtml(d.id)}', '${escapeHtml(d.name)}')" style="color: #a78bfa; text-decoration: underline;">${d.columns_count || 12} cols ⚙️</a>` : `${d.columns_count || 12} cols`}</td>
         <td><span class="status-badge neutral cell-mono">${format}</span></td>
         <td class="cell-mono text-tertiary">${d.file_size_mb ? d.file_size_mb + ' MB' : '-'}</td>
         <td class="cell-subtext">${d.import_date || (d.created_at ? d.created_at.slice(0, 10) : 'Active')}</td>
@@ -2782,7 +2783,7 @@ function applyCleaningPreset(type) {
 }
 
 // =============================================================================
-// ENTERPRISE IMPORT LEADS & DATASET INGESTION ENGINE
+// ENTERPRISE UNIVERSAL IMPORT LEADS & DATASET INGESTION ENGINE
 // =============================================================================
 
 STATE.importWizard = {
@@ -2790,10 +2791,13 @@ STATE.importWizard = {
   mode: 'new',
   datasetName: '',
   existingDatasetId: null,
-  files: [],
+  files: [], // Array of File objects
   inspections: [],
   activeInspectionIndex: 0,
-  mappings: {},
+  mappings: {}, // filename -> { targetKey: sourceCol }
+  columnSettings: {}, // filename -> { [sourceCol]: { displayName, excluded, type, defaultValue } }
+  customColumns: [], // Array of { name, type, default_value, populate_mode }
+  cellEdits: {}, // filename -> { [rowIdx]: { [colName]: newValue } }
   duplicateMode: 'skip_exact',
   isExecuting: false
 };
@@ -2826,7 +2830,7 @@ function goToWizardStep(step) {
     return;
   }
   if (step === 3 && (!STATE.importWizard.inspections || STATE.importWizard.inspections.length === 0)) {
-    toast('Please select and inspect CSV files first');
+    toast('Please select and inspect files first');
     return;
   }
 
@@ -2864,6 +2868,9 @@ function resetImportWizard() {
     inspections: [],
     activeInspectionIndex: 0,
     mappings: {},
+    columnSettings: {},
+    customColumns: [],
+    cellEdits: {},
     duplicateMode: 'skip_exact',
     isExecuting: false
   };
@@ -2885,6 +2892,8 @@ function resetImportWizard() {
 
   const btnInspect = document.getElementById('btn-inspect-files');
   if (btnInspect) btnInspect.disabled = true;
+
+  renderCustomColumnsTags();
 
   goToWizardStep(1);
 }
@@ -2991,11 +3000,21 @@ function onExistingDatasetSelect(datasetId) {
   }
 }
 
+function getFormatBadgeClass(fmt) {
+  const f = (fmt || '').toLowerCase();
+  if (['csv', 'tsv', 'txt'].includes(f)) return 'fmt-badge-csv';
+  if (['xlsx', 'xls', 'xlsm'].includes(f)) return 'fmt-badge-excel';
+  if (['json', 'jsonl', 'ndjson'].includes(f)) return 'fmt-badge-json';
+  if (f === 'xml') return 'fmt-badge-xml';
+  if (f === 'parquet') return 'fmt-badge-parquet';
+  if (['zip', 'gzip', 'gz'].includes(f)) return 'fmt-badge-zip';
+  return 'fmt-badge-csv';
+}
+
 function handleMultiFileInput(fileList) {
   if (!fileList || fileList.length === 0) return;
 
   const newFiles = Array.from(fileList);
-  // Prevent duplicate files in selection list
   newFiles.forEach(nf => {
     if (!STATE.importWizard.files.some(f => f.name === nf.name && f.size === nf.size)) {
       STATE.importWizard.files.push(nf);
@@ -3026,15 +3045,18 @@ function renderStagedFilesList() {
   listEl.innerHTML = files.map((f, idx) => {
     const sizeMb = (f.size / (1024 * 1024)).toFixed(2);
     const sizeFormatted = f.size > 1024 * 1024 ? `${sizeMb} MB` : `${Math.round(f.size / 1024)} KB`;
+    const ext = f.name.split('.').pop().toUpperCase();
+    const badgeCls = getFormatBadgeClass(ext);
+
     return `
       <div class="staged-file-card">
         <div class="staged-file-left">
           <div class="staged-file-icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            <span class="fmt-badge ${badgeCls}">${escapeHtml(ext)}</span>
           </div>
           <div class="staged-file-meta">
             <span class="staged-file-name">${escapeHtml(f.name)}</span>
-            <span class="staged-file-size">${sizeFormatted} · CSV Document</span>
+            <span class="staged-file-size">${sizeFormatted} · Tabular Ingestion Ready</span>
           </div>
         </div>
         <div class="staged-file-actions">
@@ -3046,7 +3068,7 @@ function renderStagedFilesList() {
   }).join('');
 
   const step2Summary = document.getElementById('wizard-step2-summary');
-  if (step2Summary) step2Summary.textContent = `${files.length} CSV file${files.length === 1 ? '' : 's'}`;
+  if (step2Summary) step2Summary.textContent = `${files.length} file${files.length === 1 ? '' : 's'}`;
 }
 
 function removeStagedFile(index) {
@@ -3057,14 +3079,12 @@ function removeStagedFile(index) {
 async function inspectAllSelectedFiles() {
   const files = STATE.importWizard.files;
   if (!files || files.length === 0) {
-    toast('Please select at least one CSV file');
+    toast('Please select at least one file');
     return;
   }
 
   const progContainer = document.getElementById('multi-upload-progress-container');
   const progFill = document.getElementById('multi-upload-progress-fill');
-  const statusLabel = document.getElementById('multi-upload-status-label');
-  const pctLabel = document.getElementById('multi-upload-pct-label');
   const btnInspect = document.getElementById('btn-inspect-files');
 
   if (progContainer) progContainer.style.display = 'block';
@@ -3075,7 +3095,6 @@ async function inspectAllSelectedFiles() {
     const interval = setInterval(() => {
       pct = Math.min(88, pct + 12);
       if (progFill) progFill.style.width = `${pct}%`;
-      if (pctLabel) pctLabel.textContent = `${pct}%`;
     }, 150);
 
     const formData = new FormData();
@@ -3090,7 +3109,6 @@ async function inspectAllSelectedFiles() {
 
     clearInterval(interval);
     if (progFill) progFill.style.width = '100%';
-    if (pctLabel) pctLabel.textContent = '100%';
 
     const data = await res.json();
     if (!res.ok || data.status !== 'success') {
@@ -3101,16 +3119,28 @@ async function inspectAllSelectedFiles() {
     STATE.importWizard.targetColumns = data.target_columns || [];
     STATE.importWizard.activeInspectionIndex = 0;
 
-    // Initialize default mappings for each file
+    // Initialize default mappings and column settings for each file
     STATE.importWizard.mappings = {};
+    STATE.importWizard.columnSettings = {};
+    STATE.importWizard.cellEdits = {};
+
     (data.files || []).forEach(f => {
       const fileMap = {};
+      const fileColSettings = {};
       (f.mappings || []).forEach(m => {
         if (m.target_key && m.target_key !== 'ignore') {
           fileMap[m.target_key] = m.source_header;
         }
+        fileColSettings[m.source_header] = {
+          displayName: m.source_header,
+          excluded: false,
+          type: m.detected_type || 'text',
+          defaultValue: ''
+        };
       });
       STATE.importWizard.mappings[f.filename] = fileMap;
+      STATE.importWizard.columnSettings[f.filename] = fileColSettings;
+      STATE.importWizard.cellEdits[f.filename] = {};
     });
 
     toast(`Inspected ${data.files_count} file(s) successfully!`);
@@ -3124,6 +3154,10 @@ async function inspectAllSelectedFiles() {
   }
 }
 
+// -----------------------------------------------------------------------------
+// Step 3 Rendering: Tabs, Metadata, Excel Sheets, Column Mapping, Custom Cols, Spreadsheet
+// -----------------------------------------------------------------------------
+
 function renderPreviewAndMappings() {
   const inspections = STATE.importWizard.inspections;
   if (!inspections || inspections.length === 0) return;
@@ -3131,25 +3165,37 @@ function renderPreviewAndMappings() {
   const tabsContainer = document.getElementById('preview-file-tabs-container');
   const activeIdx = STATE.importWizard.activeInspectionIndex;
   const activeFile = inspections[activeIdx] || inspections[0];
+  const filename = activeFile.filename;
 
-  // Render tabs
+  // Render file tabs
   if (tabsContainer) {
-    tabsContainer.innerHTML = inspections.map((f, i) => `
-      <div class="preview-file-tab ${i === activeIdx ? 'active' : ''}" onclick="switchPreviewFileTab(${i})">
-        📄 ${escapeHtml(f.filename)} (${(f.total_rows_estimate || 0).toLocaleString()} rows)
-      </div>
-    `).join('');
+    tabsContainer.innerHTML = inspections.map((f, i) => {
+      const ext = (f.format || f.filename.split('.').pop()).toUpperCase();
+      const badgeCls = getFormatBadgeClass(ext);
+      return `
+        <div class="preview-file-tab ${i === activeIdx ? 'active' : ''}" onclick="switchPreviewFileTab(${i})">
+          <span class="fmt-badge ${badgeCls}" style="font-size: 9px; padding: 1px 4px;">${escapeHtml(ext)}</span>
+          ${escapeHtml(f.filename)} (${(f.total_rows_estimate || 0).toLocaleString()} rows)
+        </div>
+      `;
+    }).join('');
   }
 
   // Active file metadata card
+  const fmtEl = document.getElementById('meta-format-badge');
   const encEl = document.getElementById('meta-encoding');
   const delimEl = document.getElementById('meta-delimiter');
   const rowsEl = document.getElementById('meta-est-rows');
   const colsEl = document.getElementById('meta-cols-count');
   const missingEl = document.getElementById('meta-missing-badges');
 
+  const fmtName = (activeFile.format || 'CSV').toUpperCase();
+  if (fmtEl) {
+    fmtEl.textContent = fmtName;
+    fmtEl.className = `fmt-badge ${getFormatBadgeClass(fmtName)}`;
+  }
   if (encEl) encEl.textContent = activeFile.encoding || 'UTF-8';
-  if (delimEl) delimEl.textContent = activeFile.delimiter_name || "Comma (',')";
+  if (delimEl) delimEl.textContent = activeFile.delimiter_name || activeFile.format || '-';
   if (rowsEl) rowsEl.textContent = (activeFile.total_rows_estimate || 0).toLocaleString();
   if (colsEl) colsEl.textContent = activeFile.columns_count || 0;
 
@@ -3162,49 +3208,195 @@ function renderPreviewAndMappings() {
     `;
   }
 
-  // Column mapping table
+  // Excel Worksheet selector if multiple worksheets exist
+  const sheetGroup = document.getElementById('excel-sheet-selector-group');
+  const sheetSelect = document.getElementById('excel-sheet-select');
+  if (sheetGroup && sheetSelect) {
+    if (activeFile.worksheets && activeFile.worksheets.length > 1) {
+      sheetGroup.style.display = 'block';
+      sheetSelect.innerHTML = activeFile.worksheets.map(ws =>
+        `<option value="${escapeHtml(ws)}" ${ws === activeFile.active_worksheet ? 'selected' : ''}>${escapeHtml(ws)}</option>`
+      ).join('');
+    } else {
+      sheetGroup.style.display = 'none';
+    }
+  }
+
+  // Render Custom Columns Tags
+  renderCustomColumnsTags();
+
+  // Column mapping & settings table
   const tbody = document.getElementById('wizard-mapping-tbody');
-  const fileMappings = STATE.importWizard.mappings[activeFile.filename] || {};
+  const fileMappings = STATE.importWizard.mappings[filename] || {};
+  const fileColSettings = STATE.importWizard.columnSettings[filename] || {};
   const targetCols = STATE.importWizard.targetColumns || [];
 
   if (tbody) {
     tbody.innerHTML = (activeFile.mappings || []).map(m => {
-      const currentTarget = Object.keys(fileMappings).find(k => fileMappings[k] === m.source_header) || m.target_key;
-      const sampleVal = (activeFile.preview_rows && activeFile.preview_rows[0]) ? activeFile.preview_rows[0][m.source_header] : '-';
+      const src = m.source_header;
+      const currentTarget = Object.keys(fileMappings).find(k => fileMappings[k] === src) || m.target_key;
+      const sampleVal = (activeFile.preview_rows && activeFile.preview_rows[0]) ? activeFile.preview_rows[0][src] : '-';
+      const colSetting = fileColSettings[src] || { displayName: src, excluded: false, type: m.detected_type || 'text', defaultValue: '' };
 
       const selectOptions = `
-        <option value="ignore" ${currentTarget === 'ignore' ? 'selected' : ''}>-- Ignore Column --</option>
+        <option value="ignore" ${currentTarget === 'ignore' ? 'selected' : ''}>-- Ignore / Skip --</option>
         ${targetCols.map(tc => `<option value="${tc.key}" ${currentTarget === tc.key ? 'selected' : ''}>${tc.label}${tc.required ? ' *' : ''}</option>`).join('')}
       `;
 
       return `
-        <tr>
-          <td class="cell-name-strong">${escapeHtml(m.source_header)}</td>
+        <tr style="${colSetting.excluded ? 'opacity: 0.5;' : ''}">
           <td>
-            <select class="filter-select" style="width: 100%;" onchange="onMappingChange('${escapeHtml(activeFile.filename)}', this.value, '${escapeHtml(m.source_header)}')">
+            <input type="checkbox" ${!colSetting.excluded ? 'checked' : ''}
+              onchange="onColumnExcludeToggle('${escapeHtml(filename)}', '${escapeHtml(src)}', !this.checked)"
+              title="Include or exclude this column from import">
+          </td>
+          <td class="cell-name-strong">${escapeHtml(src)}</td>
+          <td>
+            <input type="text" class="global-search-input" style="height: 30px; font-size: 12px; width: 140px;"
+              value="${escapeHtml(colSetting.displayName || src)}"
+              onchange="onColumnRenameInput('${escapeHtml(filename)}', '${escapeHtml(src)}', this.value)"
+              placeholder="Display Name">
+          </td>
+          <td>
+            <select class="filter-select" style="width: 100%; height: 30px; font-size: 12px;"
+              onchange="onMappingChange('${escapeHtml(filename)}', this.value, '${escapeHtml(src)}')">
               ${selectOptions}
             </select>
           </td>
-          <td><span class="status-badge ${m.confidence.includes('100%') ? 'clean' : (m.confidence.includes('0%') ? 'neutral' : 'warning')}">${escapeHtml(m.confidence)}</span></td>
-          <td class="cell-subtext">${escapeHtml(sampleVal || '-')}</td>
+          <td>
+            <select class="filter-select" style="width: 90px; height: 30px; font-size: 11px;"
+              onchange="onColumnTypeOverride('${escapeHtml(filename)}', '${escapeHtml(src)}', this.value)">
+              <option value="text" ${colSetting.type === 'text' ? 'selected' : ''}>Text</option>
+              <option value="integer" ${colSetting.type === 'integer' ? 'selected' : ''}>Integer</option>
+              <option value="decimal" ${colSetting.type === 'decimal' ? 'selected' : ''}>Decimal</option>
+              <option value="boolean" ${colSetting.type === 'boolean' ? 'selected' : ''}>Boolean</option>
+              <option value="date" ${colSetting.type === 'date' ? 'selected' : ''}>Date</option>
+              <option value="datetime" ${colSetting.type === 'datetime' ? 'selected' : ''}>Datetime</option>
+            </select>
+          </td>
+          <td>
+            <input type="text" class="global-search-input" style="height: 30px; font-size: 12px; width: 120px;"
+              value="${escapeHtml(colSetting.defaultValue || '')}"
+              onchange="onColumnDefaultValueInput('${escapeHtml(filename)}', '${escapeHtml(src)}', this.value)"
+              placeholder="Fallback Default">
+          </td>
+          <td class="cell-subtext" style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+            ${escapeHtml(String(sampleVal !== undefined && sampleVal !== null ? sampleVal : '-'))}
+          </td>
         </tr>
       `;
     }).join('');
   }
 
-  // Sample rows table (First 5 rows)
-  const thead = document.getElementById('wizard-sample-thead');
-  const sampleTbody = document.getElementById('wizard-sample-tbody');
-  const headers = activeFile.headers || [];
+  // Render Interactive Spreadsheet Preview with Cell Editing
+  renderSpreadsheetPreview();
+}
+
+function renderSpreadsheetPreview() {
+  const activeIdx = STATE.importWizard.activeInspectionIndex;
+  const activeFile = STATE.importWizard.inspections[activeIdx];
+  if (!activeFile) return;
+
+  const filename = activeFile.filename;
+  const thead = document.getElementById('wizard-spreadsheet-thead');
+  const tbody = document.getElementById('wizard-spreadsheet-tbody');
+  const countEl = document.getElementById('spreadsheet-edited-count');
+
+  const fileColSettings = STATE.importWizard.columnSettings[filename] || {};
+  const activeHeaders = (activeFile.headers || []).filter(h => !fileColSettings[h]?.excluded);
+  const customCols = STATE.importWizard.customColumns || [];
   const rows = activeFile.preview_rows || [];
+  const cellEdits = STATE.importWizard.cellEdits[filename] || {};
+
+  // Count total edits for this file
+  let totalEdits = 0;
+  Object.values(cellEdits).forEach(rowObj => {
+    totalEdits += Object.keys(rowObj || {}).length;
+  });
+  if (countEl) {
+    if (totalEdits > 0) {
+      countEl.style.display = 'inline-block';
+      countEl.textContent = `✎ ${totalEdits} cell edit${totalEdits === 1 ? '' : 's'} staged`;
+    } else {
+      countEl.style.display = 'none';
+    }
+  }
 
   if (thead) {
-    thead.innerHTML = `<tr>${headers.map(h => `<th>${escapeHtml(h)}</th>`).join('')}</tr>`;
+    const srcHeaderThs = activeHeaders.map(h => {
+      const displayName = fileColSettings[h]?.displayName || h;
+      return `<th title="Original column: ${escapeHtml(h)}">${escapeHtml(displayName)}</th>`;
+    }).join('');
+
+    const customHeaderThs = customCols.map(c =>
+      `<th class="custom-col-header" title="Custom Column (${c.populate_mode === 'same' ? 'Same value' : 'Individual values'})">
+        ★ ${escapeHtml(c.name)}
+       </th>`
+    ).join('');
+
+    thead.innerHTML = `<tr><th style="width: 40px; text-align: center;">#</th>${srcHeaderThs}${customHeaderThs}</tr>`;
   }
-  if (sampleTbody) {
-    sampleTbody.innerHTML = rows.map(r => `
-      <tr>${headers.map(h => `<td class="cell-subtext">${escapeHtml(r[h] || '-')}</td>`).join('')}</tr>
-    `).join('');
+
+  if (tbody) {
+    tbody.innerHTML = rows.map((r, rowIdx) => {
+      const rowNumCell = `<td style="color: var(--text-tertiary); font-family: var(--font-mono); font-size: 11px; text-align: center;">${rowIdx + 1}</td>`;
+
+      const srcTds = activeHeaders.map(h => {
+        const editedVal = cellEdits[rowIdx]?.[h];
+        const isEdited = editedVal !== undefined;
+        const displayVal = isEdited ? editedVal : (r[h] !== undefined && r[h] !== null ? r[h] : '');
+        return `
+          <td class="spreadsheet-cell-editable ${isEdited ? 'spreadsheet-cell-edited' : ''}"
+              contenteditable="true"
+              data-filename="${escapeHtml(filename)}"
+              data-row="${rowIdx}"
+              data-col="${escapeHtml(h)}"
+              onblur="onSpreadsheetCellBlur(this)">${escapeHtml(String(displayVal))}</td>
+        `;
+      }).join('');
+
+      const customTds = customCols.map(c => {
+        const editedVal = cellEdits[rowIdx]?.[c.name];
+        const isEdited = editedVal !== undefined;
+        let displayVal = isEdited ? editedVal : (c.populate_mode === 'same' ? (c.default_value || '') : '');
+        return `
+          <td class="spreadsheet-cell-editable ${isEdited ? 'spreadsheet-cell-edited' : ''}"
+              contenteditable="true"
+              style="background: rgba(139, 92, 246, 0.05);"
+              data-filename="${escapeHtml(filename)}"
+              data-row="${rowIdx}"
+              data-col="${escapeHtml(c.name)}"
+              onblur="onSpreadsheetCellBlur(this)">${escapeHtml(String(displayVal))}</td>
+        `;
+      }).join('');
+
+      return `<tr>${rowNumCell}${srcTds}${customTds}</tr>`;
+    }).join('');
+  }
+}
+
+function onSpreadsheetCellBlur(cellEl) {
+  const filename = cellEl.dataset.filename;
+  const rowIdx = parseInt(cellEl.dataset.row);
+  const colName = cellEl.dataset.col;
+  const newVal = cellEl.innerText.trim();
+
+  if (!STATE.importWizard.cellEdits[filename]) {
+    STATE.importWizard.cellEdits[filename] = {};
+  }
+  if (!STATE.importWizard.cellEdits[filename][rowIdx]) {
+    STATE.importWizard.cellEdits[filename][rowIdx] = {};
+  }
+
+  STATE.importWizard.cellEdits[filename][rowIdx][colName] = newVal;
+  cellEl.classList.add('spreadsheet-cell-edited');
+
+  const countEl = document.getElementById('spreadsheet-edited-count');
+  if (countEl) {
+    let totalEdits = 0;
+    Object.values(STATE.importWizard.cellEdits[filename] || {}).forEach(r => totalEdits += Object.keys(r).length);
+    countEl.style.display = 'inline-block';
+    countEl.textContent = `✎ ${totalEdits} cell edit${totalEdits === 1 ? '' : 's'} staged`;
   }
 }
 
@@ -3217,7 +3409,6 @@ function onMappingChange(filename, targetKey, sourceHeader) {
   if (!STATE.importWizard.mappings[filename]) {
     STATE.importWizard.mappings[filename] = {};
   }
-  // Clear any existing mapping to this targetKey in this file
   if (targetKey !== 'ignore') {
     Object.keys(STATE.importWizard.mappings[filename]).forEach(k => {
       if (k === targetKey) delete STATE.importWizard.mappings[filename][k];
@@ -3232,6 +3423,159 @@ function onMappingChange(filename, targetKey, sourceHeader) {
   }
 }
 
+function onColumnRenameInput(filename, sourceCol, newDisplayName) {
+  if (!STATE.importWizard.columnSettings[filename]) {
+    STATE.importWizard.columnSettings[filename] = {};
+  }
+  if (!STATE.importWizard.columnSettings[filename][sourceCol]) {
+    STATE.importWizard.columnSettings[filename][sourceCol] = { displayName: sourceCol, excluded: false, type: 'text', defaultValue: '' };
+  }
+  STATE.importWizard.columnSettings[filename][sourceCol].displayName = newDisplayName.trim() || sourceCol;
+  renderSpreadsheetPreview();
+}
+
+function onColumnExcludeToggle(filename, sourceCol, isExcluded) {
+  if (!STATE.importWizard.columnSettings[filename]) {
+    STATE.importWizard.columnSettings[filename] = {};
+  }
+  if (!STATE.importWizard.columnSettings[filename][sourceCol]) {
+    STATE.importWizard.columnSettings[filename][sourceCol] = { displayName: sourceCol, excluded: false, type: 'text', defaultValue: '' };
+  }
+  STATE.importWizard.columnSettings[filename][sourceCol].excluded = isExcluded;
+  renderPreviewAndMappings();
+}
+
+function onColumnTypeOverride(filename, sourceCol, newType) {
+  if (!STATE.importWizard.columnSettings[filename]) {
+    STATE.importWizard.columnSettings[filename] = {};
+  }
+  if (!STATE.importWizard.columnSettings[filename][sourceCol]) {
+    STATE.importWizard.columnSettings[filename][sourceCol] = { displayName: sourceCol, excluded: false, type: 'text', defaultValue: '' };
+  }
+  STATE.importWizard.columnSettings[filename][sourceCol].type = newType;
+}
+
+function onColumnDefaultValueInput(filename, sourceCol, defVal) {
+  if (!STATE.importWizard.columnSettings[filename]) {
+    STATE.importWizard.columnSettings[filename] = {};
+  }
+  if (!STATE.importWizard.columnSettings[filename][sourceCol]) {
+    STATE.importWizard.columnSettings[filename][sourceCol] = { displayName: sourceCol, excluded: false, type: 'text', defaultValue: '' };
+  }
+  STATE.importWizard.columnSettings[filename][sourceCol].defaultValue = defVal;
+}
+
+async function onWorksheetSelectChange(newSheet) {
+  const activeIdx = STATE.importWizard.activeInspectionIndex;
+  const activeFile = STATE.importWizard.inspections[activeIdx];
+  if (!activeFile) return;
+
+  try {
+    const res = await fetch(`/api/import/inspect?staged_path=${encodeURIComponent(activeFile.staged_path)}&worksheet=${encodeURIComponent(newSheet)}`);
+    const data = await res.json();
+    if (!res.ok || data.status !== 'success') {
+      throw new Error(data.message || 'Failed to inspect worksheet');
+    }
+    STATE.importWizard.inspections[activeIdx] = data.inspection;
+    renderPreviewAndMappings();
+    toast(`Loaded worksheet: ${newSheet}`);
+  } catch (err) {
+    toast(`Error loading worksheet: ${err.message}`);
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Custom Columns Modal & Controls (CRITICAL FEATURE)
+// -----------------------------------------------------------------------------
+
+function openAddCustomColumnModal() {
+  const modal = document.getElementById('addCustomColumnModal');
+  const nameInput = document.getElementById('wizard-custom-col-name');
+  const valInput = document.getElementById('wizard-custom-col-val');
+  if (nameInput) nameInput.value = '';
+  if (valInput) valInput.value = '';
+  if (modal) modal.style.display = 'flex';
+}
+
+function closeAddCustomColumnModal() {
+  const modal = document.getElementById('addCustomColumnModal');
+  if (modal) modal.style.display = 'none';
+}
+
+function onCustomColModeToggle(mode) {
+  const valGroup = document.getElementById('wizard-custom-col-val-group');
+  const valHint = document.getElementById('wizard-custom-col-val-hint');
+  if (mode === 'same') {
+    if (valGroup) valGroup.style.display = 'block';
+    if (valHint) valHint.textContent = 'Every imported lead in this dataset will receive this value in this column.';
+  } else {
+    if (valGroup) valGroup.style.display = 'block';
+    if (valHint) valHint.textContent = 'Default value for blank cells (leave blank if you want empty cells). You can edit each row individually in the spreadsheet table.';
+  }
+}
+
+function confirmAddCustomColumn() {
+  const nameInput = document.getElementById('wizard-custom-col-name');
+  const typeSelect = document.getElementById('wizard-custom-col-type');
+  const valInput = document.getElementById('wizard-custom-col-val');
+  const modeRadios = document.getElementsByName('wizard-custom-col-mode');
+
+  let mode = 'same';
+  for (const r of modeRadios) {
+    if (r.checked) mode = r.value;
+  }
+
+  const rawName = (nameInput ? nameInput.value : '').trim();
+  const cleanName = rawName.toLowerCase().replace(/[^a-z0-9_]/g, '_').replace(/^_+|_+$/g, '');
+
+  if (!cleanName) {
+    toast('Please enter a valid column name');
+    return;
+  }
+
+  // Check duplicate in custom columns
+  if (STATE.importWizard.customColumns.some(c => c.name === cleanName)) {
+    toast(`Custom column "${cleanName}" has already been added`);
+    return;
+  }
+
+  const newCol = {
+    name: cleanName,
+    type: typeSelect ? typeSelect.value : 'text',
+    populate_mode: mode,
+    default_value: valInput ? valInput.value : ''
+  };
+
+  STATE.importWizard.customColumns.push(newCol);
+  closeAddCustomColumnModal();
+  renderPreviewAndMappings();
+  toast(`Added custom column "${cleanName}" (${mode === 'same' ? 'Same value' : 'Individual values'})`);
+}
+
+function removeCustomColumn(colName) {
+  STATE.importWizard.customColumns = STATE.importWizard.customColumns.filter(c => c.name !== colName);
+  renderPreviewAndMappings();
+  toast(`Removed custom column "${colName}"`);
+}
+
+function renderCustomColumnsTags() {
+  const container = document.getElementById('custom-columns-tags-container');
+  if (!container) return;
+
+  const cols = STATE.importWizard.customColumns || [];
+  if (cols.length === 0) {
+    container.innerHTML = '<span style="font-size: 11px; color: var(--text-tertiary); font-style: italic;">No custom columns added yet. Click "+ Add Custom Column" to append dataset-specific fields (e.g. country, industry, priority).</span>';
+    return;
+  }
+
+  container.innerHTML = cols.map(c => `
+    <span class="custom-col-tag" title="Type: ${c.type} | Mode: ${c.populate_mode} | Default: ${c.default_value || 'None'}">
+      ★ ${escapeHtml(c.name)} <span style="opacity: 0.6; font-size: 10px;">(${c.type})</span>
+      <span class="remove-col" onclick="removeCustomColumn('${escapeHtml(c.name)}')">✕</span>
+    </span>
+  `).join('');
+}
+
 function selectDupMode(mode) {
   STATE.importWizard.duplicateMode = mode;
   ['skip_exact', 'import_all', 'new_only', 'flag_review'].forEach(m => {
@@ -3243,6 +3587,10 @@ function selectDupMode(mode) {
     }
   });
 }
+
+// -----------------------------------------------------------------------------
+// Execution & Ingestion
+// -----------------------------------------------------------------------------
 
 async function executeDatasetIngestion() {
   const wizard = STATE.importWizard;
@@ -3277,7 +3625,9 @@ async function executeDatasetIngestion() {
   try {
     const stagedFilesPayload = wizard.inspections.map(f => ({
       original_filename: f.filename,
-      staged_path: f.staged_path
+      staged_path: f.staged_path,
+      format: f.format,
+      worksheet: f.active_worksheet
     }));
 
     const res = await fetch('/api/import/execute', {
@@ -3287,6 +3637,9 @@ async function executeDatasetIngestion() {
         dataset_name: wizard.datasetName,
         files: stagedFilesPayload,
         column_mappings: wizard.mappings,
+        column_settings: wizard.columnSettings,
+        custom_columns: wizard.customColumns,
+        cell_edits: wizard.cellEdits,
         duplicate_mode: wizard.duplicateMode,
         existing_dataset_id: wizard.existingDatasetId
       })
@@ -3364,7 +3717,7 @@ function exploreImportedDatasetNow() {
 }
 
 // =============================================================================
-// DATASET MANAGEMENT MODALS & ACTIONS
+// POST-IMPORT DATASET MANAGEMENT & CUSTOM COLUMN SCHEMA CONTROLS
 // =============================================================================
 
 function openRenameModal(datasetId, currentName) {
@@ -3449,9 +3802,207 @@ async function submitDeleteDataset() {
   }
 }
 
+// -----------------------------------------------------------------------------
+// Post-Import Dataset Columns Management Interface
+// -----------------------------------------------------------------------------
+
+async function openDatasetColumnsModal(datasetId, datasetName) {
+  const modal = document.getElementById('datasetColumnsModal');
+  const idInput = document.getElementById('mgmt-dataset-id');
+  const titleEl = document.getElementById('mgmt-dataset-title');
+
+  if (idInput) idInput.value = datasetId;
+  if (titleEl) titleEl.textContent = `Manage schema and custom attributes for "${datasetName || datasetId}"`;
+
+  if (modal) modal.style.display = 'flex';
+  await refreshDatasetColumnsList(datasetId);
+}
+
+function closeDatasetColumnsModal() {
+  const modal = document.getElementById('datasetColumnsModal');
+  if (modal) modal.style.display = 'none';
+}
+
+async function refreshDatasetColumnsList(datasetId) {
+  const tbody = document.getElementById('mgmt-columns-tbody');
+  if (!tbody) return;
+
+  tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 16px;">Loading columns...</td></tr>';
+
+  try {
+    const res = await fetch(`/api/imported_datasets/${encodeURIComponent(datasetId)}/columns`);
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      throw new Error(data.error || 'Failed to load columns');
+    }
+
+    const cols = data.columns || [];
+    if (cols.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 16px;">No columns found for this dataset.</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = cols.map(c => {
+      const isCustom = c.is_custom;
+      const categoryBadge = isCustom
+        ? `<span class="custom-col-tag" style="margin: 0; padding: 2px 6px;">★ Custom</span>`
+        : `<span class="status-badge neutral" style="font-size: 11px;">Standard</span>`;
+
+      const actions = isCustom
+        ? `
+          <button class="btn btn-secondary btn-sm" onclick="promptRenameColumn('${escapeHtml(datasetId)}', '${escapeHtml(c.name)}')" title="Rename column" style="padding: 2px 6px; font-size: 11px;">✏️ Rename</button>
+          <button class="btn btn-secondary btn-sm" onclick="promptFillColumn('${escapeHtml(datasetId)}', '${escapeHtml(c.name)}')" title="Fill or batch populate" style="padding: 2px 6px; font-size: 11px;">💧 Fill</button>
+          <button class="btn btn-secondary btn-sm" onclick="promptDeleteColumn('${escapeHtml(datasetId)}', '${escapeHtml(c.name)}')" title="Delete column" style="padding: 2px 6px; font-size: 11px; color: #ef4444;">🗑️</button>
+        `
+        : `<span style="font-size: 11px; color: var(--text-tertiary); font-style: italic;">Standard Core Field</span>`;
+
+      return `
+        <tr>
+          <td class="cell-name-strong">${escapeHtml(c.name)}</td>
+          <td><span class="status-badge neutral" style="font-size: 11px;">${escapeHtml(c.type || 'text')}</span></td>
+          <td>${categoryBadge}</td>
+          <td style="display: flex; gap: 4px; align-items: center;">${actions}</td>
+        </tr>
+      `;
+    }).join('');
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="4" style="color: #ef4444; padding: 16px;">Error loading columns: ${escapeHtml(err.message)}</td></tr>`;
+  }
+}
+
+async function submitAddColumnToDataset() {
+  const idInput = document.getElementById('mgmt-dataset-id');
+  const nameInput = document.getElementById('mgmt-new-col-name');
+  const typeSelect = document.getElementById('mgmt-new-col-type');
+  const defInput = document.getElementById('mgmt-new-col-default');
+  const scopeRadios = document.getElementsByName('mgmt-scope');
+
+  if (!idInput || !idInput.value) return;
+  const datasetId = idInput.value;
+
+  const rawName = (nameInput ? nameInput.value : '').trim();
+  const cleanName = rawName.toLowerCase().replace(/[^a-z0-9_]/g, '_').replace(/^_+|_+$/g, '');
+
+  if (!cleanName) {
+    toast('Please enter a valid column name');
+    return;
+  }
+
+  let scope = 'all';
+  for (const r of scopeRadios) {
+    if (r.checked) scope = r.value;
+  }
+
+  try {
+    const res = await fetch(`/api/imported_datasets/${encodeURIComponent(datasetId)}/columns`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        column_name: cleanName,
+        column_type: typeSelect ? typeSelect.value : 'text',
+        default_value: defInput ? defInput.value : '',
+        scope: scope
+      })
+    });
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      throw new Error(data.error || 'Failed to add column');
+    }
+
+    toast(`Column "${cleanName}" added successfully to dataset!`);
+    if (nameInput) nameInput.value = '';
+    if (defInput) defInput.value = '';
+    await refreshDatasetColumnsList(datasetId);
+    loadDatasetsCatalog();
+  } catch (err) {
+    toast(`Error adding column: ${err.message}`);
+  }
+}
+
+async function promptRenameColumn(datasetId, oldName) {
+  const newName = prompt(`Enter new column name for "${oldName}":`, oldName);
+  if (!newName || newName.trim() === oldName) return;
+
+  const cleanNewName = newName.trim().toLowerCase().replace(/[^a-z0-9_]/g, '_').replace(/^_+|_+$/g, '');
+  if (!cleanNewName) {
+    toast('Invalid column name');
+    return;
+  }
+
+  try {
+    const res = await fetch(`/api/imported_datasets/${encodeURIComponent(datasetId)}/columns/${encodeURIComponent(oldName)}/rename`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ new_name: cleanNewName })
+    });
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      throw new Error(data.error || 'Failed to rename column');
+    }
+    toast(`Column renamed to "${cleanNewName}"`);
+    await refreshDatasetColumnsList(datasetId);
+  } catch (err) {
+    toast(`Error renaming column: ${err.message}`);
+  }
+}
+
+async function promptFillColumn(datasetId, colName) {
+  const val = prompt(`Enter the value to fill in column "${colName}":`);
+  if (val === null) return;
+
+  const onlyBlanks = confirm(`Do you want to fill BLANK cells only?\n\nClick OK to fill blanks only.\nClick Cancel to overwrite ALL leads in this dataset.`);
+
+  try {
+    const res = await fetch(`/api/imported_datasets/${encodeURIComponent(datasetId)}/columns/${encodeURIComponent(colName)}/fill`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        value: val,
+        only_blanks: onlyBlanks
+      })
+    });
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      throw new Error(data.error || 'Failed to fill column values');
+    }
+    toast(`Updated ${data.updated_leads_count || 0} leads with value "${val}"`);
+    await refreshDatasetColumnsList(datasetId);
+  } catch (err) {
+    toast(`Error filling column: ${err.message}`);
+  }
+}
+
+async function promptDeleteColumn(datasetId, colName) {
+  const confirmed = confirm(`Are you sure you want to permanently delete column "${colName}" from this dataset?\n\nThis will remove the column from existing records in this dataset.`);
+  if (!confirmed) return;
+
+  try {
+    const res = await fetch(`/api/imported_datasets/${encodeURIComponent(datasetId)}/columns/${encodeURIComponent(colName)}`, {
+      method: 'DELETE'
+    });
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      throw new Error(data.error || 'Failed to delete column');
+    }
+    toast(`Column "${colName}" deleted successfully`);
+    await refreshDatasetColumnsList(datasetId);
+    loadDatasetsCatalog();
+  } catch (err) {
+    toast(`Error deleting column: ${err.message}`);
+  }
+}
+
+function exportDatasetCustomCsv() {
+  const idInput = document.getElementById('mgmt-dataset-id');
+  if (idInput && idInput.value) {
+    exportImportedDatasetCsv(idInput.value);
+  }
+}
+
 function exportImportedDatasetCsv(datasetId) {
   window.open(`/api/imported_datasets/${encodeURIComponent(datasetId)}/export`, '_blank');
 }
+
 
 // =============================================================================
 // RANGE EXPORT CONTROLS

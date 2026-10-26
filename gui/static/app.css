@@ -3646,3 +3646,111 @@ th.sortable:hover {
   display: flex;
   flex-direction: column;
 }
+
+/* Universal File Format Badges */
+.fmt-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  font-family: var(--font-mono);
+}
+.fmt-badge-csv { background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); }
+.fmt-badge-excel { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+.fmt-badge-json { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+.fmt-badge-xml { background: rgba(236, 72, 153, 0.15); color: #f472b6; border: 1px solid rgba(236, 72, 153, 0.3); }
+.fmt-badge-parquet { background: rgba(139, 92, 246, 0.15); color: #a78bfa; border: 1px solid rgba(139, 92, 246, 0.3); }
+.fmt-badge-zip { background: rgba(20, 184, 166, 0.15); color: #2dd4bf; border: 1px solid rgba(20, 184, 166, 0.3); }
+.fmt-badge-gzip { background: rgba(14, 165, 233, 0.15); color: #38bdf8; border: 1px solid rgba(14, 165, 233, 0.3); }
+
+/* Interactive Spreadsheet Editor */
+.spreadsheet-container {
+  overflow-x: auto;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+  position: relative;
+  max-height: 380px;
+}
+.spreadsheet-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.spreadsheet-table th {
+  background: var(--bg-card);
+  padding: 8px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--border-muted);
+  border-right: 1px solid var(--border-subtle);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.spreadsheet-table td {
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border-subtle);
+  border-right: 1px solid var(--border-subtle);
+  white-space: nowrap;
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  position: relative;
+  cursor: text;
+  transition: background 0.15s ease;
+}
+.spreadsheet-cell-editable:hover {
+  background: rgba(59, 130, 246, 0.08);
+}
+.spreadsheet-cell-editable:focus {
+  outline: 2px solid var(--accent-primary);
+  background: var(--bg-card);
+  z-index: 5;
+  white-space: normal;
+  overflow: visible;
+}
+.spreadsheet-cell-edited {
+  background: rgba(245, 158, 11, 0.15) !important;
+  color: #fbbf24 !important;
+  font-weight: 600;
+  position: relative;
+}
+.spreadsheet-cell-edited::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 5px;
+  height: 5px;
+  background: #f59e0b;
+  border-radius: 50%;
+}
+.custom-col-header {
+  color: #a78bfa !important;
+}
+.custom-col-cell {
+  background: rgba(139, 92, 246, 0.05);
+}
+
+/* Post-Import Column Management */
+.col-mgmt-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  margin-bottom: 8px;
+  background: var(--bg-surface);
+  transition: all var(--transition-fast);
+}
+.col-mgmt-item:hover {
+  border-color: var(--border-muted);
+}

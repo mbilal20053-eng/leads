@@ -11,6 +11,7 @@ there if you're new.
 
 ## Pages
 
+- **[Universal Lead Importer & Custom Columns Guide](UNIVERSAL_IMPORT_AND_CUSTOM_COLUMNS_GUIDE.md)** — comprehensive guide for universal file formats (CSV, TSV, TXT, Excel, JSON, XML, Parquet, ZIP, GZIP), custom column schema management, spreadsheet preview editing, and safe DuckDB integration.
 - **[Cookbook](COOKBOOK.md)** — worked recipes, one real CLI command per use case.
 - **[Add a vertical](ADD_A_VERTICAL.md)** — build your own vertical (a plain
   dataclass: what to prospect for and how to score it).

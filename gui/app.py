@@ -2749,7 +2749,7 @@ def api_import_validate_name():
 
 @app.route("/api/import/inspect_files", methods=["POST"])
 def api_import_inspect_files():
-    """Inspects multiple uploaded CSV files: detects encodings, delimiters, schemas, and preview rows."""
+    """Universal inspector for uploaded files: CSV, TSV, Excel, JSON, XML, Parquet, ZIP, GZIP."""
     from gui import importer
     files = request.files.getlist("files")
     if not files:
@@ -2759,18 +2759,20 @@ def api_import_inspect_files():
     if not files:
         return jsonify({"status": "error", "message": "No files uploaded for inspection."}), 400
 
+    sheet_name = request.form.get("sheet_name")
     session_id = f"inspect_{int(time.time())}_{socket.gethostname()}"
     staging_session_dir = os.path.join(importer.RAW_UPLOADS_DIR, session_id)
     os.makedirs(staging_session_dir, exist_ok=True)
 
     inspected_files = []
     for f in files:
-        orig_name = f.filename or "uploaded.csv"
+        orig_name = f.filename or "uploaded_file"
         safe_name = re.sub(r"[^a-zA-Z0-9_.-]", "_", orig_name)
         staged_path = os.path.join(staging_session_dir, safe_name)
         f.save(staged_path)
 
-        res = importer.inspect_csv_file(staged_path, original_filename=orig_name)
+        options = {"sheet_name": sheet_name, "session_dir": staging_session_dir}
+        res = importer.inspect_universal_file(staged_path, original_filename=orig_name, options=options)
         res["staged_path"] = staged_path
         inspected_files.append(res)
 
@@ -2782,6 +2784,34 @@ def api_import_inspect_files():
         "target_columns": importer.TARGET_COLUMNS
     })
 
+@app.route("/api/import/excel_sheets", methods=["POST"])
+def api_import_excel_sheets():
+    """Inspects Excel workbook and returns list of sheet names."""
+    from gui import importer
+    if "file" not in request.files:
+        return jsonify({"success": False, "error": "No Excel file provided."}), 400
+    f = request.files["file"]
+    staged_path = os.path.join(importer.STAGING_DIR, f"sheets_inspect_{int(time.time())}_{f.filename}")
+    f.save(staged_path)
+    res = importer.inspect_excel_file(staged_path, original_filename=f.filename)
+    return jsonify({
+        "success": res.get("success", False),
+        "sheet_names": res.get("sheet_names", []),
+        "selected_sheet": res.get("selected_sheet")
+    })
+
+@app.route("/api/import/zip_entries", methods=["POST"])
+def api_import_zip_entries():
+    """Inspects ZIP archive with security protections and returns contained entries."""
+    from gui import importer
+    if "file" not in request.files:
+        return jsonify({"success": False, "error": "No ZIP file provided."}), 400
+    f = request.files["file"]
+    staged_path = os.path.join(importer.STAGING_DIR, f"zip_inspect_{int(time.time())}_{f.filename}")
+    f.save(staged_path)
+    res = importer.inspect_zip_file(staged_path, original_filename=f.filename)
+    return jsonify(res)
+
 @app.route("/api/import/inspect", methods=["POST"])
 def api_import_inspect():
     """Backward-compatible inspection endpoint supporting JSON filename or multipart upload."""
@@ -2792,7 +2822,7 @@ def api_import_inspect():
         safe_name = re.sub(r"[^a-zA-Z0-9_.-]", "_", orig_name)
         staged_path = os.path.join(importer.RAW_UPLOADS_DIR, f"single_{int(time.time())}_{safe_name}")
         f.save(staged_path)
-        res = importer.inspect_csv_file(staged_path, original_filename=orig_name)
+        res = importer.inspect_universal_file(staged_path, original_filename=orig_name)
         res["staged_path"] = staged_path
         return jsonify(res)
 
@@ -2800,10 +2830,9 @@ def api_import_inspect():
     filename = data.get("filename", "sample.csv")
     filepath = data.get("filepath")
     if filepath and os.path.exists(filepath):
-        res = importer.inspect_csv_file(filepath, original_filename=filename)
+        res = importer.inspect_universal_file(filepath, original_filename=filename)
         return jsonify(res)
 
-    # Return structured default inspection metadata
     return jsonify({
         "status": "success",
         "filename": filename,
@@ -2828,7 +2857,7 @@ def api_import_inspect():
 
 @app.route("/api/import/execute", methods=["POST"])
 def api_import_execute():
-    """Performs atomic dataset ingestion and updates DuckDB unified view."""
+    """Performs atomic dataset ingestion with custom columns, cell edits, and view updates."""
     from gui import importer
     data = request.get_json() or {}
     dataset_name = (data.get("dataset_name") or "").strip()
@@ -2836,6 +2865,9 @@ def api_import_execute():
     column_mappings = data.get("column_mappings") or {}
     duplicate_mode = data.get("duplicate_mode") or "skip_exact"
     existing_dataset_id = data.get("existing_dataset_id")
+    custom_columns = data.get("custom_columns") or []
+    cell_edits = data.get("cell_edits") or {}
+    column_settings = data.get("column_settings") or {}
 
     if not dataset_name:
         return jsonify({"success": False, "error": "Dataset name is required."}), 400
@@ -2847,11 +2879,13 @@ def api_import_execute():
         staged_files=files_info,
         column_mappings_per_file=column_mappings,
         duplicate_mode=duplicate_mode,
-        existing_dataset_id=existing_dataset_id
+        existing_dataset_id=existing_dataset_id,
+        custom_columns=custom_columns,
+        cell_edits=cell_edits,
+        column_settings=column_settings
     )
 
     if result.get("success"):
-        # Rebuild DuckDB unified views and clear category summary cache
         try:
             from gui import lead_db
             lead_db.rebuild_unified_view(GLOBAL_DUCKDB_CON)
@@ -2878,6 +2912,113 @@ def api_get_single_imported_dataset(dataset_id):
     if not d:
         return jsonify({"success": False, "error": "Dataset not found"}), 404
     return jsonify({"success": True, "dataset": d})
+
+@app.route("/api/imported_datasets/<dataset_id>/columns", methods=["GET"])
+def api_get_dataset_columns(dataset_id):
+    """Returns all columns (standard + custom) for a dataset."""
+    from gui import importer
+    res = importer.get_dataset_columns(dataset_id)
+    return jsonify(res)
+
+@app.route("/api/imported_datasets/<dataset_id>/columns", methods=["POST"])
+def api_add_dataset_column(dataset_id):
+    """Adds a custom column to an existing dataset."""
+    from gui import importer
+    data = request.get_json() or {}
+    col_name = (data.get("column_name") or data.get("name") or "").strip()
+    col_type = data.get("column_type") or data.get("type", "text")
+    def_val = data.get("default_value", "")
+    scope = data.get("scope", "all")
+    lead_ids = data.get("lead_ids")
+
+    res = importer.add_column_to_dataset(
+        dataset_id=dataset_id,
+        column_name=col_name,
+        column_type=col_type,
+        default_value=def_val,
+        scope=scope,
+        lead_ids=lead_ids
+    )
+    if res.get("success"):
+        from gui import lead_db
+        lead_db.rebuild_unified_view(GLOBAL_DUCKDB_CON)
+    return jsonify(res)
+
+@app.route("/api/imported_datasets/<dataset_id>/columns/<column_name>/rename", methods=["POST", "PATCH"])
+def api_rename_dataset_column(dataset_id, column_name):
+    """Renames an existing custom column in a dataset."""
+    from gui import importer
+    data = request.get_json() or {}
+    new_name = (data.get("new_name") or "").strip()
+    res = importer.rename_column_in_dataset(dataset_id, column_name, new_name)
+    if res.get("success"):
+        from gui import lead_db
+        lead_db.rebuild_unified_view(GLOBAL_DUCKDB_CON)
+    return jsonify(res)
+
+@app.route("/api/imported_datasets/<dataset_id>/columns/<column_name>/fill", methods=["POST"])
+def api_fill_dataset_column(dataset_id, column_name):
+    """Fills column with value for blanks or selected leads."""
+    from gui import importer
+    data = request.get_json() or {}
+    fill_value = data.get("fill_value") if "fill_value" in data else data.get("value", "")
+    only_blanks = data.get("only_blanks")
+    fill_mode = data.get("fill_mode") or ("blanks_only" if only_blanks is not False else "all")
+    lead_ids = data.get("lead_ids")
+    res = importer.fill_column_values(
+        dataset_id=dataset_id,
+        column_name=column_name,
+        fill_value=fill_value,
+        fill_mode=fill_mode,
+        lead_ids=lead_ids
+    )
+    return jsonify(res)
+
+@app.route("/api/imported_datasets/<dataset_id>/columns/<column_name>", methods=["DELETE"])
+def api_delete_dataset_column(dataset_id, column_name):
+    """Deletes a custom column from a dataset."""
+    from gui import importer
+    res = importer.delete_column_from_dataset(dataset_id, column_name)
+    if res.get("success"):
+        from gui import lead_db
+        lead_db.rebuild_unified_view(GLOBAL_DUCKDB_CON)
+    return jsonify(res)
+
+@app.route("/api/imported_datasets/<dataset_id>/leads", methods=["GET"])
+def api_get_dataset_leads_full(dataset_id):
+    """Returns paginated leads from v_imp_{dataset_id}_full with all dataset-specific columns."""
+    from gui import importer
+    page = int(request.args.get("page", 1))
+    page_size = int(request.args.get("page_size", 50))
+    search = request.args.get("search", "").strip()
+    offset = max(0, (page - 1) * page_size)
+
+    view_name = f"v_imp_{dataset_id}_full"
+    try:
+        where = ["1=1"]
+        params = []
+        if search:
+            where.append("(name ILIKE ? OR email ILIKE ? OR phone ILIKE ? OR website ILIKE ?)")
+            params.extend([f"%{search}%"] * 4)
+        where_sql = " AND ".join(where)
+
+        cur = GLOBAL_DUCKDB_CON.execute(f"SELECT * FROM {view_name} WHERE {where_sql} LIMIT {page_size} OFFSET {offset}", params)
+        cols = [d[0] for d in cur.description]
+        rows = cur.fetchall()
+        leads = [dict(zip(cols, r)) for r in rows]
+        tot = GLOBAL_DUCKDB_CON.execute(f"SELECT COUNT(*) FROM {view_name} WHERE {where_sql}", params).fetchone()[0]
+
+        return jsonify({
+            "success": True,
+            "dataset_id": dataset_id,
+            "total": tot,
+            "page": page,
+            "page_size": page_size,
+            "columns": cols,
+            "leads": leads
+        })
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
 
 @app.route("/api/imported_datasets/<dataset_id>/rename", methods=["POST", "PUT"])
 def api_rename_imported_dataset(dataset_id):
@@ -2928,28 +3069,18 @@ def api_download_rejected_report(dataset_id):
 
 @app.route("/api/imported_datasets/<dataset_id>/export")
 def api_export_imported_dataset(dataset_id):
-    """Exports an imported dataset directly to CSV with formula injection protection."""
+    """Exports an imported dataset directly to CSV with formula injection protection and all custom columns."""
     from gui import importer
-    reg = importer.load_registry()
-    d = reg.get("datasets", {}).get(dataset_id)
-    if not d or not d.get("parquet_path") or not os.path.exists(d["parquet_path"]):
-        return jsonify({"error": "Dataset parquet file not found"}), 404
-
-    out_csv = os.path.join(importer.STAGING_DIR, f"export_{dataset_id}_{int(time.time())}.csv")
-    p_path = d["parquet_path"].replace("\\", "/")
-    GLOBAL_DUCKDB_CON.execute(f"""
-    COPY (
-        SELECT name, contact_name, job_title, category, address, city, state, zip, country,
-               phone, website, email, socials, tier, score, opportunity
-        FROM read_parquet('{p_path}')
-    ) TO '{out_csv.replace(os.sep, "/")}' (HEADER, DELIMITER ',');
-    """)
-    return send_file(
-        out_csv,
-        as_attachment=True,
-        download_name=f"{dataset_id}_export.csv",
-        mimetype="text/csv"
-    )
+    try:
+        out_csv = importer.export_dataset_with_custom_columns(dataset_id)
+        return send_file(
+            out_csv,
+            as_attachment=True,
+            download_name=f"{dataset_id}_clean_leads.csv",
+            mimetype="text/csv"
+        )
+    except Exception as e:
+        return jsonify({"error": str(e)}), 404
 
 @app.route("/api/categories")
 def api_categories():

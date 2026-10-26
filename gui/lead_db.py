@@ -597,6 +597,7 @@ def register_all_imported_views(con=None):
                 p_path = d.get("parquet_path")
                 if p_path and os.path.exists(p_path):
                     v_name = f"v_imp_{d['id']}"
+                    v_name_full = f"v_imp_{d['id']}_full"
                     safe_p_path = p_path.replace("\\", "/")
                     target_con.execute(f"""
                     CREATE OR REPLACE VIEW {v_name} AS
@@ -604,7 +605,10 @@ def register_all_imported_views(con=None):
                         id, name, contact_name, job_title, category, address, city, state, zip, country,
                         phone, website, email, socials, tier, score, opportunity, pitch, why,
                         source_badge, source_id, source_color
-                    FROM read_parquet('{safe_p_path}')
+                    FROM read_parquet('{safe_p_path}');
+                    
+                    CREATE OR REPLACE VIEW {v_name_full} AS
+                    SELECT * FROM read_parquet('{safe_p_path}');
                     """)
                     VIEW_MAP[d["id"]] = (v_name, f"📁 {d['name']} ({d['total_rows']:,} Leads)")
                     active_imported_views.append(v_name)
