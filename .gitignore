@@ -23,6 +23,7 @@ gui/_output/*
 # the repo a *tool* (not a dataset) is privacy + staying out of data-broker
 # territory. Output is regenerated per run.
 *.csv
+!gui/data/*.csv
 *.xlsx
 *.jsonl
 *.json
@@ -31,6 +32,7 @@ gui/_output/*
 *.sqlite
 *.vcf
 *.leads.md
+scratch/
 leadgen.toml          # a user's real config may name private datasets; keep the example only
 !leadgen.example.toml
 

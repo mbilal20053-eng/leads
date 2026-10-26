@@ -1,0 +1,32 @@
+dataset_id,source_name,classification,declared_rows,physical_rows,scanned_rows,sample_pct,format,location,status
+b2b_shards,Raw B2B Shards (18 files),Fully scanned row by row,11543658,11543658,11543658,100.0%,CSV,d:\leads\free-tier (2..19).csv,VERIFIED_100_PERCENT_SCAN
+targeted_verticals,7 Targeted Vertical CSVs,Fully scanned row by row,17500,17500,17500,100.0%,CSV,"d:\leads\*-restaurants.csv, etc.",VERIFIED_100_PERCENT_SCAN
+cre_b2b,Commercial Real Estate B2B,Fully scanned row by row,44021,44021,44021,100.0%,CSV,d:\leads\free-tier.csv,VERIFIED_100_PERCENT_SCAN
+homeowners_raw,Homeowners Raw CSV,Fully scanned row by row,703772,703772,703772,100.0%,CSV,d:\leads\free-tier (1).csv,VERIFIED_100_PERCENT_SCAN
+master_locations,Master Locations CSV,Fully scanned row by row,154710,154710,154710,100.0%,CSV,d:\leads\master-locations.csv,VERIFIED_100_PERCENT_SCAN
+open_company_sample,Open Company Database Sample,Fully scanned row by row,100000,100000,100000,100.0%,CSV,d:\leads\open_company_database_sample.csv,VERIFIED_100_PERCENT_SCAN
+data_legion_gz,Data Legion Company Free,Fully scanned row by row,28127036,28127036,28127036,100.0%,CSV.GZ,d:\leads\data-legion-company-free-1.5.0_2026-10-15.csv.gz,VERIFIED_100_PERCENT_SCAN
+downloads_leads,Newly Discovered Downloads Leads (8 files),Fully scanned row by row,818239,818239,818239,100.0%,CSV,C:\Users\billu\Downloads\*.csv,VERIFIED_100_PERCENT_SCAN
+b2b_executives_pq,B2B Executives Parquet (Original Production View),Generated view or derivative of another dataset,11543658,11543658,11543658,100.0%,Parquet,d:\leads\b2b_executives.parquet,VERIFIED_DERIVED_VIEW
+b2b_executives_final_pq,B2B Executives Final Validated Parquet,Corrected & validated production dataset,10268615,10268615,10268615,100.0%,Parquet,d:\leads\cleaned_export\b2b_executives_final_validated.parquet,VERIFIED_100_PERCENT_VALIDATED
+b2b_raw_shards_consolidated_pq,B2B Raw Shards Consolidated Cleaned,Consolidated cleaned raw shards,10268615,10268615,10268615,100.0%,Parquet,d:\leads\cleaned_export\b2b_raw_shards_consolidated_cleaned.parquet,VERIFIED_100_PERCENT_VALIDATED
+homeowners_pq,Homeowners Parquet,Generated view or derivative of another dataset,703772,703772,703772,100.0%,Parquet,d:\leads\homeowners.parquet,VERIFIED_DERIVED_VIEW
+open_comp_pq,Open Company Parquet,Generated view or derivative of another dataset,100000,100000,100000,100.0%,Parquet,d:\leads\open_company_database.parquet,VERIFIED_DERIVED_VIEW
+tech_stack_pq,Tech Stack Companies Parquet,Fully scanned row by row,153104,153104,153104,100.0%,Parquet,d:\leads\tech_stack_companies.parquet,VERIFIED_100_PERCENT_SCAN
+gleif_pq,GLEIF Golden Copy Parquet,Fully scanned row by row,3472837,3472837,3472837,100.0%,Parquet,d:\leads\gleif_goldencopy.parquet,VERIFIED_100_PERCENT_SCAN
+sec_facts_pq,SEC Company Facts Parquet,Fully scanned row by row,20501,20501,20501,100.0%,Parquet,d:\leads\sec_company_facts.parquet,VERIFIED_100_PERCENT_SCAN
+cc_index_pq,Common Crawl Index Parquet,Fully scanned row by row,302,302,302,100.0%,Parquet,d:\leads\cc_web_index.parquet,VERIFIED_100_PERCENT_SCAN
+free_company_archive,Free Company Worldwide Dataset,Partially scanned or sampled,180000000,180000000,5000000,2.78%,GZ inside ZIP,d:\leads\free_company_dataset.csv.zip,VERIFIED_SAMPLED_STREAM
+senzing_archive,ODO Senzing Identity Archive,Partially scanned or sampled,341042035,341042035,249600,0.07% (100 rows x 2496 shards),JSONL inside ZIP,d:\leads\ODO_SENZING_20260305.zip,VERIFIED_SAMPLED_SHARDS
+sec_submissions,SEC Edgar Submissions Archive,Fully scanned row by row,990359,990359,990359,100.0%,JSON inside ZIP,d:\leads\submissions (1).zip,VERIFIED_100_PERCENT_INDEX
+planet_osm,Planet Daily OSM POI Feed,Remote/unfetched,150000000,0,0,0.0%,PBF Endpoint,Remote OpenStreetMap Planet,UNVERIFIED_REMOTE_ENDPOINT
+europe_osm,Europe OSM POI Feed,Remote/unfetched,65000000,0,0,0.0%,PBF Endpoint,Remote Geofabrik Europe,UNVERIFIED_REMOTE_ENDPOINT
+asia_osm,Asia OSM POI Feed,Remote/unfetched,45000000,0,0,0.0%,PBF Endpoint,Remote Geofabrik Asia,UNVERIFIED_REMOTE_ENDPOINT
+pdl_company,People Data Labs Company Feed,Remote/unfetched,32334356,0,0,0.0%,API / Remote Parquet,Remote PDL Endpoint,UNVERIFIED_REMOTE_ENDPOINT
+north_america_osm,North America OSM POI Feed,Remote/unfetched,32000000,0,0,0.0%,PBF Endpoint,Remote Geofabrik North America,UNVERIFIED_REMOTE_ENDPOINT
+africa_osm,Africa OSM POI Feed,Remote/unfetched,12000000,0,0,0.0%,PBF Endpoint,Remote Geofabrik Africa,UNVERIFIED_REMOTE_ENDPOINT
+south_america_osm,South America OSM POI Feed,Remote/unfetched,6800000,0,0,0.0%,PBF Endpoint,Remote Geofabrik South America,UNVERIFIED_REMOTE_ENDPOINT
+companies_house,UK Companies House Live Feed,Remote/unfetched,5400000,0,0,0.0%,API Endpoint,Remote Companies House API,UNVERIFIED_REMOTE_ENDPOINT
+oceania_osm,Oceania OSM POI Feed,Remote/unfetched,2500000,0,0,0.0%,PBF Endpoint,Remote Geofabrik Oceania,UNVERIFIED_REMOTE_ENDPOINT
+central_america_osm,Central America OSM POI Feed,Remote/unfetched,1300000,0,0,0.0%,PBF Endpoint,Remote Geofabrik Central America,UNVERIFIED_REMOTE_ENDPOINT
+antarctica_osm,Antarctica OSM POI Feed,Remote/unfetched,8300,0,0,0.0%,PBF Endpoint,Remote Geofabrik Antarctica,UNVERIFIED_REMOTE_ENDPOINT

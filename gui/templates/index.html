@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/app.css?v=20261025_v7">
+  <link rel="stylesheet" href="/static/app.css?v=20261026_enterprise_v2">
 </head>
 <body>
 <div id="app-layout">
@@ -61,7 +61,15 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
           </div>
           <span class="nav-label">Lead Explorer</span>
-          <span class="nav-badge" id="nav-leads-count-badge">735M</span>
+          <span class="nav-badge" id="nav-leads-count-badge">918.3M</span>
+        </a>
+
+        <a class="nav-item" id="nav-categories" onclick="switchView('categories')">
+          <div class="nav-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+          </div>
+          <span class="nav-label">Lead Categories</span>
+          <span class="nav-badge" id="nav-categories-count-badge">185+</span>
         </a>
       </div>
 
@@ -131,7 +139,7 @@
         <div class="pulse-dot"></div>
         <div class="sidebar-footer-text">
           <strong>DuckDB Columnar</strong>
-          <span id="footer-engine-meta">41.1M Local • 80 GB Free</span>
+          <span id="footer-engine-meta">41.2M Local • 80 GB Free</span>
         </div>
       </div>
     </div>
@@ -153,20 +161,27 @@
       </div>
 
       <div class="topbar-center">
-        <div class="global-search-wrapper" onclick="openCommandPalette()" style="cursor: pointer;">
+        <div class="global-search-wrapper">
           <span class="search-icon-adornment">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
           </span>
-          <input type="text" id="global-search-input" class="global-search-input" placeholder="Search across 735M records (Ctrl+K for Command Palette)..." onfocus="openCommandPalette()" readonly style="cursor: pointer;">
-          <span class="search-kbd-shortcut">Ctrl K</span>
+          <input type="text" id="global-search-input" class="global-search-input" placeholder="Search across all fields & columns (Type to search)..." oninput="handleTopGlobalSearch(this.value)" onkeydown="handleTopGlobalSearchKey(event)">
+          <button type="button" class="topbar-search-clear" id="topbar-search-clear" onclick="clearTopGlobalSearch()" title="Clear global search" style="display: none;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+          <span class="search-kbd-shortcut" onclick="openCommandPalette()" title="Press Ctrl+K for shortcuts">Ctrl K</span>
         </div>
       </div>
 
       <div class="topbar-right">
         <!-- Quick Dataset Selector -->
         <select id="topbar-dataset-select" class="dataset-select-compact" onchange="onDatasetChange(this.value)">
-          <option value="all_global">🌍 All Global Leads & Master Portfolio (735M)</option>
-          <option value="odo_senzing">🏢 ODO Senzing: Global Entities & Orgs (341M)</option>
+          <option value="all_global">All Global Leads & Master Portfolio (920M)</option>
+          <option value="all_local_unified">All Local Databases Unified (225.7M)</option>
+          <option value="free_company_dataset">Free Company Global Dataset (180M)</option>
+          <option value="odo_senzing">ODO Senzing: Global Entities & Orgs (341M)</option>
+          <option value="gleif_goldencopy">GLEIF Golden Copy Legal Entities (3.47M)</option>
+          <option value="sec_edgar_filers">U.S. SEC EDGAR Corporate Filers (990k)</option>
+          <option value="sec_company_facts">U.S. SEC EDGAR Public Financials (20.5k)</option>
+          <option value="cc_web_index">Common Crawl Web Index (302 Collections)</option>
         </select>
 
         <button class="btn btn-sm btn-secondary" onclick="toggleNotificationsDrawer()" title="Activity & Notifications">
@@ -183,7 +198,8 @@
         </button>
 
         <div class="workspace-badge" title="Active Leads Storage">
-          <span>💼 Production (D:\leads)</span>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="icon-inline"><line x1="22" x2="2" y1="12" y2="12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/><line x1="6" x2="6.01" y1="16" y2="16"/><line x1="10" x2="10.01" y1="16" y2="16"/></svg>
+          <span>Production (D:\leads)</span>
         </div>
       </div>
     </header>
@@ -221,33 +237,39 @@
           <div class="kpi-card">
             <div class="kpi-header">
               <span class="kpi-label">Total Unified Portfolio</span>
-              <div class="kpi-icon">🌍</div>
+              <div class="kpi-icon" style="color: var(--accent-primary);">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+              </div>
             </div>
-            <div class="kpi-value" id="kpi-total-portfolio">735,223,078</div>
+            <div class="kpi-value" id="kpi-total-portfolio">918,282,632</div>
             <div class="kpi-meta">
               <span class="kpi-meta-badge success">Live Master Feed</span>
-              <span>41.1M Local + 694M Global</span>
+              <span>224.1M Local + 694.2M Global</span>
             </div>
           </div>
 
           <div class="kpi-card">
             <div class="kpi-header">
               <span class="kpi-label">Active Datasets & Shards</span>
-              <div class="kpi-icon">📁</div>
+              <div class="kpi-icon" style="color: #6366f1;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5V19A9 3 0 0 0 21 19V5"/><path d="M3 12A9 3 0 0 0 21 12"/></svg>
+              </div>
             </div>
-            <div class="kpi-value" id="kpi-datasets-count">33</div>
+            <div class="kpi-value" id="kpi-datasets-count">41</div>
             <div class="kpi-meta">
               <span class="kpi-meta-badge info">Indexed</span>
-              <span>31 Local Files + 2 Streaming</span>
+              <span>35 Local Files + 2 Streaming</span>
             </div>
           </div>
 
           <div class="kpi-card">
             <div class="kpi-header">
               <span class="kpi-label">Verified Unique Local Records</span>
-              <div class="kpi-icon">⚡</div>
+              <div class="kpi-icon" style="color: var(--accent-success);">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
+              </div>
             </div>
-            <div class="kpi-value" id="kpi-unique-local">41,093,203</div>
+            <div class="kpi-value" id="kpi-unique-local">224,052,222</div>
             <div class="kpi-meta">
               <span class="kpi-meta-badge success">100% Validated</span>
               <span>Zero Duplicates Remaining</span>
@@ -257,9 +279,11 @@
           <div class="kpi-card">
             <div class="kpi-header">
               <span class="kpi-label">Exact Duplicates Removed</span>
-              <div class="kpi-icon">🛡️</div>
+              <div class="kpi-icon" style="color: var(--accent-warning);">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg>
+              </div>
             </div>
-            <div class="kpi-value" id="kpi-duplicates-removed">7,833</div>
+            <div class="kpi-value" id="kpi-duplicates-removed">410,339</div>
             <div class="kpi-meta">
               <span class="kpi-meta-badge warning">Cleaned</span>
               <span>Backed up in Zip archive</span>
@@ -271,7 +295,7 @@
         <div class="portfolio-card">
           <div class="portfolio-header">
             <span class="portfolio-title">Dataset Allocation & Category Distribution</span>
-            <span class="cell-mono text-tertiary">735,223,078 Leads Indexed</span>
+            <span class="cell-mono text-tertiary">918,282,632 Leads Indexed</span>
           </div>
           <div class="portfolio-bar" id="portfolio-bar-container"></div>
           <div class="portfolio-chips" id="portfolio-chips-container"></div>
@@ -532,13 +556,13 @@
               </span>
             </div>
             <p class="view-header-subtitle">
-              High-speed query engine streaming all 12 standardized enterprise columns across 735M+ global and local records.
+              High-speed query engine streaming all 12 standardized enterprise columns across 918.3M+ global and local records.
             </p>
           </div>
           <div class="explorer-header-right">
             <div class="stats-pill-match">
               <span class="stats-pill-indicator"></span>
-              <span class="stats-pill-count font-mono" id="total-count-badge">735,223,078</span>
+              <span class="stats-pill-count font-mono" id="total-count-badge">918,282,632</span>
               <span class="stats-pill-label">leads matching</span>
             </div>
             <div class="view-actions">
@@ -563,8 +587,14 @@
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
               </span>
               <select id="filter-dataset" class="dataset-pill-select" onchange="onDatasetChange(this.value)">
-                <option value="all_global">All Leads Unified · 735.2M</option>
-                <option value="odo_senzing">🏢 ODO Senzing (21.4 GB) · 341.0M</option>
+                <option value="all_global">All Leads Unified · 920M</option>
+                <option value="all_local_unified">All Local Databases · 225.7M</option>
+                <option value="free_company_dataset">Free Company DB · 180.0M</option>
+                <option value="odo_senzing">ODO Senzing (21.4 GB) · 341.0M</option>
+                <option value="gleif_goldencopy">GLEIF Golden Copy · 3.47M</option>
+                <option value="sec_edgar_filers">SEC EDGAR Filers · 990k</option>
+                <option value="sec_company_facts">SEC Public Facts · 20.5k</option>
+                <option value="cc_web_index">Common Crawl Web Index · 302</option>
               </select>
             </div>
 
@@ -572,7 +602,7 @@
             <div class="console-search-box">
               <svg class="search-box-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
               <input type="text" id="explorer-inline-search" class="console-search-input" placeholder="Search business, owner, email, phone, city..." oninput="handleExplorerSearch(this.value)">
-              <button type="button" class="search-clear-btn" id="explorer-search-clear" onclick="clearExplorerSearch()" title="Clear search" style="display:none;">✕</button>
+              <button type="button" class="search-clear-btn" id="explorer-search-clear" onclick="clearExplorerSearch()" title="Clear search" style="display:none;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
               <kbd class="console-kbd" title="Press / to search">/</kbd>
             </div>
 
@@ -630,12 +660,12 @@
                   <svg class="shelf-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
                   <select id="filter-country" class="shelf-select" onchange="onCountryChange(this.value)">
                     <option value="all">All Countries</option>
-                    <option value="United States">🇺🇸 United States</option>
-                    <option value="United Kingdom">🇬🇧 United Kingdom</option>
-                    <option value="Canada">🇨🇦 Canada</option>
-                    <option value="Australia">🇦🇺 Australia</option>
-                    <option value="Germany">🇩🇪 Germany</option>
-                    <option value="France">🇫🇷 France</option>
+                    <option value="United States">United States</option>
+                    <option value="United Kingdom">United Kingdom</option>
+                    <option value="Canada">Canada</option>
+                    <option value="Australia">Australia</option>
+                    <option value="Germany">Germany</option>
+                    <option value="France">France</option>
                   </select>
                 </div>
               </div>
@@ -718,6 +748,10 @@
             <span class="table-column-badge">12 Standard Columns</span>
           </div>
           <div class="table-controls-right">
+            <button type="button" class="btn btn-secondary btn-sm" id="btn-toggle-col-filters" onclick="toggleColumnFilterRow()" title="Toggle column search & filters row">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              Column Filters
+            </button>
             <div class="page-size-selector">
               <label for="page-size-select">Per page:</label>
               <select id="page-size-select" class="page-size-select" onchange="onPageSizeChange(this.value)">
@@ -742,7 +776,12 @@
                     <svg class="sort-icon" id="sort-icon-name" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 15l5 5 5-5"/><path d="M7 9l5-5 5 5"/></svg>
                   </div>
                 </th>
-                <th>Owner / Contact</th>
+                <th onclick="setSort('contact_name')" style="cursor: pointer;" title="Sort by Owner / Contact">
+                  <div class="th-sort-wrapper">
+                    <span>Owner / Contact</span>
+                    <svg class="sort-icon" id="sort-icon-contact_name" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 15l5 5 5-5"/><path d="M7 9l5-5 5 5"/></svg>
+                  </div>
+                </th>
                 <th>Role & Notes</th>
                 <th onclick="setSort('category')" style="cursor: pointer;" title="Sort by Category">
                   <div class="th-sort-wrapper">
@@ -750,15 +789,85 @@
                     <svg class="sort-icon" id="sort-icon-category" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 15l5 5 5-5"/><path d="M7 9l5-5 5 5"/></svg>
                   </div>
                 </th>
-                <th>Email</th>
-                <th>Phone</th>
-                <th>Website</th>
+                <th onclick="setSort('email')" style="cursor: pointer;" title="Sort by Email">
+                  <div class="th-sort-wrapper">
+                    <span>Email</span>
+                    <svg class="sort-icon" id="sort-icon-email" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 15l5 5 5-5"/><path d="M7 9l5-5 5 5"/></svg>
+                  </div>
+                </th>
+                <th onclick="setSort('phone')" style="cursor: pointer;" title="Sort by Phone">
+                  <div class="th-sort-wrapper">
+                    <span>Phone</span>
+                    <svg class="sort-icon" id="sort-icon-phone" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 15l5 5 5-5"/><path d="M7 9l5-5 5 5"/></svg>
+                  </div>
+                </th>
+                <th onclick="setSort('website')" style="cursor: pointer;" title="Sort by Website">
+                  <div class="th-sort-wrapper">
+                    <span>Website</span>
+                    <svg class="sort-icon" id="sort-icon-website" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 15l5 5 5-5"/><path d="M7 9l5-5 5 5"/></svg>
+                  </div>
+                </th>
                 <th>Address</th>
-                <th>City</th>
-                <th>State / Region</th>
+                <th onclick="setSort('city')" style="cursor: pointer;" title="Sort by City">
+                  <div class="th-sort-wrapper">
+                    <span>City</span>
+                    <svg class="sort-icon" id="sort-icon-city" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 15l5 5 5-5"/><path d="M7 9l5-5 5 5"/></svg>
+                  </div>
+                </th>
+                <th onclick="setSort('state')" style="cursor: pointer;" title="Sort by State">
+                  <div class="th-sort-wrapper">
+                    <span>State / Region</span>
+                    <svg class="sort-icon" id="sort-icon-state" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 15l5 5 5-5"/><path d="M7 9l5-5 5 5"/></svg>
+                  </div>
+                </th>
                 <th>Country</th>
                 <th>Socials</th>
                 <th style="text-align: right;">Actions</th>
+              </tr>
+              <!-- Column-Specific Dedicated Search & Filter Row -->
+              <tr class="table-column-filter-row" id="table-column-filter-row">
+                <th style="padding: 4px 6px; text-align: center;">
+                  <button type="button" class="btn-clear-all-col-filters" onclick="clearAllColFilters()" title="Reset all column filters"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+                </th>
+                <th style="padding: 4px 6px;">
+                  <input type="text" class="th-filter-input" id="col-filter-name" placeholder="Filter business..." oninput="handleColFilter('name', this.value)" onkeydown="handleColFilterKey(event, 'name')">
+                </th>
+                <th style="padding: 4px 6px;">
+                  <input type="text" class="th-filter-input" id="col-filter-contact" placeholder="Filter contact..." oninput="handleColFilter('contact', this.value)" onkeydown="handleColFilterKey(event, 'contact')">
+                </th>
+                <th style="padding: 4px 6px;">
+                  <input type="text" class="th-filter-input" id="col-filter-job" placeholder="Filter role..." oninput="handleColFilter('job_title', this.value)" onkeydown="handleColFilterKey(event, 'job_title')">
+                </th>
+                <th style="padding: 4px 6px;">
+                  <input type="text" class="th-filter-input" id="col-filter-category" placeholder="Filter category..." oninput="handleColFilter('category', this.value)" onkeydown="handleColFilterKey(event, 'category')">
+                </th>
+                <th style="padding: 4px 6px;">
+                  <input type="text" class="th-filter-input" id="col-filter-email" placeholder="Filter email..." oninput="handleColFilter('email', this.value)" onkeydown="handleColFilterKey(event, 'email')">
+                </th>
+                <th style="padding: 4px 6px;">
+                  <input type="text" class="th-filter-input" id="col-filter-phone" placeholder="Filter phone..." oninput="handleColFilter('phone', this.value)" onkeydown="handleColFilterKey(event, 'phone')">
+                </th>
+                <th style="padding: 4px 6px;">
+                  <input type="text" class="th-filter-input" id="col-filter-website" placeholder="Filter website..." oninput="handleColFilter('website', this.value)" onkeydown="handleColFilterKey(event, 'website')">
+                </th>
+                <th style="padding: 4px 6px;">
+                  <input type="text" class="th-filter-input" id="col-filter-address" placeholder="Filter address..." oninput="handleColFilter('address', this.value)" onkeydown="handleColFilterKey(event, 'address')">
+                </th>
+                <th style="padding: 4px 6px;">
+                  <input type="text" class="th-filter-input" id="col-filter-city" placeholder="Filter city..." oninput="handleColFilter('city', this.value)" onkeydown="handleColFilterKey(event, 'city')">
+                </th>
+                <th style="padding: 4px 6px;">
+                  <input type="text" class="th-filter-input" id="col-filter-state" placeholder="Filter state..." oninput="handleColFilter('state', this.value)" onkeydown="handleColFilterKey(event, 'state')">
+                </th>
+                <th style="padding: 4px 6px;">
+                  <input type="text" class="th-filter-input" id="col-filter-country" placeholder="Filter country..." oninput="handleColFilter('country', this.value)" onkeydown="handleColFilterKey(event, 'country')">
+                </th>
+                <th style="padding: 4px 6px;">
+                  <input type="text" class="th-filter-input" id="col-filter-socials" placeholder="Filter socials..." oninput="handleColFilter('socials', this.value)" onkeydown="handleColFilterKey(event, 'socials')">
+                </th>
+                <th style="padding: 4px 6px; text-align: right;">
+                  <button type="button" class="btn btn-ghost btn-xs" onclick="clearAllColFilters()" title="Clear all column filters" style="font-size: 11px; padding: 2px 6px;">Reset</button>
+                </th>
               </tr>
             </thead>
             <tbody id="leads-table-tbody">
@@ -769,6 +878,272 @@
 
         <!-- Pagination Bar -->
         <div class="pagination-container" id="pagination-bar"></div>
+      </section>
+
+      <!-- =====================================================================
+           VIEW: LEAD CATEGORIES (SCROLLABLE TAXONOMY & DYNAMIC AGGREGATION)
+           ===================================================================== -->
+      <section id="view-categories" class="view-container">
+        <!-- View Header -->
+        <div class="view-header">
+          <div>
+            <h1 class="view-header-title">Lead Categories & Industry Taxonomy</h1>
+            <p class="view-header-subtitle">
+              Accurate, dynamic category aggregation computed directly from DuckDB. Browse categories, inspect real-time lead counts, and filter multi-million lead datasets.
+            </p>
+          </div>
+          <div class="view-actions">
+            <button class="btn btn-secondary" onclick="openPortfolioAuditModal()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+              Portfolio Audit (31 Sources)
+            </button>
+            <button class="btn btn-secondary" onclick="refreshLeadCategories()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+              Refresh Counts
+            </button>
+            <button class="btn btn-primary" onclick="openCurrentCategoryInExplorer()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+              Open in Lead Explorer
+            </button>
+          </div>
+        </div>
+
+        <!-- 5-Tier Portfolio Coverage & Verification Banner -->
+        <div class="portfolio-tier-banner" style="margin-bottom: 20px;">
+          <div class="tier-card tier-card-configured">
+            <div class="tier-card-header">
+              <span class="tier-badge badge-blue">Tier 1: Configured Portfolio</span>
+              <span class="tier-verified-status">31 Catalog Feeds</span>
+            </div>
+            <div class="tier-number">919,557,675</div>
+            <div class="tier-subtext">Configured catalog & endpoints</div>
+          </div>
+
+          <div class="tier-card tier-card-physical">
+            <div class="tier-card-header">
+              <span class="tier-badge badge-green">Tier 2: Physical Storage</span>
+              <span class="tier-verified-status">Verified On Disk</span>
+            </div>
+            <div class="tier-number">567,188,074</div>
+            <div class="tier-subtext">Accessible in D:\leads storage</div>
+          </div>
+
+          <div class="tier-card tier-card-dedup">
+            <div class="tier-card-header">
+              <span class="tier-badge badge-purple">Tier 3: Deduplicated Unique</span>
+              <span class="tier-verified-status">Unique Entities</span>
+            </div>
+            <div class="tier-number">43,788,529</div>
+            <div class="tier-subtext">Unique leads removing join overlaps</div>
+          </div>
+
+          <div class="tier-card tier-card-active active">
+            <div class="tier-card-header">
+              <span class="tier-badge badge-emerald">Tier 4: Active DuckDB Engine</span>
+              <span class="tier-verified-status" id="cat-tier-db-status">16 Unified DBs</span>
+            </div>
+            <div class="tier-number" id="cat-tier-active-number">14,935,362</div>
+            <div class="tier-subtext" id="cat-tier-active-desc">Real-time column-indexed leads</div>
+          </div>
+
+          <div class="tier-card tier-card-remote">
+            <div class="tier-card-header">
+              <span class="tier-badge badge-amber">Tier 5: Remote / Unfetched</span>
+              <span class="tier-verified-status">Catalog Only</span>
+            </div>
+            <div class="tier-number">352,334,356</div>
+            <div class="tier-subtext">OSM Planet, Europe, Asia & PDL Feeds</div>
+          </div>
+        </div>
+
+        <!-- Summary Metric Cards -->
+        <div class="stats-row" style="margin-bottom: 20px;">
+          <div class="stat-card">
+            <div class="stat-header">
+              <span class="stat-label">Total Categories</span>
+              <div class="stat-icon-wrapper" style="background: rgba(59, 130, 246, 0.12); color: #3b82f6;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+              </div>
+            </div>
+            <div class="stat-value" id="cat-stat-total-categories">--</div>
+            <div class="stat-desc">Distinct business industries</div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-header">
+              <span class="stat-label">Total Classified Leads</span>
+              <div class="stat-icon-wrapper" style="background: rgba(16, 185, 129, 0.12); color: #10b981;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/></svg>
+              </div>
+            </div>
+            <div class="stat-value" id="cat-stat-total-leads">--</div>
+            <div class="stat-desc" id="cat-stat-dataset-label">Active database verified records</div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-header">
+              <span class="stat-label">Currently Filtered Leads</span>
+              <div class="stat-icon-wrapper" style="background: rgba(139, 92, 246, 0.12); color: #8b5cf6;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+              </div>
+            </div>
+            <div class="stat-value" id="cat-stat-selected-leads">--</div>
+            <div class="stat-desc" id="cat-stat-selected-label">All Categories (100%)</div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-header">
+              <span class="stat-label">Uncategorized Leads</span>
+              <div class="stat-icon-wrapper" style="background: rgba(245, 158, 11, 0.12); color: #f59e0b;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              </div>
+            </div>
+            <div class="stat-value" id="cat-stat-uncategorized">--</div>
+            <div class="stat-desc">Missing or placeholder industry</div>
+          </div>
+        </div>
+
+        <!-- Split Layout: Categories List on Left, Matching Leads Table on Right -->
+        <div class="categories-split-container">
+          <!-- Left Panel: Scrollable Categories Browser -->
+          <div class="categories-panel-left panel">
+            <!-- Panel Header & Controls -->
+            <div class="categories-panel-top">
+              <!-- Dataset Picker -->
+              <div class="cat-control-group">
+                <label class="cat-control-label">Database Source</label>
+                <select id="cat-dataset-select" class="form-select cat-dataset-select" onchange="onCategoryDatasetChange(this.value)">
+                  <optgroup label="Unified Production Portfolio (Real-Time DuckDB Engine)">
+                    <option value="all_local_unified" selected>🌐 All Accessible Production Leads (14,935,362 Verified Leads across 16 DBs)</option>
+                  </optgroup>
+                  <optgroup label="Primary Business & Decision Maker Databases">
+                    <option value="b2b_executives">💼 B2B Executive Decision Makers (10,268,615 Cleaned Leads)</option>
+                    <option value="gleif_goldencopy">🏛️ GLEIF Global Legal Entity Registry (3,472,837 Entities)</option>
+                    <option value="homeowners">🏡 Homeowners & Residential Property (703,772 Leads)</option>
+                    <option value="master_locations">🏬 Retail, Commercial & Franchise Locations (154,710 Sites)</option>
+                    <option value="tech_stack_leads">💻 Tech Stack & Software Intelligence (153,104 Companies)</option>
+                    <option value="open_company_db">🌐 Open Company Database (100,000 Profiles)</option>
+                    <option value="realestate_b2b">🏢 Commercial Real Estate B2B (44,021 Companies)</option>
+                    <option value="sec_company_facts">📊 U.S. SEC EDGAR Corporate Facts (20,501 Corporations)</option>
+                    <option value="cc_web_index">🕸️ Common Crawl Web Index (302 Collections)</option>
+                  </optgroup>
+                  <optgroup label="Targeted Professional Verticals">
+                    <option value="restaurants">🍽️ Restaurants & Chefs (2,500 Leads)</option>
+                    <option value="realtors">🔑 Licensed Realtors & Brokers (2,500 Leads)</option>
+                    <option value="coaches">🎯 Executive Coaches & Consultants (2,500 Leads)</option>
+                    <option value="designers">🎨 Designers & Creative Studios (2,500 Leads)</option>
+                    <option value="entrepreneurs">🚀 Entrepreneurs & Founders (2,500 Leads)</option>
+                    <option value="photographers">📸 Photographers & Visual Creators (2,500 Leads)</option>
+                    <option value="musicians">🎵 Musicians & Music Industry (2,500 Leads)</option>
+                  </optgroup>
+                  <optgroup label="Large Compressed Physical Archives (Sampled / High-Capacity)">
+                    <option value="data_legion_companies">📦 Data Legion Global Companies (28,127,036 Rows - GZ Archive)</option>
+                    <option value="free_company_dataset">📦 Free Company Global Archive (180M Declared / 37.2M Streamable - Sampled)</option>
+                  </optgroup>
+                </select>
+              </div>
+
+              <!-- Search Box -->
+              <div class="cat-search-wrapper">
+                <svg class="cat-search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input type="text" id="cat-search-input" class="cat-search-input" placeholder="Search categories by name... (e.g. Restaurants, Dentists)" oninput="onCategorySearchInput(this.value)">
+                <button id="cat-search-clear" class="cat-search-clear" onclick="clearCategorySearch()" style="display: none;">×</button>
+              </div>
+
+              <!-- Toolbar: Sort & Multi-Select Options -->
+              <div class="cat-toolbar">
+                <div class="cat-toolbar-left">
+                  <button class="btn btn-xs cat-btn-sort active" id="btn-sort-count" onclick="setCategorySort('count_desc')" title="Sort by Most Leads">
+                    Most Leads ↓
+                  </button>
+                  <button class="btn btn-xs cat-btn-sort" id="btn-sort-name" onclick="setCategorySort('name_asc')" title="Sort Alphabetically A-Z">
+                    A - Z
+                  </button>
+                  <button class="btn btn-xs cat-btn-sort" id="btn-sort-count-asc" onclick="setCategorySort('count_asc')" title="Sort by Least Leads">
+                    Least Leads ↑
+                  </button>
+                </div>
+                <div class="cat-toolbar-right">
+                  <label class="cat-multi-toggle-label" title="Enable multi-category selection">
+                    <input type="checkbox" id="cat-multiselect-toggle" onchange="toggleCategoryMultiSelectMode(this.checked)">
+                    <span>Multi-Select</span>
+                  </label>
+                  <button class="btn btn-xs btn-outline" id="btn-cat-reset-all" onclick="resetAllCategoryFilter()" title="Reset to All Categories">
+                    Reset
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Categories Header Bar (Name left, Count right) -->
+            <div class="categories-list-header">
+              <span class="cat-col-name">Category Name</span>
+              <span class="cat-col-count">Number of Leads</span>
+            </div>
+
+            <!-- Scrollable Categories List -->
+            <div class="categories-scroll-list" id="categories-scroll-list">
+              <!-- Dynamically populated rows -->
+              <div class="cat-loading-state">
+                <div class="pulse-dot"></div>
+                <span>Loading category counts from DuckDB...</span>
+              </div>
+            </div>
+
+            <!-- Categories Footer Info -->
+            <div class="categories-list-footer">
+              <span id="cat-list-footer-count">Showing 0 categories</span>
+              <span class="cat-footer-hint">Click row to filter leads</span>
+            </div>
+          </div>
+
+          <!-- Right Panel: Matching Leads Live Table -->
+          <div class="categories-panel-right panel">
+            <!-- Table Header Bar -->
+            <div class="panel-header" style="padding: 12px 18px; border-bottom: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: space-between;">
+              <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                <span class="panel-title" style="margin: 0; display: flex; align-items: center; gap: 8px;">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                  Matching Leads
+                </span>
+                <span class="badge badge-primary" id="cat-leads-filter-badge">All Categories</span>
+                <span class="text-tertiary" id="cat-leads-count-text">Loading...</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <button class="btn btn-xs btn-outline" onclick="openCurrentCategoryInExplorer()">
+                  Open in Lead Explorer ↗
+                </button>
+              </div>
+            </div>
+
+            <!-- Table Body Container -->
+            <div class="cat-leads-table-container">
+              <table class="leads-table" id="cat-leads-table">
+                <thead>
+                  <tr>
+                    <th style="width: 200px;">Company / Lead</th>
+                    <th style="width: 140px;">Contact Person</th>
+                    <th style="width: 150px;">Job Title</th>
+                    <th style="width: 170px;">Category</th>
+                    <th style="width: 130px;">Phone</th>
+                    <th style="width: 150px;">Email</th>
+                    <th style="width: 130px;">Website</th>
+                    <th style="width: 120px;">Location</th>
+                    <th style="width: 80px; text-align: center;">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="cat-leads-table-tbody">
+                  <!-- Dynamically populated lead rows -->
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Table Pagination Bar -->
+            <div class="cat-pagination-bar" id="cat-leads-pagination">
+              <!-- Dynamically rendered pagination -->
+            </div>
+          </div>
+        </div>
       </section>
 
       <!-- =====================================================================
@@ -852,6 +1227,7 @@
                     <option value="master_locations">master-locations.csv (172,126 records)</option>
                     <option value="apple_locations">apple-locations.csv (535 records)</option>
                     <option value="open_company_db">open_company_database_sample.csv (100,000 records)</option>
+                    <option value="tech_stack_leads">tech_stack_companies.parquet (153,104 records)</option>
                   </select>
                   <button class="btn btn-primary" onclick="runSimulatedDedup()">Simulate Scan</button>
                 </div>
@@ -951,7 +1327,7 @@
         <div class="view-header">
           <div>
             <h1 class="view-header-title">Search & Advanced Filters Hub</h1>
-            <p class="view-header-subtitle">Multi-field query builder and instant prospecting presets for rapid lead discovery across 735M+ records.</p>
+            <p class="view-header-subtitle">Multi-field query builder and instant prospecting presets for rapid lead discovery across 918.3M+ records.</p>
           </div>
         </div>
 
@@ -962,14 +1338,30 @@
             <span class="cell-mono text-tertiary">Real-Time Column Filter Matrix</span>
           </div>
           <div class="panel-body">
-            <div class="query-builder-grid">
+            <div class="query-builder-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
               <div class="query-field-group">
                 <label class="query-field-label">Company / Business Name</label>
                 <input type="text" id="qb-company" class="console-search-input" placeholder="e.g. Apex, BioGenesis, Clinic...">
               </div>
               <div class="query-field-group">
-                <label class="query-field-label">Contact Person / Job Title</label>
-                <input type="text" id="qb-contact" class="console-search-input" placeholder="e.g. Director, Founder, CEO...">
+                <label class="query-field-label">Contact Person Name</label>
+                <input type="text" id="qb-contact" class="console-search-input" placeholder="e.g. John Smith, Sarah...">
+              </div>
+              <div class="query-field-group">
+                <label class="query-field-label">Email Address</label>
+                <input type="text" id="qb-email" class="console-search-input" placeholder="e.g. @gmail.com, ceo@...">
+              </div>
+              <div class="query-field-group">
+                <label class="query-field-label">Phone Number</label>
+                <input type="text" id="qb-phone" class="console-search-input" placeholder="e.g. (512) 555, 512555...">
+              </div>
+              <div class="query-field-group">
+                <label class="query-field-label">Website / Domain</label>
+                <input type="text" id="qb-website" class="console-search-input" placeholder="e.g. .com, clinic.io...">
+              </div>
+              <div class="query-field-group">
+                <label class="query-field-label">City / Locality</label>
+                <input type="text" id="qb-city" class="console-search-input" placeholder="e.g. Austin, New York...">
               </div>
               <div class="query-field-group">
                 <label class="query-field-label">Industry & Major Sector</label>
@@ -1030,20 +1422,58 @@
           <div class="panel-header"><span class="panel-title">Instant Prospecting Presets</span></div>
           <div class="panel-body" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px;">
             <div class="compare-card" style="cursor: pointer;" onclick="applyPresetSearch('phone_decision_makers')">
-              <h4 style="font-weight: 700; margin-bottom: 6px;">📞 Verified Direct Owner Phones</h4>
+              <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                <span class="preset-icon" style="color: #10b981; display: inline-flex;">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                </span>
+                <h4 style="font-weight: 700; margin: 0;">Verified Direct Owner Phones</h4>
+              </div>
               <p style="font-size: 12px; color: var(--text-secondary);">Filters leads with verified direct phone numbers ready for outbound sales calls.</p>
             </div>
             <div class="compare-card" style="cursor: pointer;" onclick="applyPresetSearch('no_website_webdev')">
-              <h4 style="font-weight: 700; margin-bottom: 6px;">🌐 Companies With No Website</h4>
+              <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                <span class="preset-icon" style="color: #3b82f6; display: inline-flex;">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
+                </span>
+                <h4 style="font-weight: 700; margin: 0;">Companies With No Website</h4>
+              </div>
               <p style="font-size: 12px; color: var(--text-secondary);">High-urgency prospects without an online web presence (prime web development pitch).</p>
             </div>
             <div class="compare-card" style="cursor: pointer;" onclick="applyPresetSearch('cre_realestate')">
-              <h4 style="font-weight: 700; margin-bottom: 6px;">🏢 Commercial Real Estate Properties</h4>
+              <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                <span class="preset-icon" style="color: #f59e0b; display: inline-flex;">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/></svg>
+                </span>
+                <h4 style="font-weight: 700; margin: 0;">Commercial Real Estate Properties</h4>
+              </div>
               <p style="font-size: 12px; color: var(--text-secondary);">44k property owners, building addresses, and commercial asset managers.</p>
             </div>
             <div class="compare-card" style="cursor: pointer;" onclick="applyPresetSearch('odo_senzing_orgs')">
-              <h4 style="font-weight: 700; margin-bottom: 6px;">🏢 ODO Senzing Enterprise Entities</h4>
+              <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                <span class="preset-icon" style="color: #8b5cf6; display: inline-flex;">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg>
+                </span>
+                <h4 style="font-weight: 700; margin: 0;">ODO Senzing Enterprise Entities</h4>
+              </div>
               <p style="font-size: 12px; color: var(--text-secondary);">341M BrightQuery entity-resolved corporate registrations with Placekey spatial IDs.</p>
+            </div>
+            <div class="compare-card" style="cursor: pointer;" onclick="applyPresetSearch('open_company_db')">
+              <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                <span class="preset-icon" style="color: #06b6d4; display: inline-flex;">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
+                </span>
+                <h4 style="font-weight: 700; margin: 0;">Open Company Intelligence DB</h4>
+              </div>
+              <p style="font-size: 12px; color: var(--text-secondary);">100,000 corporate records across 228 countries with registered domains, funding stages & web ranks.</p>
+            </div>
+            <div class="compare-card" style="cursor: pointer;" onclick="applyPresetSearch('tech_stack_leads')">
+              <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                <span class="preset-icon" style="color: #8b5cf6; display: inline-flex;">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M15 2v2"/><path d="M15 20v2"/><path d="M2 15h2"/><path d="M2 9h2"/><path d="M20 15h2"/><path d="M20 9h2"/><path d="M9 21v2"/><path d="M9 1v2"/></svg>
+                </span>
+                <h4 style="font-weight: 700; margin: 0;">Tech Stack & Software Intelligence</h4>
+              </div>
+              <p style="font-size: 12px; color: var(--text-secondary);">153,104 high-spend enterprise companies categorized across 397 software & cloud ecosystems.</p>
             </div>
           </div>
         </div>
@@ -1069,12 +1499,19 @@
               <div class="query-field-group">
                 <label class="query-field-label">Target Dataset Source</label>
                 <select id="export-dataset-select" class="filter-select">
-                  <option value="all_global">🌍 All Global Leads Unified (735.2M)</option>
-                  <option value="odo_senzing">🏢 ODO Senzing Commercial Entities (341.0M)</option>
-                  <option value="planet_daily_osm">🌍 Planet Daily OSM POIs (150.0M)</option>
-                  <option value="all_local_unified">🌟 All Local Databases Unified (41.1M)</option>
-                  <option value="data_legion_companies">🏢 Data Legion Global Companies (28.1M)</option>
-                  <option value="b2b_executives">💼 B2B Executive Decision Makers (11.5M)</option>
+                  <option value="all_global">All Global Leads Unified (920M)</option>
+                  <option value="all_local_unified">All Local Databases Unified (225.7M)</option>
+                  <option value="free_company_dataset">Free Company Global Dataset (180.0M)</option>
+                  <option value="odo_senzing">ODO Senzing Commercial Entities (341.0M)</option>
+                  <option value="gleif_goldencopy">GLEIF Golden Copy Legal Entities (3.47M)</option>
+                  <option value="sec_edgar_filers">U.S. SEC EDGAR Corporate Filers (990k)</option>
+                  <option value="sec_company_facts">U.S. SEC EDGAR Public Financials (20.5k)</option>
+                  <option value="cc_web_index">Common Crawl Web Index (302 Collections)</option>
+                  <option value="planet_daily_osm">Planet Daily OSM POIs (150.0M)</option>
+                  <option value="tech_stack_leads">Tech Stack Intelligence (153,104 Companies)</option>
+                  <option value="open_company_db">Open Company Database (100,000 Profiles)</option>
+                  <option value="data_legion_companies">Data Legion Global Companies (28.1M)</option>
+                  <option value="b2b_executives">B2B Executive Decision Makers (11.5M)</option>
                 </select>
               </div>
               <div class="query-field-group">
@@ -1132,7 +1569,7 @@
               <button class="btn btn-sm btn-secondary" onclick="setExportRange(5001, 10000)">5,001 - 10,000</button>
               <button class="btn btn-sm btn-secondary" onclick="setExportRange(10001, 25000)">10,001 - 25,000</button>
               <button class="btn btn-sm btn-secondary" onclick="setExportRange(25001, 50000)">25,001 - 50,000</button>
-              <button class="btn btn-sm btn-secondary" onclick="setExportNextBatch()">Next Batch ⏩</button>
+              <button class="btn btn-sm btn-secondary" onclick="setExportNextBatch()">Next Batch</button>
             </div>
 
             <div style="display: flex; align-items: center; justify-content: space-between; padding-top: 14px; border-top: 1px solid var(--border-subtle);">
@@ -1388,7 +1825,7 @@
     <div class="modal-header">
       <div class="modal-title-wrap">
         <h3 class="modal-title">Industry & Category Hierarchy Directory</h3>
-        <span class="modal-subtitle">14 Major Business Sectors encompassing 295 Minor Verticals across 735M+ global records</span>
+        <span class="modal-subtitle">14 Major Business Sectors encompassing 295 Minor Verticals across 918.3M+ global records</span>
       </div>
       <button class="modal-close-btn" onclick="closeCategoriesModal()">&times;</button>
     </div>
@@ -1398,21 +1835,21 @@
       <div class="cat-search-box">
         <svg class="search-box-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         <input type="text" id="catModalSearch" class="cat-search-input" placeholder="Search any vertical (e.g. dentist, luxury hotel, software, real estate, plumbing)..." oninput="filterCategoriesInModal(this.value)">
-        <button id="catModalClear" class="search-clear-btn" onclick="clearCatModalSearch()" style="display:none;">✕</button>
+        <button id="catModalClear" class="search-clear-btn" onclick="clearCatModalSearch()" style="display:none;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
       </div>
 
       <!-- Quick Major Category Filter Pills -->
       <div class="cat-quick-pills" id="catQuickPills">
         <button type="button" class="cat-quick-pill active" onclick="quickFilterMajorModal('all')">All Sectors (14)</button>
-        <button type="button" class="cat-quick-pill" onclick="quickFilterMajorModal('restaurants_hospitality')">🍽️ Hospitality & Dining</button>
-        <button type="button" class="cat-quick-pill" onclick="quickFilterMajorModal('real_estate')">🏢 Real Estate & Property</button>
-        <button type="button" class="cat-quick-pill" onclick="quickFilterMajorModal('healthcare_medical')">🏥 Healthcare & Clinics</button>
-        <button type="button" class="cat-quick-pill" onclick="quickFilterMajorModal('tech_software')">💻 Tech & SaaS</button>
-        <button type="button" class="cat-quick-pill" onclick="quickFilterMajorModal('construction_trades')">🔨 Construction & Trades</button>
-        <button type="button" class="cat-quick-pill" onclick="quickFilterMajorModal('financial_banking')">💳 Finance & Banking</button>
-        <button type="button" class="cat-quick-pill" onclick="quickFilterMajorModal('corporate_professional')">👔 Legal & Professional</button>
-        <button type="button" class="cat-quick-pill" onclick="quickFilterMajorModal('automotive_transport')">🚗 Automotive & Transport</button>
-        <button type="button" class="cat-quick-pill" onclick="quickFilterMajorModal('retail_consumer')">🛍️ Retail & Ecommerce</button>
+        <button type="button" class="cat-quick-pill" onclick="quickFilterMajorModal('restaurants_hospitality')">Hospitality & Dining</button>
+        <button type="button" class="cat-quick-pill" onclick="quickFilterMajorModal('real_estate')">Real Estate & Property</button>
+        <button type="button" class="cat-quick-pill" onclick="quickFilterMajorModal('healthcare_medical')">Healthcare & Clinics</button>
+        <button type="button" class="cat-quick-pill" onclick="quickFilterMajorModal('tech_software')">Tech & SaaS</button>
+        <button type="button" class="cat-quick-pill" onclick="quickFilterMajorModal('construction_trades')">Construction & Trades</button>
+        <button type="button" class="cat-quick-pill" onclick="quickFilterMajorModal('financial_banking')">Finance & Banking</button>
+        <button type="button" class="cat-quick-pill" onclick="quickFilterMajorModal('corporate_professional')">Legal & Professional</button>
+        <button type="button" class="cat-quick-pill" onclick="quickFilterMajorModal('automotive_transport')">Automotive & Transport</button>
+        <button type="button" class="cat-quick-pill" onclick="quickFilterMajorModal('retail_consumer')">Retail & Ecommerce</button>
       </div>
 
       <!-- Results Header -->
@@ -1458,7 +1895,7 @@
       <div class="cmd-palette-item" onclick="cmdPaletteNavigate('explorer')">
         <div class="cmd-palette-item-left">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-          <span>Lead Explorer (735M Leads Console)</span>
+          <span>Lead Explorer (918.3M Leads Console)</span>
         </div>
         <span class="cmd-palette-kbd">3</span>
       </div>
@@ -1495,7 +1932,7 @@
       <div class="cmd-palette-item" onclick="cmdPaletteAction('explore_senzing')">
         <div class="cmd-palette-item-left">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-          <span>Explore 🏢 ODO Senzing Dataset (341M Leads)</span>
+          <span>Explore ODO Senzing Dataset (341M Leads)</span>
         </div>
         <span class="cmd-palette-kbd">Return</span>
       </div>
@@ -1521,10 +1958,101 @@
   </div>
 </div>
 
+<!-- =========================================================================
+     PORTFOLIO AUDIT MODAL (31 Sources & 5-Tier Coverage Breakdown)
+     ========================================================================= -->
+<div id="portfolioAuditModal" class="modal-overlay" style="display:none;" onclick="if(event.target===this)closePortfolioAuditModal()">
+  <div class="portfolio-modal-content">
+    <div class="modal-header">
+      <div class="modal-title-wrap">
+        <h3 class="modal-title">Portfolio Coverage & 31-Source Verification Audit</h3>
+        <span class="modal-subtitle">919,557,675 Configured Records · 567,188,074 Physically on Disk · 43,788,529 Unique Deduplicated</span>
+      </div>
+      <button class="modal-close-btn" onclick="closePortfolioAuditModal()">&times;</button>
+    </div>
+    
+    <div class="portfolio-modal-body" style="padding: 20px;">
+      <!-- 5-Tier Summary Cards -->
+      <div class="portfolio-tier-banner" style="margin-bottom: 20px;">
+        <div class="tier-card tier-card-configured">
+          <div class="tier-card-header">
+            <span class="tier-badge badge-blue">Tier 1: Configured Portfolio</span>
+            <span class="tier-verified-status">31 Catalog Feeds</span>
+          </div>
+          <div class="tier-number">919,557,675</div>
+          <div class="tier-subtext">All configured catalog sources & endpoints</div>
+        </div>
+
+        <div class="tier-card tier-card-physical">
+          <div class="tier-card-header">
+            <span class="tier-badge badge-green">Tier 2: Physical Storage</span>
+            <span class="tier-verified-status">Verified On Disk</span>
+          </div>
+          <div class="tier-number">567,188,074</div>
+          <div class="tier-subtext">Accessible files in D:\leads storage</div>
+        </div>
+
+        <div class="tier-card tier-card-dedup">
+          <div class="tier-card-header">
+            <span class="tier-badge badge-purple">Tier 3: Deduplicated Unique</span>
+            <span class="tier-verified-status">Unique Entities</span>
+          </div>
+          <div class="tier-number">43,788,529</div>
+          <div class="tier-subtext">Primary leads removing duplicate joins</div>
+        </div>
+
+        <div class="tier-card tier-card-active active">
+          <div class="tier-card-header">
+            <span class="tier-badge badge-emerald">Tier 4: Active DuckDB Engine</span>
+            <span class="tier-verified-status">16 Unified DBs</span>
+          </div>
+          <div class="tier-number">14,935,362</div>
+          <div class="tier-subtext">Real-time column-indexed leads</div>
+        </div>
+
+        <div class="tier-card tier-card-remote">
+          <div class="tier-card-header">
+            <span class="tier-badge badge-amber">Tier 5: Remote / Unfetched</span>
+            <span class="tier-verified-status">Catalog Only</span>
+          </div>
+          <div class="tier-number">352,334,356</div>
+          <div class="tier-subtext">OSM Planet, Asia, Europe & PDL feeds</div>
+        </div>
+      </div>
+
+      <!-- Search & Filter Bar -->
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; gap: 10px;">
+        <input type="text" id="portfolio-audit-search" class="cat-search-input" style="max-width: 340px;" placeholder="Filter sources by name, format, or status..." oninput="filterPortfolioAuditTable(this.value)">
+        <span class="text-tertiary" id="portfolio-audit-count">Showing 31 data sources</span>
+      </div>
+
+      <!-- Sources Audit Table -->
+      <div style="max-height: 480px; overflow-y: auto; border: 1px solid var(--border-subtle); border-radius: var(--radius-sm);">
+        <table class="leads-table" id="portfolio-audit-table">
+          <thead>
+            <tr>
+              <th style="width: 220px;">Source / Dataset</th>
+              <th style="width: 140px;">Classification</th>
+              <th style="width: 110px; text-align: right;">Declared Rows</th>
+              <th style="width: 110px; text-align: right;">Physical Rows</th>
+              <th style="width: 80px;">Format</th>
+              <th style="width: 240px;">Location / Endpoint</th>
+              <th style="width: 160px;">Verification Status</th>
+            </tr>
+          </thead>
+          <tbody id="portfolio-audit-tbody">
+            <!-- Populated dynamically via JS -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Toast Message -->
 <div id="toast" class="toast-msg">Notification</div>
 
 <!-- Scripts -->
-<script src="/static/app.js?v=20261025_v7"></script>
+<script src="/static/app.js?v=20261026_enterprise_v2"></script>
 </body>
 </html>
