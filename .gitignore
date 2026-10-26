@@ -49,3 +49,4 @@ Thumbs.db
 *.crdownload
 *.db
 *_backup.py
+imported_datasets/

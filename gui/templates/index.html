@@ -188,7 +188,12 @@
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
         </button>
 
-        <button class="btn btn-sm btn-primary" onclick="switchView('export')">
+        <button class="btn btn-sm btn-primary" onclick="openImportModal()" style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); font-weight: 600;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          Import Leads
+        </button>
+
+        <button class="btn btn-sm btn-secondary" onclick="switchView('export')">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           Export
         </button>
@@ -428,7 +433,8 @@
             <input type="text" id="datasets-search-input" class="global-search-input" style="max-width: 320px;" placeholder="Filter datasets by name, format, or category..." oninput="filterDatasetsTable(this.value)">
             
             <div style="display: flex; gap: 6px; flex-wrap: wrap;">
-              <button class="tier-pill active" onclick="filterDatasetsByCategory('all')">All (65)</button>
+              <button class="tier-pill active" onclick="filterDatasetsByCategory('all')">All</button>
+              <button class="tier-pill" onclick="filterDatasetsByCategory('imported')" style="border-color: rgba(139, 92, 246, 0.4); color: #a78bfa;">📁 My Imported</button>
               <button class="tier-pill" onclick="filterDatasetsByCategory('b2b')">B2B Shards</button>
               <button class="tier-pill" onclick="filterDatasetsByCategory('corporate')">Corporate</button>
               <button class="tier-pill" onclick="filterDatasetsByCategory('retail')">Retail & Stores</button>
@@ -467,75 +473,354 @@
       </section>
 
       <!-- =====================================================================
-           VIEW 3: IMPORT DATA
+           VIEW 3: IMPORT DATA & DATASET INGESTION ENGINE
            ===================================================================== -->
       <section id="view-import" class="view-container">
         <div class="view-header">
           <div>
-            <h1 class="view-header-title">Import Data & Ingestion Engine</h1>
+            <h1 class="view-header-title">Import Leads & Add Datasets</h1>
             <p class="view-header-subtitle">
-              Upload CSV, GZIP, and TSV files with automatic encoding detection, delimiter parsing, column mapping preview, and duplicate pre-checking.
+              Upload multiple CSV files at once, give the import a dataset name, auto-detect schemas and delimiters, filter duplicates, and commit verified records directly to DuckDB.
             </p>
+          </div>
+          <div class="view-actions">
+            <button class="btn btn-secondary" onclick="switchView('datasets')">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+              View My Datasets
+            </button>
+            <button class="btn btn-secondary" onclick="resetImportWizard()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+              Reset Wizard
+            </button>
           </div>
         </div>
 
-        <!-- Drag & Drop Zone -->
-        <div class="panel">
-          <div class="panel-header"><span class="panel-title">Upload New Dataset</span></div>
+        <!-- Wizard Step Indicators -->
+        <div class="import-steps-container">
+          <div class="import-step-card active" id="wizard-step-card-1" onclick="goToWizardStep(1)">
+            <div class="step-number-circle" id="wizard-badge-1">1</div>
+            <div class="step-info-text">
+              <div class="step-title">Name Dataset</div>
+              <div class="step-desc" id="wizard-step1-summary">Enter collection title</div>
+            </div>
+          </div>
+          <div class="import-step-arrow">→</div>
+          <div class="import-step-card" id="wizard-step-card-2" onclick="goToWizardStep(2)">
+            <div class="step-number-circle" id="wizard-badge-2">2</div>
+            <div class="step-info-text">
+              <div class="step-title">Select Files</div>
+              <div class="step-desc" id="wizard-step2-summary">Upload 1 or more CSVs</div>
+            </div>
+          </div>
+          <div class="import-step-arrow">→</div>
+          <div class="import-step-card" id="wizard-step-card-3" onclick="goToWizardStep(3)">
+            <div class="step-number-circle" id="wizard-badge-3">3</div>
+            <div class="step-info-text">
+              <div class="step-title">Preview & Validate</div>
+              <div class="step-desc" id="wizard-step3-summary">Review mappings & dups</div>
+            </div>
+          </div>
+          <div class="import-step-arrow">→</div>
+          <div class="import-step-card" id="wizard-step-card-4">
+            <div class="step-number-circle" id="wizard-badge-4">4</div>
+            <div class="step-info-text">
+              <div class="step-title">Ingestion & Results</div>
+              <div class="step-desc" id="wizard-step4-summary">Database commit</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 1: Name Dataset -->
+        <div class="panel" id="wizard-step-1">
+          <div class="panel-header">
+            <span class="panel-title">Step 1 — Identify & Name Your Dataset</span>
+            <span class="status-badge neutral" id="dataset-name-badge">Required</span>
+          </div>
           <div class="panel-body">
-            <div class="dropzone" id="file-dropzone" onclick="document.getElementById('file-upload-input').click()">
-              <svg class="dropzone-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-              <h3 style="font-size: 15px; font-weight: 700; margin-bottom: 6px;">Drag and drop lead dataset files here</h3>
-              <p style="font-size: 12.5px; color: var(--text-tertiary); margin-bottom: 14px;">Supports CSV, CSV.GZ, TSV, and TXT up to 2 GB</p>
-              <button class="btn btn-primary" type="button">Select File From Computer</button>
-              <input type="file" id="file-upload-input" style="display: none;" accept=".csv,.gz,.tsv,.txt" onchange="handleFileUpload(this.files[0])">
+            <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 18px; line-height: 1.5;">
+              Every imported collection is identified across the dashboard, categories, and database filters by this name. If you upload multiple CSV files, all of them will be organized under this named collection.
+            </p>
+
+            <div style="display: flex; gap: 16px; margin-bottom: 20px;">
+              <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer;">
+                <input type="radio" name="import-mode" value="new" checked onchange="toggleImportMode(this.value)">
+                <strong>Create New Dataset</strong>
+              </label>
+              <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer;">
+                <input type="radio" name="import-mode" value="append" onchange="toggleImportMode(this.value)">
+                <span>Add files to existing dataset</span>
+              </label>
             </div>
 
-            <!-- Upload Progress Indicator -->
-            <div id="upload-progress-container" style="display: none; margin-top: 16px;">
+            <div id="new-dataset-name-group" style="max-width: 580px; margin-bottom: 16px;">
+              <label style="font-size: 12px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 6px; display: block;">
+                Dataset Name <span style="color: var(--accent-primary);">*</span>
+              </label>
+              <input type="text" id="import-dataset-name-input" class="global-search-input" style="width: 100%; height: 40px; font-size: 14px;" placeholder="e.g. UK Dental Businesses October 2026" oninput="onDatasetNameInput(this.value)">
+              <div id="dataset-name-feedback" style="font-size: 12px; margin-top: 6px; color: var(--text-tertiary);">
+                Enter a descriptive name (e.g. "UK Dental Businesses October 2026", "California Realtors Q4").
+              </div>
+            </div>
+
+            <div id="existing-dataset-select-group" style="display: none; max-width: 580px; margin-bottom: 16px;">
+              <label style="font-size: 12px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 6px; display: block;">
+                Select Target Dataset to Append Files To
+              </label>
+              <select id="import-existing-dataset-select" class="filter-select" style="width: 100%; height: 40px;" onchange="onExistingDatasetSelect(this.value)">
+                <option value="">-- Choose Existing Dataset --</option>
+              </select>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; padding-top: 16px; border-top: 1px solid var(--border-subtle);">
+              <button class="btn btn-primary" id="btn-goto-step-2" onclick="goToWizardStep(2)" disabled>
+                Next: Select Files →
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 2: Select Files -->
+        <div class="panel" id="wizard-step-2" style="display: none;">
+          <div class="panel-header">
+            <span class="panel-title">Step 2 — Select CSV Files to Import</span>
+            <span class="status-badge neutral" id="selected-files-count-badge">0 Files Selected</span>
+          </div>
+          <div class="panel-body">
+            <!-- Multi-file Dropzone -->
+            <div class="dropzone" id="multi-file-dropzone" onclick="document.getElementById('multi-file-upload-input').click()">
+              <svg class="dropzone-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              <h3 style="font-size: 15px; font-weight: 700; margin-bottom: 6px;">Drag and drop one or multiple CSV files here</h3>
+              <p style="font-size: 12.5px; color: var(--text-tertiary); margin-bottom: 14px;">
+                Supports CSV, CSV.GZ, TSV, and TXT. Multi-file upload supported under one dataset name.
+              </p>
+              <button class="btn btn-primary" type="button">Select Files From Computer</button>
+              <input type="file" id="multi-file-upload-input" style="display: none;" accept=".csv,.gz,.tsv,.txt" multiple onchange="handleMultiFileInput(this.files)">
+            </div>
+
+            <!-- Staged File Cards List -->
+            <div id="staged-files-list-container" style="margin-top: 20px; display: none;">
+              <h4 style="font-size: 13px; font-weight: 700; margin-bottom: 10px; color: var(--text-secondary); text-transform: uppercase;">
+                Files Ready for Inspection:
+              </h4>
+              <div id="staged-files-list"></div>
+            </div>
+
+            <!-- Supported formats and limits info box -->
+            <div style="margin-top: 20px; padding: 14px; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); font-size: 12px; color: var(--text-secondary); line-height: 1.5;">
+              <div style="font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">Hosting & Engine Capabilities:</div>
+              • Encodings: Auto-detects UTF-8, UTF-8 BOM, Windows-1252, and ISO-8859-1.<br>
+              • Delimiters: Handles commas (,), semicolons (;), tabs (\t), and pipes (|).<br>
+              • File Limits: Up to 100 MB per file via web streaming; DuckDB reads directly into compressed columnar Parquet.<br>
+              • Safety: Files are verified and staged before committing to the active database.
+            </div>
+
+            <!-- Upload progress bar -->
+            <div id="multi-upload-progress-container" style="display: none; margin-top: 16px;">
               <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 6px;">
-                <span id="upload-filename-label">Uploading...</span>
-                <span id="upload-pct-label" class="cell-mono">0%</span>
+                <span id="multi-upload-status-label">Uploading and inspecting files...</span>
+                <span id="multi-upload-pct-label" class="cell-mono">0%</span>
               </div>
               <div style="height: 6px; background: var(--bg-surface-active); border-radius: 3px; overflow: hidden;">
-                <div id="upload-progress-fill" style="width: 0%; height: 100%; background: var(--accent-primary); transition: width 0.2s;"></div>
+                <div id="multi-upload-progress-fill" style="width: 0%; height: 100%; background: var(--accent-primary); transition: width 0.2s;"></div>
               </div>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; padding-top: 18px; margin-top: 16px; border-top: 1px solid var(--border-subtle);">
+              <button class="btn btn-secondary" onclick="goToWizardStep(1)">← Back to Dataset Name</button>
+              <button class="btn btn-primary" id="btn-inspect-files" onclick="inspectAllSelectedFiles()" disabled>
+                Inspect & Validate Files →
+              </button>
             </div>
           </div>
         </div>
 
-        <!-- Column Detection & Mapping Preview -->
-        <div class="panel" id="import-mapping-panel" style="display: none;">
+        <!-- STEP 3: Preview & Schema Mapping & Duplicates -->
+        <div class="panel" id="wizard-step-3" style="display: none;">
           <div class="panel-header">
-            <span class="panel-title">Column Detection & Schema Mapping Preview</span>
-            <span class="status-badge clean">Auto-Detected: UTF-8 • Comma Delimited</span>
+            <span class="panel-title">Step 3 — Preview Schema Mappings & Configure Deduplication</span>
+            <span class="status-badge clean" id="step3-validation-badge">Inspection Complete</span>
           </div>
           <div class="panel-body">
-            <p style="font-size: 12.5px; color: var(--text-secondary); margin-bottom: 14px;">
-              The engine automatically maps incoming CSV headers to the 12 Lead Engine PRO columns. You can adjust the mappings before importing.
+            <!-- Tabs for multiple files -->
+            <div class="preview-file-tabs" id="preview-file-tabs-container">
+              <!-- Dynamically populated per file -->
+            </div>
+
+            <!-- Active file summary card -->
+            <div id="active-file-meta-card" style="margin-bottom: 16px; padding: 12px 16px; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); display: flex; flex-wrap: wrap; gap: 20px; align-items: center; font-size: 12.5px;">
+              <div><strong>Detected Encoding:</strong> <span id="meta-encoding" class="cell-mono">UTF-8</span></div>
+              <div><strong>Delimiter:</strong> <span id="meta-delimiter" class="cell-mono">Comma (',')</span></div>
+              <div><strong>Estimated Rows:</strong> <span id="meta-est-rows" class="cell-mono font-bold">0</span></div>
+              <div><strong>Columns Detected:</strong> <span id="meta-cols-count" class="cell-mono">0</span></div>
+              <div id="meta-missing-badges"></div>
+            </div>
+
+            <!-- Column Mapping Table -->
+            <h4 style="font-size: 13px; font-weight: 700; margin-bottom: 8px; color: var(--text-secondary); text-transform: uppercase;">
+              Column Mapping Configuration
+            </h4>
+            <p style="font-size: 12px; color: var(--text-tertiary); margin-bottom: 12px;">
+              Verify that incoming headers map to the appropriate Lead Engine PRO column. Original data is fully preserved.
             </p>
-            <div class="table-responsive" style="margin-bottom: 16px;">
+            <div class="table-responsive" style="margin-bottom: 20px;">
               <table class="data-table">
                 <thead>
                   <tr>
                     <th>Incoming CSV Header</th>
-                    <th>Mapped Lead Engine Column</th>
+                    <th>Target Lead Engine Column</th>
                     <th>Match Confidence</th>
-                    <th>Sample Data Value</th>
+                    <th>Sample Data Value (Row 1)</th>
                   </tr>
                 </thead>
-                <tbody id="import-mapping-tbody">
-                  <!-- Loaded dynamically via /api/import/inspect -->
+                <tbody id="wizard-mapping-tbody">
+                  <!-- Dynamically populated from inspection -->
                 </tbody>
               </table>
             </div>
 
-            <div style="display: flex; align-items: center; justify-content: space-between; padding-top: 12px; border-top: 1px solid var(--border-subtle);">
-              <label style="display: flex; align-items: center; gap: 8px; font-size: 12.5px; cursor: pointer;">
-                <input type="checkbox" id="import-check-dups" checked>
-                <span>Run exact duplicate pre-check before saving to database</span>
-              </label>
-              <button class="btn btn-primary" onclick="confirmImport()">Confirm & Ingest Dataset</button>
+            <!-- Data Preview Sample Table (5 rows) -->
+            <h4 style="font-size: 13px; font-weight: 700; margin-bottom: 8px; color: var(--text-secondary); text-transform: uppercase;">
+              Sample Rows Preview (First 5 Rows)
+            </h4>
+            <div class="table-responsive" style="max-height: 240px; margin-bottom: 24px;">
+              <table class="data-table" id="wizard-sample-rows-table">
+                <thead id="wizard-sample-thead"></thead>
+                <tbody id="wizard-sample-tbody"></tbody>
+              </table>
+            </div>
+
+            <!-- Configurable Duplicate Detection Strategy -->
+            <div style="border-top: 1px solid var(--border-subtle); padding-top: 18px;">
+              <h4 style="font-size: 13px; font-weight: 700; margin-bottom: 4px; color: var(--text-secondary); text-transform: uppercase;">
+                Duplicate Detection & Conflict Handling
+              </h4>
+              <p style="font-size: 12px; color: var(--text-tertiary);">
+                Duplicates are detected using normalized email address, normalized phone number, website domain, or business name + city/state.
+              </p>
+
+              <div class="dup-mode-grid">
+                <label class="dup-mode-card selected" id="dup-card-skip_exact" onclick="selectDupMode('skip_exact')">
+                  <input type="radio" name="dup-strategy" value="skip_exact" checked style="margin-top: 2px;">
+                  <div>
+                    <div class="dup-mode-title">Skip Exact Duplicates (Recommended)</div>
+                    <div class="dup-mode-desc">Ingests new unique records. Skips records with identical verified email, phone, or company website.</div>
+                  </div>
+                </label>
+
+                <label class="dup-mode-card" id="dup-card-import_all" onclick="selectDupMode('import_all')">
+                  <input type="radio" name="dup-strategy" value="import_all" style="margin-top: 2px;">
+                  <div>
+                    <div class="dup-mode-title">Import All Records</div>
+                    <div class="dup-mode-desc">Stores all records without skipping. Retains duplicate instances as separate rows for full raw history.</div>
+                  </div>
+                </label>
+
+                <label class="dup-mode-card" id="dup-card-new_only" onclick="selectDupMode('new_only')">
+                  <input type="radio" name="dup-strategy" value="new_only" style="margin-top: 2px;">
+                  <div>
+                    <div class="dup-mode-title">Strict Mode (New Records Only)</div>
+                    <div class="dup-mode-desc">Rejects exact duplicates as well as possible matches (same business name and locality).</div>
+                  </div>
+                </label>
+
+                <label class="dup-mode-card" id="dup-card-flag_review" onclick="selectDupMode('flag_review')">
+                  <input type="radio" name="dup-strategy" value="flag_review" style="margin-top: 2px;">
+                  <div>
+                    <div class="dup-mode-title">Flag Duplicates for Review</div>
+                    <div class="dup-mode-desc">Imports all records, but tags suspected duplicates with a review flag and opportunity warning.</div>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            <!-- Wizard Execution Actions -->
+            <div style="display: flex; justify-content: space-between; padding-top: 20px; margin-top: 20px; border-top: 1px solid var(--border-subtle);">
+              <button class="btn btn-secondary" onclick="goToWizardStep(2)">← Back to Files</button>
+              <button class="btn btn-primary" id="btn-execute-import" onclick="executeDatasetIngestion()" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); font-weight: 700;">
+                Confirm & Commit Ingestion to Database →
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 4: Ingestion Progress & Results -->
+        <div class="panel" id="wizard-step-4" style="display: none;">
+          <div class="panel-header">
+            <span class="panel-title">Step 4 — Database Ingestion & Results</span>
+            <span class="status-badge clean" id="ingestion-status-badge">Processing</span>
+          </div>
+          <div class="panel-body">
+            <!-- In-progress animation -->
+            <div id="ingestion-loading-state" style="text-align: center; padding: 40px 20px;">
+              <div class="pulse-dot" style="width: 20px; height: 20px; margin: 0 auto 16px;"></div>
+              <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 8px;">Committing Records into DuckDB Columnar Pipeline...</h3>
+              <p style="font-size: 13px; color: var(--text-tertiary); max-width: 500px; margin: 0 auto 20px;">
+                Deduplicating rows, generating lead tiers, computing opportunities, writing Parquet partitions, and rebuilding unified views.
+              </p>
+              <div style="max-width: 400px; margin: 0 auto; height: 8px; background: var(--bg-surface-active); border-radius: 4px; overflow: hidden;">
+                <div id="ingest-progress-bar-fill" style="width: 45%; height: 100%; background: #10b981; transition: width 0.3s;"></div>
+              </div>
+            </div>
+
+            <!-- Ingestion complete summary card -->
+            <div id="ingestion-result-card" style="display: none;">
+              <div style="text-align: center; padding: 24px 0 30px;">
+                <div style="width: 56px; height: 56px; border-radius: 50%; background: rgba(16, 185, 129, 0.15); color: #10b981; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;">
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                </div>
+                <h2 style="font-size: 20px; font-weight: 800; margin-bottom: 6px;" id="result-dataset-title">Dataset Successfully Added to Database</h2>
+                <p style="font-size: 13px; color: var(--text-secondary);" id="result-dataset-subtitle">
+                  All clean records are now indexed, queryable in Lead Explorer, and included in dashboard totals.
+                </p>
+              </div>
+
+              <!-- Results Metrics Grid -->
+              <div class="metrics-grid" style="margin-bottom: 24px;">
+                <div class="metric-card">
+                  <div class="metric-title">Discovered in Files</div>
+                  <div class="metric-value" id="result-stat-discovered">0</div>
+                  <div class="metric-subtext">Total lines parsed</div>
+                </div>
+                <div class="metric-card" style="border-color: rgba(16, 185, 129, 0.4);">
+                  <div class="metric-title">Successfully Stored</div>
+                  <div class="metric-value text-clean font-bold" id="result-stat-imported">0</div>
+                  <div class="metric-subtext">Active in DuckDB master</div>
+                </div>
+                <div class="metric-card">
+                  <div class="metric-title">Duplicates Handled</div>
+                  <div class="metric-value" id="result-stat-duplicates">0</div>
+                  <div class="metric-subtext">Skipped / flagged</div>
+                </div>
+                <div class="metric-card">
+                  <div class="metric-title">Rejected Rows</div>
+                  <div class="metric-value text-warning" id="result-stat-rejected">0</div>
+                  <div class="metric-subtext">Malformed / incomplete</div>
+                </div>
+              </div>
+
+              <!-- Download Rejection Report Callout (if any rejections) -->
+              <div id="rejection-report-callout" style="display: none; padding: 14px 18px; background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.25); border-radius: var(--radius-md); margin-bottom: 24px; align-items: center; justify-content: space-between;">
+                <div>
+                  <div style="font-size: 13px; font-weight: 700; color: #f59e0b; margin-bottom: 2px;">Malformed Rows Detected</div>
+                  <div style="font-size: 12px; color: var(--text-secondary);">Some lines lacked required business details or were corrupted. A downloadable report is available for inspection.</div>
+                </div>
+                <a id="download-rejection-btn" href="#" class="btn btn-sm btn-secondary" style="border-color: #f59e0b; color: #f59e0b;">
+                  Download Rejection Report (CSV)
+                </a>
+              </div>
+
+              <!-- Navigation CTA Buttons -->
+              <div style="display: flex; gap: 12px; justify-content: center; padding-top: 16px; border-top: 1px solid var(--border-subtle); flex-wrap: wrap;">
+                <button class="btn btn-primary" id="btn-explore-imported-now" onclick="exploreImportedDatasetNow()">
+                  🔍 Explore Records in Lead Explorer
+                </button>
+                <button class="btn btn-secondary" onclick="switchView('datasets')">
+                  📁 Go to My Datasets
+                </button>
+                <button class="btn btn-secondary" onclick="resetImportWizard()">
+                  ➕ Import Another Dataset
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -2044,6 +2329,85 @@
             <!-- Populated dynamically via JS -->
           </tbody>
         </table>
+      </div>
+    </div>
+  <!-- =========================================================================
+     IMPORT LEADS POPUP MODAL (Quick Access From Anywhere)
+     ========================================================================= -->
+<div id="importLeadsModal" class="modal-overlay" style="display:none;" onclick="if(event.target===this)closeImportModal()">
+  <div class="import-modal-content">
+    <div class="modal-header">
+      <div class="modal-title-wrap">
+        <h3 class="modal-title">Import Leads & Add Dataset</h3>
+        <span class="modal-subtitle">Upload multiple CSV files, name the dataset, auto-detect columns, and ingest into DuckDB</span>
+      </div>
+      <button class="modal-close-btn" onclick="closeImportModal()">&times;</button>
+    </div>
+    <div class="modal-body" style="padding: 24px;">
+      <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 20px; line-height: 1.5;">
+        Use the modern Ingestion Engine to upload single or multiple CSV files, auto-detect schemas and delimiters, filter duplicates, and commit verified records directly into DuckDB.
+      </p>
+      <div style="display: flex; gap: 12px; justify-content: flex-end;">
+        <button class="btn btn-secondary" onclick="closeImportModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="closeImportModal();switchView('import')">
+          Launch Ingestion Wizard →
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- =========================================================================
+     RENAME DATASET MODAL
+     ========================================================================= -->
+<div id="renameDatasetModal" class="modal-overlay" style="display:none;" onclick="if(event.target===this)closeRenameModal()">
+  <div class="categories-modal-content" style="max-width: 480px;">
+    <div class="modal-header">
+      <div class="modal-title-wrap">
+        <h3 class="modal-title">Rename Dataset</h3>
+        <span class="modal-subtitle">Update collection name across database and dashboard</span>
+      </div>
+      <button class="modal-close-btn" onclick="closeRenameModal()">&times;</button>
+    </div>
+    <div class="modal-body" style="padding: 20px;">
+      <input type="hidden" id="rename-dataset-id">
+      <label style="font-size: 12px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 6px; display: block;">
+        New Dataset Name
+      </label>
+      <input type="text" id="rename-dataset-input" class="global-search-input" style="width: 100%; height: 38px; margin-bottom: 16px;" placeholder="e.g. UK Dental Businesses Q4">
+      <div style="display: flex; justify-content: flex-end; gap: 10px;">
+        <button class="btn btn-secondary" onclick="closeRenameModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="submitRenameDataset()">Save Changes</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- =========================================================================
+     DELETE DATASET CONFIRMATION MODAL
+     ========================================================================= -->
+<div id="deleteDatasetModal" class="modal-overlay" style="display:none;" onclick="if(event.target===this)closeDeleteModal()">
+  <div class="categories-modal-content" style="max-width: 520px; border-color: rgba(239, 68, 68, 0.4);">
+    <div class="modal-header" style="border-bottom-color: rgba(239, 68, 68, 0.2);">
+      <div class="modal-title-wrap">
+        <h3 class="modal-title" style="color: #ef4444;">Delete Imported Dataset</h3>
+        <span class="modal-subtitle">Permanent removal with audit trail</span>
+      </div>
+      <button class="modal-close-btn" onclick="closeDeleteModal()">&times;</button>
+    </div>
+    <div class="modal-body" style="padding: 20px;">
+      <input type="hidden" id="delete-dataset-id">
+      <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 14px; line-height: 1.5;">
+        Are you sure you want to delete dataset <strong id="delete-dataset-name-label" style="color: var(--text-primary);"></strong>?
+      </p>
+      <div style="padding: 10px 14px; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: var(--radius-md); font-size: 12px; color: #ef4444; margin-bottom: 16px;">
+        ⚠️ This action drops the DuckDB view, deletes the underlying Parquet partition, and updates all dashboard totals. Other datasets will remain completely untouched.
+      </div>
+      <div style="display: flex; justify-content: flex-end; gap: 10px;">
+        <button class="btn btn-secondary" onclick="closeDeleteModal()">Cancel</button>
+        <button class="btn btn-primary" style="background: #ef4444; border-color: #ef4444;" onclick="submitDeleteDataset()">
+          Yes, Delete Dataset
+        </button>
       </div>
     </div>
   </div>

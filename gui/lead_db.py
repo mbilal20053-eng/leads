@@ -572,9 +572,66 @@ def init_lead_views(con, data_dir):
         except Exception:
             pass
 
+    # Also register any user-imported datasets dynamically
+    imported_subviews = register_all_imported_views(con)
+    for isv in imported_subviews:
+        try:
+            con.execute(f"SELECT 1 FROM {isv} LIMIT 1")
+            subviews.append(f"SELECT * FROM {isv}")
+        except Exception:
+            pass
+
     if subviews:
         union_sql = " UNION ALL ".join(subviews)
         con.execute(f"CREATE OR REPLACE VIEW v_all_unified AS {union_sql}")
+
+def register_all_imported_views(con=None):
+    """Registers DuckDB views for all active imported datasets and updates VIEW_MAP."""
+    target_con = con or GLOBAL_DUCKDB_CON
+    active_imported_views = []
+    try:
+        from gui import importer
+        datasets = importer.get_all_imported_datasets()
+        for d in datasets:
+            if d.get("status") == "Active":
+                p_path = d.get("parquet_path")
+                if p_path and os.path.exists(p_path):
+                    v_name = f"v_imp_{d['id']}"
+                    safe_p_path = p_path.replace("\\", "/")
+                    target_con.execute(f"""
+                    CREATE OR REPLACE VIEW {v_name} AS
+                    SELECT 
+                        id, name, contact_name, job_title, category, address, city, state, zip, country,
+                        phone, website, email, socials, tier, score, opportunity, pitch, why,
+                        source_badge, source_id, source_color
+                    FROM read_parquet('{safe_p_path}')
+                    """)
+                    VIEW_MAP[d["id"]] = (v_name, f"📁 {d['name']} ({d['total_rows']:,} Leads)")
+                    active_imported_views.append(v_name)
+    except Exception as e:
+        print("Error registering imported views:", e)
+    return active_imported_views
+
+def rebuild_unified_view(con=None):
+    """Rebuilds v_all_unified combining native sources and imported views, invalidating caches."""
+    target_con = con or GLOBAL_DUCKDB_CON
+    base_subviews = ["v_b2b_executives", "v_homeowners", "v_open_company_db", "v_tech_stack_leads", "v_master_locations", "v_realestate_b2b", "v_realtors", "v_entrepreneurs", "v_designers", "v_coaches", "v_restaurants", "v_photographers", "v_musicians", "v_gleif_goldencopy", "v_sec_company_facts", "v_cc_web_index"]
+    imported_subviews = register_all_imported_views(target_con)
+    all_subviews = base_subviews + imported_subviews
+
+    valid_subviews = []
+    for sv in all_subviews:
+        try:
+            target_con.execute(f"SELECT 1 FROM {sv} LIMIT 1")
+            valid_subviews.append(f"SELECT * FROM {sv}")
+        except Exception:
+            pass
+
+    if valid_subviews:
+        union_sql = " UNION ALL ".join(valid_subviews)
+        target_con.execute(f"CREATE OR REPLACE VIEW v_all_unified AS {union_sql}")
+        
+    CATEGORY_SUMMARY_CACHE.clear()
 
 # Initialize views immediately
 init_lead_views(GLOBAL_DUCKDB_CON, LEADS_DATA_DIR)

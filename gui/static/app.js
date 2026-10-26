@@ -831,17 +831,40 @@ function renderDatasetsTable(datasets) {
   if (!STATE.selectedDatasetIds) STATE.selectedDatasetIds = new Set();
 
   tbody.innerHTML = datasets.map(d => {
-    const format = d.file_format || ((d.file || '').endsWith('.gz') ? 'CSV.GZ' : (d.type === 'osm' || d.type === 'pdl' ? 'STREAM' : 'CSV'));
+    const format = d.file_format || ((d.file || '').endsWith('.gz') ? 'CSV.GZ' : (d.type === 'imported_parquet' ? 'PARQUET' : (d.type === 'osm' || d.type === 'pdl' ? 'STREAM' : 'CSV')));
     const qualityStatus = d.duplicate_stats ? 
       `<span class="status-badge ${d.duplicate_stats.includes('Clean') ? 'clean' : 'warning'}">${escapeHtml(d.duplicate_stats)}</span>` :
-      '<span class="status-badge clean">Verified Clean</span>';
+      (d.is_imported ? `<span class="status-badge clean">${(d.duplicate_rows || 0).toLocaleString()} Dups Filtered</span>` : '<span class="status-badge clean">Verified Clean</span>');
     const isChecked = STATE.selectedDatasetIds.has(d.id);
     const meta = getSourceMeta(d.id);
     const sourceIcon = renderSourceIcon(meta.id, { size: 16, className: 'icon-inline' });
-    const sourceBadge = renderSourceBadge(meta.id, { size: 13 });
+    const sourceBadge = d.is_imported ? 
+      `<span class="status-badge" style="background: rgba(139, 92, 246, 0.12); color: #8b5cf6; border: 1px solid rgba(139, 92, 246, 0.25);">📁 User Dataset</span>` :
+      renderSourceBadge(meta.id, { size: 13 });
     const exploreIcon = getIconSvg('search', { size: 12, className: 'icon-inline' });
     const auditIcon = getIconSvg('shield-check', { size: 12, className: 'icon-inline' });
     const exportIcon = getIconSvg('file-down', { size: 12, className: 'icon-inline' });
+
+    let actionButtons = `
+      <div class="cell-action-group">
+        <button class="cell-action-btn" onclick="selectDatasetAndExplore('${escapeHtml(d.id)}')">${exploreIcon}<span>Explore</span></button>
+        <button class="cell-action-btn" onclick="switchView('duplicates')">${auditIcon}<span>Audit</span></button>
+        <button class="cell-action-btn" onclick="switchView('export')">${exportIcon}<span>Export</span></button>
+      </div>
+    `;
+
+    if (d.is_imported) {
+      actionButtons = `
+        <div class="cell-action-group">
+          <button class="cell-action-btn" onclick="selectDatasetAndExplore('${escapeHtml(d.id)}')" title="Explore Leads">${exploreIcon}<span>Explore</span></button>
+          <button class="cell-action-btn" onclick="openRenameModal('${escapeHtml(d.id)}', '${escapeHtml(d.name)}')" title="Rename Dataset"><span>✏️ Rename</span></button>
+          <button class="cell-action-btn" onclick="openImportModalForDataset('${escapeHtml(d.id)}', '${escapeHtml(d.name)}')" title="Add More CSVs"><span>➕ Add Files</span></button>
+          <button class="cell-action-btn" onclick="exportImportedDatasetCsv('${escapeHtml(d.id)}')" title="Export Clean CSV">${exportIcon}<span>Export</span></button>
+          ${d.rejected_rows ? `<button class="cell-action-btn" onclick="window.open('/api/imported_datasets/${encodeURIComponent(d.id)}/rejections')" title="Download Rejection Report" style="color: #f59e0b;"><span>📋 Errors</span></button>` : ''}
+          <button class="cell-action-btn" onclick="openDeleteModal('${escapeHtml(d.id)}', '${escapeHtml(d.name)}')" title="Delete Dataset" style="color: #ef4444;"><span>🗑️ Delete</span></button>
+        </div>
+      `;
+    }
 
     return `
       <tr class="${isChecked ? 'selected' : ''}" id="dataset-row-${escapeHtml(d.id)}">
@@ -850,8 +873,8 @@ function renderDatasetsTable(datasets) {
         </td>
         <td>
           <div class="cell-name-strong" style="display: flex; align-items: center; gap: 8px;">
-            <span style="color: ${meta.color || 'var(--accent-primary)'}; display: inline-flex; align-items: center;">${sourceIcon}</span>
-            <span>${escapeHtml(meta.canonicalName || d.name)}</span>
+            <span style="color: ${d.is_imported ? '#8b5cf6' : (meta.color || 'var(--accent-primary)')}; display: inline-flex; align-items: center;">${sourceIcon}</span>
+            <span>${escapeHtml(d.name)}</span>
           </div>
           <span class="cell-subtext" style="font-family: var(--font-mono);">${escapeHtml(d.file || d.id)}</span>
         </td>
@@ -860,16 +883,10 @@ function renderDatasetsTable(datasets) {
         <td class="cell-mono">${d.columns_count || 12} cols</td>
         <td><span class="status-badge neutral cell-mono">${format}</span></td>
         <td class="cell-mono text-tertiary">${d.file_size_mb ? d.file_size_mb + ' MB' : '-'}</td>
-        <td class="cell-subtext">${d.import_date || 'Active'}</td>
-        <td><span class="status-badge clean">${d.processing_status || 'Ready'}</span></td>
+        <td class="cell-subtext">${d.import_date || (d.created_at ? d.created_at.slice(0, 10) : 'Active')}</td>
+        <td><span class="status-badge clean">${d.processing_status || 'Ready & Indexed'}</span></td>
         <td>${qualityStatus}</td>
-        <td>
-          <div class="cell-action-group">
-            <button class="cell-action-btn" onclick="selectDatasetAndExplore('${escapeHtml(d.id)}')">${exploreIcon}<span>Explore</span></button>
-            <button class="cell-action-btn" onclick="switchView('duplicates')">${auditIcon}<span>Audit</span></button>
-            <button class="cell-action-btn" onclick="switchView('export')">${exportIcon}<span>Export</span></button>
-          </div>
-        </td>
+        <td>${actionButtons}</td>
       </tr>
     `;
   }).join('');
@@ -984,7 +1001,9 @@ function filterDatasetsByCategory(category) {
   });
 
   let filtered = STATE.datasetsList;
-  if (category === 'b2b') {
+  if (category === 'imported') {
+    filtered = STATE.datasetsList.filter(d => d.is_imported || (d.type || '').includes('imported'));
+  } else if (category === 'b2b') {
     filtered = STATE.datasetsList.filter(d => (d.file || '').includes('free-tier (') && !(d.file || '').includes('free-tier (1).csv'));
   } else if (category === 'corporate') {
     filtered = STATE.datasetsList.filter(d => (d.id || '').includes('legion') || (d.id || '').includes('open_company') || (d.id || '').includes('tech_stack'));
@@ -2763,85 +2782,675 @@ function applyCleaningPreset(type) {
 }
 
 // =============================================================================
-// IMPORT DRAG & DROP & INSPECTOR
+// ENTERPRISE IMPORT LEADS & DATASET INGESTION ENGINE
 // =============================================================================
-async function handleFileUpload(file) {
-  if (!file) return;
 
-  const progContainer = document.getElementById('upload-progress-container');
-  const progFill = document.getElementById('upload-progress-fill');
-  const filenameLabel = document.getElementById('upload-filename-label');
-  const pctLabel = document.getElementById('upload-pct-label');
-  const mappingPanel = document.getElementById('import-mapping-panel');
+STATE.importWizard = {
+  step: 1,
+  mode: 'new',
+  datasetName: '',
+  existingDatasetId: null,
+  files: [],
+  inspections: [],
+  activeInspectionIndex: 0,
+  mappings: {},
+  duplicateMode: 'skip_exact',
+  isExecuting: false
+};
 
-  if (progContainer) progContainer.style.display = 'block';
-  if (filenameLabel) filenameLabel.textContent = `Inspecting & Uploading ${file.name}...`;
+let nameValidationTimeout = null;
 
-  try {
-    let pct = 20;
-    const interval = setInterval(() => {
-      pct = Math.min(85, pct + 15);
-      if (progFill) progFill.style.width = `${pct}%`;
-      if (pctLabel) pctLabel.textContent = `${pct}%`;
-    }, 120);
+function openImportModal() {
+  const modal = document.getElementById('importLeadsModal');
+  if (modal) modal.style.display = 'flex';
+}
 
-    // Call Inspection API
-    const inspectRes = await fetch('/api/import/inspect', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ filename: file.name })
-    });
-    clearInterval(interval);
+function closeImportModal() {
+  const modal = document.getElementById('importLeadsModal');
+  if (modal) modal.style.display = 'none';
+}
 
-    if (progFill) progFill.style.width = '100%';
-    if (pctLabel) pctLabel.textContent = '100%';
-
-    const inspectData = await inspectRes.json();
-    if (mappingPanel && inspectData.suggested_mappings) {
-      mappingPanel.style.display = 'block';
-      const mappingTbody = document.getElementById('import-mapping-tbody');
-      if (mappingTbody) {
-        mappingTbody.innerHTML = inspectData.suggested_mappings.map(m => `
-          <tr>
-            <td class="cell-name-strong">${escapeHtml(m.source_header)}</td>
-            <td>
-              <select class="filter-select" style="width: 100%;">
-                <option value="${m.target_column}" selected>${m.target_column} (Auto-Mapped)</option>
-                <option value="Business Name">Business Name</option>
-                <option value="Owner / Contact">Owner / Contact</option>
-                <option value="Role & Notes">Role & Notes</option>
-                <option value="Category">Category</option>
-                <option value="Email">Email</option>
-                <option value="Phone">Phone</option>
-                <option value="Website">Website</option>
-                <option value="City">City</option>
-                <option value="State / Region">State / Region</option>
-                <option value="Country">Country</option>
-                <option value="Ignore">-- Ignore Field --</option>
-              </select>
-            </td>
-            <td><span class="status-badge clean">${m.confidence}</span></td>
-            <td class="cell-subtext">${escapeHtml((inspectData.preview_rows[0] || {})[m.source_header] || '-')}</td>
-          </tr>
-        `).join('');
-      }
-    }
-
-    toast(`File inspection complete: ${file.name}. Review mappings below.`);
-  } catch (err) {
-    console.error(err);
-    toast(`Upload failed: ${err.message}`);
-    if (progContainer) progContainer.style.display = 'none';
+function openImportModalForDataset(datasetId, datasetName) {
+  switchView('import');
+  toggleImportMode('append');
+  const select = document.getElementById('import-existing-dataset-select');
+  if (select) {
+    select.value = datasetId;
+    onExistingDatasetSelect(datasetId);
   }
 }
 
-function confirmImport() {
-  toast('Ingestion completed! All records validated and added to database.');
-  const mappingPanel = document.getElementById('import-mapping-panel');
-  if (mappingPanel) mappingPanel.style.display = 'none';
-  const progContainer = document.getElementById('upload-progress-container');
-  if (progContainer) progContainer.style.display = 'none';
-  loadDatasetsCatalog();
+function goToWizardStep(step) {
+  if (step === 2 && !STATE.importWizard.datasetName && STATE.importWizard.mode === 'new') {
+    toast('Please enter a dataset name first');
+    return;
+  }
+  if (step === 3 && (!STATE.importWizard.inspections || STATE.importWizard.inspections.length === 0)) {
+    toast('Please select and inspect CSV files first');
+    return;
+  }
+
+  STATE.importWizard.step = step;
+
+  // Update step cards
+  for (let i = 1; i <= 4; i++) {
+    const card = document.getElementById(`wizard-step-card-${i}`);
+    const badge = document.getElementById(`wizard-badge-${i}`);
+    const panel = document.getElementById(`wizard-step-${i}`);
+
+    if (card) {
+      card.classList.toggle('active', i === step);
+      card.classList.toggle('completed', i < step);
+    }
+    if (panel) {
+      panel.style.display = i === step ? 'block' : 'none';
+    }
+  }
+
+  if (step === 1) {
+    populateExistingDatasetSelect();
+  } else if (step === 3) {
+    renderPreviewAndMappings();
+  }
+}
+
+function resetImportWizard() {
+  STATE.importWizard = {
+    step: 1,
+    mode: 'new',
+    datasetName: '',
+    existingDatasetId: null,
+    files: [],
+    inspections: [],
+    activeInspectionIndex: 0,
+    mappings: {},
+    duplicateMode: 'skip_exact',
+    isExecuting: false
+  };
+
+  const nameInput = document.getElementById('import-dataset-name-input');
+  if (nameInput) nameInput.value = '';
+
+  const feedback = document.getElementById('dataset-name-feedback');
+  if (feedback) {
+    feedback.innerHTML = 'Enter a descriptive name (e.g. "UK Dental Businesses October 2026", "California Realtors Q4").';
+    feedback.style.color = 'var(--text-tertiary)';
+  }
+
+  const btnStep2 = document.getElementById('btn-goto-step-2');
+  if (btnStep2) btnStep2.disabled = true;
+
+  const filesContainer = document.getElementById('staged-files-list-container');
+  if (filesContainer) filesContainer.style.display = 'none';
+
+  const btnInspect = document.getElementById('btn-inspect-files');
+  if (btnInspect) btnInspect.disabled = true;
+
+  goToWizardStep(1);
+}
+
+function toggleImportMode(mode) {
+  STATE.importWizard.mode = mode;
+  const newGroup = document.getElementById('new-dataset-name-group');
+  const existingGroup = document.getElementById('existing-dataset-select-group');
+  const btnNext = document.getElementById('btn-goto-step-2');
+
+  if (mode === 'append') {
+    if (newGroup) newGroup.style.display = 'none';
+    if (existingGroup) existingGroup.style.display = 'block';
+    populateExistingDatasetSelect();
+    if (btnNext) btnNext.disabled = !STATE.importWizard.existingDatasetId;
+  } else {
+    if (newGroup) newGroup.style.display = 'block';
+    if (existingGroup) existingGroup.style.display = 'none';
+    const nameInput = document.getElementById('import-dataset-name-input');
+    if (btnNext) btnNext.disabled = !nameInput || nameInput.value.trim().length < 2;
+  }
+}
+
+function onDatasetNameInput(value) {
+  const clean = value.trim();
+  STATE.importWizard.datasetName = clean;
+  const btnNext = document.getElementById('btn-goto-step-2');
+  const feedback = document.getElementById('dataset-name-feedback');
+  const badge = document.getElementById('dataset-name-badge');
+
+  if (!clean || clean.length < 2) {
+    if (btnNext) btnNext.disabled = true;
+    if (feedback) {
+      feedback.innerHTML = 'Dataset name must be at least 2 characters.';
+      feedback.style.color = 'var(--text-tertiary)';
+    }
+    if (badge) {
+      badge.textContent = 'Required';
+      badge.className = 'status-badge neutral';
+    }
+    return;
+  }
+
+  clearTimeout(nameValidationTimeout);
+  nameValidationTimeout = setTimeout(async () => {
+    try {
+      const res = await fetch('/api/import/validate_name', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: clean })
+      });
+      const data = await res.json();
+      if (data.is_duplicate) {
+        if (badge) {
+          badge.textContent = 'Name In Use';
+          badge.className = 'status-badge warning';
+        }
+        if (feedback) {
+          feedback.innerHTML = `⚠️ A dataset named <strong>"${escapeHtml(data.matching_name)}"</strong> already exists. You can continue (new records will append), or choose a distinct name.`;
+          feedback.style.color = '#f59e0b';
+        }
+      } else {
+        if (badge) {
+          badge.textContent = 'Available';
+          badge.className = 'status-badge clean';
+        }
+        if (feedback) {
+          feedback.innerHTML = `✓ Available: System ID will be <code>${escapeHtml(data.slug)}</code>`;
+          feedback.style.color = '#10b981';
+        }
+      }
+      if (btnNext) btnNext.disabled = false;
+      const step1Summary = document.getElementById('wizard-step1-summary');
+      if (step1Summary) step1Summary.textContent = clean;
+    } catch (err) {
+      if (btnNext) btnNext.disabled = false;
+    }
+  }, 250);
+}
+
+function populateExistingDatasetSelect() {
+  const select = document.getElementById('import-existing-dataset-select');
+  if (!select) return;
+
+  const datasets = STATE.datasetsList || [];
+  select.innerHTML = '<option value="">-- Choose Existing Dataset --</option>' +
+    datasets.map(d => `<option value="${escapeHtml(d.id)}">${escapeHtml(d.name || d.id)} (${(d.count || 0).toLocaleString()} leads)</option>`).join('');
+}
+
+function onExistingDatasetSelect(datasetId) {
+  STATE.importWizard.existingDatasetId = datasetId;
+  const datasets = STATE.datasetsList || [];
+  const selected = datasets.find(d => d.id === datasetId);
+  const btnNext = document.getElementById('btn-goto-step-2');
+
+  if (selected) {
+    STATE.importWizard.datasetName = selected.name;
+    const step1Summary = document.getElementById('wizard-step1-summary');
+    if (step1Summary) step1Summary.textContent = selected.name;
+    if (btnNext) btnNext.disabled = false;
+  } else {
+    STATE.importWizard.datasetName = '';
+    if (btnNext) btnNext.disabled = true;
+  }
+}
+
+function handleMultiFileInput(fileList) {
+  if (!fileList || fileList.length === 0) return;
+
+  const newFiles = Array.from(fileList);
+  // Prevent duplicate files in selection list
+  newFiles.forEach(nf => {
+    if (!STATE.importWizard.files.some(f => f.name === nf.name && f.size === nf.size)) {
+      STATE.importWizard.files.push(nf);
+    }
+  });
+
+  renderStagedFilesList();
+}
+
+function renderStagedFilesList() {
+  const container = document.getElementById('staged-files-list-container');
+  const listEl = document.getElementById('staged-files-list');
+  const badge = document.getElementById('selected-files-count-badge');
+  const btnInspect = document.getElementById('btn-inspect-files');
+  const files = STATE.importWizard.files;
+
+  if (badge) badge.textContent = `${files.length} File${files.length === 1 ? '' : 's'} Selected`;
+  if (btnInspect) btnInspect.disabled = files.length === 0;
+
+  if (files.length === 0) {
+    if (container) container.style.display = 'none';
+    return;
+  }
+
+  if (container) container.style.display = 'block';
+  if (!listEl) return;
+
+  listEl.innerHTML = files.map((f, idx) => {
+    const sizeMb = (f.size / (1024 * 1024)).toFixed(2);
+    const sizeFormatted = f.size > 1024 * 1024 ? `${sizeMb} MB` : `${Math.round(f.size / 1024)} KB`;
+    return `
+      <div class="staged-file-card">
+        <div class="staged-file-left">
+          <div class="staged-file-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          </div>
+          <div class="staged-file-meta">
+            <span class="staged-file-name">${escapeHtml(f.name)}</span>
+            <span class="staged-file-size">${sizeFormatted} · CSV Document</span>
+          </div>
+        </div>
+        <div class="staged-file-actions">
+          <span class="status-badge neutral">Ready to Inspect</span>
+          <button class="btn btn-ghost btn-sm" onclick="removeStagedFile(${idx})" title="Remove file" style="color: #ef4444;">✕</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  const step2Summary = document.getElementById('wizard-step2-summary');
+  if (step2Summary) step2Summary.textContent = `${files.length} CSV file${files.length === 1 ? '' : 's'}`;
+}
+
+function removeStagedFile(index) {
+  STATE.importWizard.files.splice(index, 1);
+  renderStagedFilesList();
+}
+
+async function inspectAllSelectedFiles() {
+  const files = STATE.importWizard.files;
+  if (!files || files.length === 0) {
+    toast('Please select at least one CSV file');
+    return;
+  }
+
+  const progContainer = document.getElementById('multi-upload-progress-container');
+  const progFill = document.getElementById('multi-upload-progress-fill');
+  const statusLabel = document.getElementById('multi-upload-status-label');
+  const pctLabel = document.getElementById('multi-upload-pct-label');
+  const btnInspect = document.getElementById('btn-inspect-files');
+
+  if (progContainer) progContainer.style.display = 'block';
+  if (btnInspect) btnInspect.disabled = true;
+
+  try {
+    let pct = 15;
+    const interval = setInterval(() => {
+      pct = Math.min(88, pct + 12);
+      if (progFill) progFill.style.width = `${pct}%`;
+      if (pctLabel) pctLabel.textContent = `${pct}%`;
+    }, 150);
+
+    const formData = new FormData();
+    files.forEach(f => {
+      formData.append('files', f);
+    });
+
+    const res = await fetch('/api/import/inspect_files', {
+      method: 'POST',
+      body: formData
+    });
+
+    clearInterval(interval);
+    if (progFill) progFill.style.width = '100%';
+    if (pctLabel) pctLabel.textContent = '100%';
+
+    const data = await res.json();
+    if (!res.ok || data.status !== 'success') {
+      throw new Error(data.message || 'Inspection failed');
+    }
+
+    STATE.importWizard.inspections = data.files || [];
+    STATE.importWizard.targetColumns = data.target_columns || [];
+    STATE.importWizard.activeInspectionIndex = 0;
+
+    // Initialize default mappings for each file
+    STATE.importWizard.mappings = {};
+    (data.files || []).forEach(f => {
+      const fileMap = {};
+      (f.mappings || []).forEach(m => {
+        if (m.target_key && m.target_key !== 'ignore') {
+          fileMap[m.target_key] = m.source_header;
+        }
+      });
+      STATE.importWizard.mappings[f.filename] = fileMap;
+    });
+
+    toast(`Inspected ${data.files_count} file(s) successfully!`);
+    goToWizardStep(3);
+  } catch (err) {
+    console.error(err);
+    toast(`File inspection failed: ${err.message}`);
+  } finally {
+    if (progContainer) progContainer.style.display = 'none';
+    if (btnInspect) btnInspect.disabled = false;
+  }
+}
+
+function renderPreviewAndMappings() {
+  const inspections = STATE.importWizard.inspections;
+  if (!inspections || inspections.length === 0) return;
+
+  const tabsContainer = document.getElementById('preview-file-tabs-container');
+  const activeIdx = STATE.importWizard.activeInspectionIndex;
+  const activeFile = inspections[activeIdx] || inspections[0];
+
+  // Render tabs
+  if (tabsContainer) {
+    tabsContainer.innerHTML = inspections.map((f, i) => `
+      <div class="preview-file-tab ${i === activeIdx ? 'active' : ''}" onclick="switchPreviewFileTab(${i})">
+        📄 ${escapeHtml(f.filename)} (${(f.total_rows_estimate || 0).toLocaleString()} rows)
+      </div>
+    `).join('');
+  }
+
+  // Active file metadata card
+  const encEl = document.getElementById('meta-encoding');
+  const delimEl = document.getElementById('meta-delimiter');
+  const rowsEl = document.getElementById('meta-est-rows');
+  const colsEl = document.getElementById('meta-cols-count');
+  const missingEl = document.getElementById('meta-missing-badges');
+
+  if (encEl) encEl.textContent = activeFile.encoding || 'UTF-8';
+  if (delimEl) delimEl.textContent = activeFile.delimiter_name || "Comma (',')";
+  if (rowsEl) rowsEl.textContent = (activeFile.total_rows_estimate || 0).toLocaleString();
+  if (colsEl) colsEl.textContent = activeFile.columns_count || 0;
+
+  if (missingEl && activeFile.missing_in_sample) {
+    const miss = activeFile.missing_in_sample;
+    missingEl.innerHTML = `
+      <span class="status-badge ${miss.name === 0 ? 'clean' : 'warning'}">Missing Names: ${miss.name}</span>
+      <span class="status-badge ${miss.phone === 0 ? 'clean' : 'neutral'}">Missing Phones: ${miss.phone}</span>
+      <span class="status-badge ${miss.email === 0 ? 'clean' : 'neutral'}">Missing Emails: ${miss.email}</span>
+    `;
+  }
+
+  // Column mapping table
+  const tbody = document.getElementById('wizard-mapping-tbody');
+  const fileMappings = STATE.importWizard.mappings[activeFile.filename] || {};
+  const targetCols = STATE.importWizard.targetColumns || [];
+
+  if (tbody) {
+    tbody.innerHTML = (activeFile.mappings || []).map(m => {
+      const currentTarget = Object.keys(fileMappings).find(k => fileMappings[k] === m.source_header) || m.target_key;
+      const sampleVal = (activeFile.preview_rows && activeFile.preview_rows[0]) ? activeFile.preview_rows[0][m.source_header] : '-';
+
+      const selectOptions = `
+        <option value="ignore" ${currentTarget === 'ignore' ? 'selected' : ''}>-- Ignore Column --</option>
+        ${targetCols.map(tc => `<option value="${tc.key}" ${currentTarget === tc.key ? 'selected' : ''}>${tc.label}${tc.required ? ' *' : ''}</option>`).join('')}
+      `;
+
+      return `
+        <tr>
+          <td class="cell-name-strong">${escapeHtml(m.source_header)}</td>
+          <td>
+            <select class="filter-select" style="width: 100%;" onchange="onMappingChange('${escapeHtml(activeFile.filename)}', this.value, '${escapeHtml(m.source_header)}')">
+              ${selectOptions}
+            </select>
+          </td>
+          <td><span class="status-badge ${m.confidence.includes('100%') ? 'clean' : (m.confidence.includes('0%') ? 'neutral' : 'warning')}">${escapeHtml(m.confidence)}</span></td>
+          <td class="cell-subtext">${escapeHtml(sampleVal || '-')}</td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  // Sample rows table (First 5 rows)
+  const thead = document.getElementById('wizard-sample-thead');
+  const sampleTbody = document.getElementById('wizard-sample-tbody');
+  const headers = activeFile.headers || [];
+  const rows = activeFile.preview_rows || [];
+
+  if (thead) {
+    thead.innerHTML = `<tr>${headers.map(h => `<th>${escapeHtml(h)}</th>`).join('')}</tr>`;
+  }
+  if (sampleTbody) {
+    sampleTbody.innerHTML = rows.map(r => `
+      <tr>${headers.map(h => `<td class="cell-subtext">${escapeHtml(r[h] || '-')}</td>`).join('')}</tr>
+    `).join('');
+  }
+}
+
+function switchPreviewFileTab(index) {
+  STATE.importWizard.activeInspectionIndex = index;
+  renderPreviewAndMappings();
+}
+
+function onMappingChange(filename, targetKey, sourceHeader) {
+  if (!STATE.importWizard.mappings[filename]) {
+    STATE.importWizard.mappings[filename] = {};
+  }
+  // Clear any existing mapping to this targetKey in this file
+  if (targetKey !== 'ignore') {
+    Object.keys(STATE.importWizard.mappings[filename]).forEach(k => {
+      if (k === targetKey) delete STATE.importWizard.mappings[filename][k];
+    });
+    STATE.importWizard.mappings[filename][targetKey] = sourceHeader;
+  } else {
+    Object.keys(STATE.importWizard.mappings[filename]).forEach(k => {
+      if (STATE.importWizard.mappings[filename][k] === sourceHeader) {
+        delete STATE.importWizard.mappings[filename][k];
+      }
+    });
+  }
+}
+
+function selectDupMode(mode) {
+  STATE.importWizard.duplicateMode = mode;
+  ['skip_exact', 'import_all', 'new_only', 'flag_review'].forEach(m => {
+    const card = document.getElementById(`dup-card-${m}`);
+    if (card) {
+      card.classList.toggle('selected', m === mode);
+      const radio = card.querySelector('input[type="radio"]');
+      if (radio) radio.checked = (m === mode);
+    }
+  });
+}
+
+async function executeDatasetIngestion() {
+  const wizard = STATE.importWizard;
+  if (!wizard.datasetName) {
+    toast('Dataset name is required');
+    return;
+  }
+  if (!wizard.inspections || wizard.inspections.length === 0) {
+    toast('No files ready to ingest');
+    return;
+  }
+
+  goToWizardStep(4);
+  const loadingState = document.getElementById('ingestion-loading-state');
+  const resultCard = document.getElementById('ingestion-result-card');
+  const progFill = document.getElementById('ingest-progress-bar-fill');
+  const statusBadge = document.getElementById('ingestion-status-badge');
+
+  if (loadingState) loadingState.style.display = 'block';
+  if (resultCard) resultCard.style.display = 'none';
+  if (statusBadge) {
+    statusBadge.textContent = 'Ingesting & Indexing';
+    statusBadge.className = 'status-badge neutral';
+  }
+
+  let pct = 30;
+  const timer = setInterval(() => {
+    pct = Math.min(92, pct + 8);
+    if (progFill) progFill.style.width = `${pct}%`;
+  }, 200);
+
+  try {
+    const stagedFilesPayload = wizard.inspections.map(f => ({
+      original_filename: f.filename,
+      staged_path: f.staged_path
+    }));
+
+    const res = await fetch('/api/import/execute', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        dataset_name: wizard.datasetName,
+        files: stagedFilesPayload,
+        column_mappings: wizard.mappings,
+        duplicate_mode: wizard.duplicateMode,
+        existing_dataset_id: wizard.existingDatasetId
+      })
+    });
+
+    clearInterval(timer);
+    if (progFill) progFill.style.width = '100%';
+
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      throw new Error(data.error || 'Ingestion failed');
+    }
+
+    if (statusBadge) {
+      statusBadge.textContent = 'Completed Successfully';
+      statusBadge.className = 'status-badge clean';
+    }
+
+    renderIngestionResults(data);
+    loadDatasetsCatalog();
+    loadDashboardMetrics();
+    toast(`Ingestion complete! ${data.total_imported.toLocaleString()} leads added to database.`);
+  } catch (err) {
+    clearInterval(timer);
+    console.error(err);
+    if (statusBadge) {
+      statusBadge.textContent = 'Ingestion Error';
+      statusBadge.className = 'status-badge warning';
+    }
+    toast(`Ingestion error: ${err.message}`);
+  }
+}
+
+function renderIngestionResults(data) {
+  const loadingState = document.getElementById('ingestion-loading-state');
+  const resultCard = document.getElementById('ingestion-result-card');
+
+  if (loadingState) loadingState.style.display = 'none';
+  if (resultCard) resultCard.style.display = 'block';
+
+  const titleEl = document.getElementById('result-dataset-title');
+  const subtitleEl = document.getElementById('result-dataset-subtitle');
+  if (titleEl) titleEl.textContent = `${data.dataset_name} Successfully Added`;
+  if (subtitleEl) subtitleEl.textContent = `All ${data.total_imported.toLocaleString()} verified leads are now indexed and available in Lead Explorer.`;
+
+  const statDisc = document.getElementById('result-stat-discovered');
+  const statImp = document.getElementById('result-stat-imported');
+  const statDups = document.getElementById('result-stat-duplicates');
+  const statRej = document.getElementById('result-stat-rejected');
+
+  if (statDisc) statDisc.textContent = (data.total_discovered || 0).toLocaleString();
+  if (statImp) statImp.textContent = (data.total_imported || 0).toLocaleString();
+  if (statDups) statDups.textContent = (data.total_duplicates || 0).toLocaleString();
+  if (statRej) statRej.textContent = (data.total_rejected || 0).toLocaleString();
+
+  const rejCallout = document.getElementById('rejection-report-callout');
+  const rejBtn = document.getElementById('download-rejection-btn');
+  if (data.has_rejections && data.rejection_report_url) {
+    if (rejCallout) rejCallout.style.display = 'flex';
+    if (rejBtn) rejBtn.href = data.rejection_report_url;
+  } else {
+    if (rejCallout) rejCallout.style.display = 'none';
+  }
+
+  STATE.latestImportedDatasetId = data.dataset_id;
+}
+
+function exploreImportedDatasetNow() {
+  const did = STATE.latestImportedDatasetId;
+  if (did) {
+    selectDatasetAndExplore(did);
+  } else {
+    switchView('explorer');
+  }
+}
+
+// =============================================================================
+// DATASET MANAGEMENT MODALS & ACTIONS
+// =============================================================================
+
+function openRenameModal(datasetId, currentName) {
+  const modal = document.getElementById('renameDatasetModal');
+  const idInput = document.getElementById('rename-dataset-id');
+  const nameInput = document.getElementById('rename-dataset-input');
+
+  if (idInput) idInput.value = datasetId;
+  if (nameInput) nameInput.value = currentName || '';
+  if (modal) modal.style.display = 'flex';
+}
+
+function closeRenameModal() {
+  const modal = document.getElementById('renameDatasetModal');
+  if (modal) modal.style.display = 'none';
+}
+
+async function submitRenameDataset() {
+  const idInput = document.getElementById('rename-dataset-id');
+  const nameInput = document.getElementById('rename-dataset-input');
+  if (!idInput || !nameInput) return;
+
+  const did = idInput.value;
+  const newName = nameInput.value.trim();
+  if (!newName) {
+    toast('Dataset name cannot be blank');
+    return;
+  }
+
+  try {
+    const res = await fetch(`/api/imported_datasets/${encodeURIComponent(did)}/rename`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: newName })
+    });
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      throw new Error(data.error || 'Failed to rename dataset');
+    }
+    toast(`Dataset renamed to "${newName}"`);
+    closeRenameModal();
+    loadDatasetsCatalog();
+  } catch (err) {
+    toast(`Error renaming dataset: ${err.message}`);
+  }
+}
+
+function openDeleteModal(datasetId, datasetName) {
+  const modal = document.getElementById('deleteDatasetModal');
+  const idInput = document.getElementById('delete-dataset-id');
+  const label = document.getElementById('delete-dataset-name-label');
+
+  if (idInput) idInput.value = datasetId;
+  if (label) label.textContent = `"${datasetName || datasetId}"`;
+  if (modal) modal.style.display = 'flex';
+}
+
+function closeDeleteModal() {
+  const modal = document.getElementById('deleteDatasetModal');
+  if (modal) modal.style.display = 'none';
+}
+
+async function submitDeleteDataset() {
+  const idInput = document.getElementById('delete-dataset-id');
+  if (!idInput || !idInput.value) return;
+
+  const did = idInput.value;
+  try {
+    const res = await fetch(`/api/imported_datasets/${encodeURIComponent(did)}`, {
+      method: 'DELETE'
+    });
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      throw new Error(data.error || 'Failed to delete dataset');
+    }
+    toast(`Dataset deleted successfully`);
+    closeDeleteModal();
+    loadDatasetsCatalog();
+    loadDashboardMetrics();
+  } catch (err) {
+    toast(`Error deleting dataset: ${err.message}`);
+  }
+}
+
+function exportImportedDatasetCsv(datasetId) {
+  window.open(`/api/imported_datasets/${encodeURIComponent(datasetId)}/export`, '_blank');
 }
 
 // =============================================================================

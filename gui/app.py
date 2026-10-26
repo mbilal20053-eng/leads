@@ -1010,6 +1010,27 @@ def get_datasets():
             "type": "export",
             "badge": "Export"
         })
+    # User imported datasets from Ingestion Engine
+    try:
+        from gui import importer
+        imported_list = importer.get_all_imported_datasets()
+        for imp_d in imported_list:
+            if imp_d.get("status") == "Active":
+                datasets.append({
+                    "id": imp_d["id"],
+                    "name": f"📁 {imp_d['name']} ({imp_d['total_rows']:,} Leads)",
+                    "file": imp_d.get("parquet_path"),
+                    "type": "imported_parquet",
+                    "badge": f"📁 {imp_d['name'][:18]}",
+                    "count": imp_d["total_rows"],
+                    "is_imported": True,
+                    "created_at": imp_d.get("created_at"),
+                    "files_count": imp_d.get("files_count", 1),
+                    "duplicate_rows": imp_d.get("duplicate_rows", 0),
+                    "rejected_rows": imp_d.get("rejected_rows", 0)
+                })
+    except Exception as e:
+        print("Error getting imported datasets:", e)
 
     return datasets
 def resolve_dataset(dataset_id):
@@ -2694,11 +2715,95 @@ def api_charts_overview():
         }
     })
 
+@app.route("/api/import/validate_name", methods=["POST"])
+def api_import_validate_name():
+    """Validates dataset name and checks for existing duplicates."""
+    from gui import importer
+    data = request.get_json() or {}
+    raw_name = (data.get("name") or "").strip()
+    if not raw_name:
+        return jsonify({"valid": False, "message": "Dataset name cannot be blank."}), 400
+    if len(raw_name) < 2:
+        return jsonify({"valid": False, "message": "Dataset name must be at least 2 characters."}), 400
+
+    slug = importer.slugify(raw_name)
+    registry = importer.load_registry()
+    existing = registry.get("datasets", {})
+
+    is_duplicate = False
+    matching_name = None
+    for did, dmeta in existing.items():
+        if did == slug or dmeta.get("name", "").lower() == raw_name.lower():
+            is_duplicate = True
+            matching_name = dmeta.get("name")
+            break
+
+    return jsonify({
+        "valid": True,
+        "name": raw_name,
+        "slug": slug,
+        "is_duplicate": is_duplicate,
+        "matching_name": matching_name,
+        "message": f"Dataset name already exists ('{matching_name}'). You can append more files to it, rename it, or choose a distinct name." if is_duplicate else "Dataset name is available."
+    })
+
+@app.route("/api/import/inspect_files", methods=["POST"])
+def api_import_inspect_files():
+    """Inspects multiple uploaded CSV files: detects encodings, delimiters, schemas, and preview rows."""
+    from gui import importer
+    files = request.files.getlist("files")
+    if not files:
+        if "file" in request.files:
+            files = [request.files["file"]]
+
+    if not files:
+        return jsonify({"status": "error", "message": "No files uploaded for inspection."}), 400
+
+    session_id = f"inspect_{int(time.time())}_{socket.gethostname()}"
+    staging_session_dir = os.path.join(importer.RAW_UPLOADS_DIR, session_id)
+    os.makedirs(staging_session_dir, exist_ok=True)
+
+    inspected_files = []
+    for f in files:
+        orig_name = f.filename or "uploaded.csv"
+        safe_name = re.sub(r"[^a-zA-Z0-9_.-]", "_", orig_name)
+        staged_path = os.path.join(staging_session_dir, safe_name)
+        f.save(staged_path)
+
+        res = importer.inspect_csv_file(staged_path, original_filename=orig_name)
+        res["staged_path"] = staged_path
+        inspected_files.append(res)
+
+    return jsonify({
+        "status": "success",
+        "session_id": session_id,
+        "files_count": len(inspected_files),
+        "files": inspected_files,
+        "target_columns": importer.TARGET_COLUMNS
+    })
+
 @app.route("/api/import/inspect", methods=["POST"])
 def api_import_inspect():
-    """Inspects an uploaded file and returns auto-detected encoding, delimiter, columns, and mapping suggestions."""
+    """Backward-compatible inspection endpoint supporting JSON filename or multipart upload."""
+    from gui import importer
+    if request.files and "file" in request.files:
+        f = request.files["file"]
+        orig_name = f.filename or "uploaded.csv"
+        safe_name = re.sub(r"[^a-zA-Z0-9_.-]", "_", orig_name)
+        staged_path = os.path.join(importer.RAW_UPLOADS_DIR, f"single_{int(time.time())}_{safe_name}")
+        f.save(staged_path)
+        res = importer.inspect_csv_file(staged_path, original_filename=orig_name)
+        res["staged_path"] = staged_path
+        return jsonify(res)
+
     data = request.get_json() or {}
     filename = data.get("filename", "sample.csv")
+    filepath = data.get("filepath")
+    if filepath and os.path.exists(filepath):
+        res = importer.inspect_csv_file(filepath, original_filename=filename)
+        return jsonify(res)
+
+    # Return structured default inspection metadata
     return jsonify({
         "status": "success",
         "filename": filename,
@@ -2718,11 +2823,133 @@ def api_import_inspect():
             {"source_header": "State", "target_column": "State / Region", "confidence": "100%"},
             {"source_header": "Country", "target_column": "Country", "confidence": "100%"}
         ],
-        "preview_rows": [
-            {"Company Name": "Apex Systems", "Contact": "Sarah Jenkins", "Job Title": "VP Sales", "Email": "s.jenkins@apex.com", "Phone": "(555) 234-5678", "Website": "apex.com", "Industry": "Software", "City": "Austin", "State": "TX", "Country": "United States"},
-            {"Company Name": "Crestview Capital", "Contact": "David Miller", "Job Title": "Managing Director", "Email": "dmiller@crestview.com", "Phone": "(555) 876-5432", "Website": "crestview.com", "Industry": "Finance", "City": "New York", "State": "NY", "Country": "United States"}
-        ]
+        "preview_rows": []
     })
+
+@app.route("/api/import/execute", methods=["POST"])
+def api_import_execute():
+    """Performs atomic dataset ingestion and updates DuckDB unified view."""
+    from gui import importer
+    data = request.get_json() or {}
+    dataset_name = (data.get("dataset_name") or "").strip()
+    files_info = data.get("files") or []
+    column_mappings = data.get("column_mappings") or {}
+    duplicate_mode = data.get("duplicate_mode") or "skip_exact"
+    existing_dataset_id = data.get("existing_dataset_id")
+
+    if not dataset_name:
+        return jsonify({"success": False, "error": "Dataset name is required."}), 400
+    if not files_info:
+        return jsonify({"success": False, "error": "No staged files provided for ingestion."}), 400
+
+    result = importer.execute_dataset_import(
+        dataset_name=dataset_name,
+        staged_files=files_info,
+        column_mappings_per_file=column_mappings,
+        duplicate_mode=duplicate_mode,
+        existing_dataset_id=existing_dataset_id
+    )
+
+    if result.get("success"):
+        # Rebuild DuckDB unified views and clear category summary cache
+        try:
+            from gui import lead_db
+            lead_db.rebuild_unified_view(GLOBAL_DUCKDB_CON)
+        except Exception as e:
+            print("Warning: rebuild_unified_view error:", e)
+
+    return jsonify(result)
+
+@app.route("/api/imported_datasets", methods=["GET"])
+def api_get_imported_datasets():
+    """Returns list of all imported datasets with row counts, file metrics, and status."""
+    from gui import importer
+    return jsonify({
+        "status": "success",
+        "datasets": importer.get_all_imported_datasets()
+    })
+
+@app.route("/api/imported_datasets/<dataset_id>", methods=["GET"])
+def api_get_single_imported_dataset(dataset_id):
+    """Returns detailed metadata for an imported dataset."""
+    from gui import importer
+    reg = importer.load_registry()
+    d = reg.get("datasets", {}).get(dataset_id)
+    if not d:
+        return jsonify({"success": False, "error": "Dataset not found"}), 404
+    return jsonify({"success": True, "dataset": d})
+
+@app.route("/api/imported_datasets/<dataset_id>/rename", methods=["POST", "PUT"])
+def api_rename_imported_dataset(dataset_id):
+    """Renames an imported dataset and updates views."""
+    from gui import importer
+    data = request.get_json() or {}
+    new_name = (data.get("name") or "").strip()
+    res = importer.rename_imported_dataset(dataset_id, new_name)
+    if res.get("success"):
+        from gui import lead_db
+        lead_db.rebuild_unified_view(GLOBAL_DUCKDB_CON)
+    return jsonify(res)
+
+@app.route("/api/imported_datasets/<dataset_id>/archive", methods=["POST"])
+def api_archive_imported_dataset(dataset_id):
+    """Toggles active/archived state for an imported dataset."""
+    from gui import importer
+    res = importer.toggle_archive_dataset(dataset_id)
+    if res.get("success"):
+        from gui import lead_db
+        lead_db.rebuild_unified_view(GLOBAL_DUCKDB_CON)
+    return jsonify(res)
+
+@app.route("/api/imported_datasets/<dataset_id>", methods=["DELETE"])
+def api_delete_imported_dataset(dataset_id):
+    """Safely deletes an imported dataset and drops its DuckDB view."""
+    from gui import importer
+    res = importer.delete_imported_dataset(dataset_id)
+    if res.get("success"):
+        from gui import lead_db
+        lead_db.rebuild_unified_view(GLOBAL_DUCKDB_CON)
+    return jsonify(res)
+
+@app.route("/api/imported_datasets/<dataset_id>/rejections")
+def api_download_rejected_report(dataset_id):
+    """Downloads CSV report of rejected/malformed rows with error explanations."""
+    from gui import importer
+    reg = importer.load_registry()
+    d = reg.get("datasets", {}).get(dataset_id)
+    if not d or not d.get("rejection_report") or not os.path.exists(d["rejection_report"]):
+        return jsonify({"error": "No rejection report found for this dataset"}), 404
+    return send_file(
+        d["rejection_report"],
+        as_attachment=True,
+        download_name=f"{dataset_id}_rejections.csv",
+        mimetype="text/csv"
+    )
+
+@app.route("/api/imported_datasets/<dataset_id>/export")
+def api_export_imported_dataset(dataset_id):
+    """Exports an imported dataset directly to CSV with formula injection protection."""
+    from gui import importer
+    reg = importer.load_registry()
+    d = reg.get("datasets", {}).get(dataset_id)
+    if not d or not d.get("parquet_path") or not os.path.exists(d["parquet_path"]):
+        return jsonify({"error": "Dataset parquet file not found"}), 404
+
+    out_csv = os.path.join(importer.STAGING_DIR, f"export_{dataset_id}_{int(time.time())}.csv")
+    p_path = d["parquet_path"].replace("\\", "/")
+    GLOBAL_DUCKDB_CON.execute(f"""
+    COPY (
+        SELECT name, contact_name, job_title, category, address, city, state, zip, country,
+               phone, website, email, socials, tier, score, opportunity
+        FROM read_parquet('{p_path}')
+    ) TO '{out_csv.replace(os.sep, "/")}' (HEADER, DELIMITER ',');
+    """)
+    return send_file(
+        out_csv,
+        as_attachment=True,
+        download_name=f"{dataset_id}_export.csv",
+        mimetype="text/csv"
+    )
 
 @app.route("/api/categories")
 def api_categories():

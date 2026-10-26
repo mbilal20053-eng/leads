@@ -1,0 +1,41 @@
+# Netlify Configuration for Lead Engine PRO
+# https://docs.netlify.com/configure-builds/file-based-configuration/
+
+[build]
+  # Netlify builds and publishes the web application static assets
+  publish = "gui/static"
+  functions = "netlify/functions"
+
+[build.environment]
+  PYTHON_VERSION = "3.11"
+  APP_ENV = "production"
+
+# Production Security & Performance Headers
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    X-XSS-Protection = "1; mode=block"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "geolocation=(), microphone=(), camera=()"
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains; preload"
+
+[[headers]]
+  for = "/static/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# API Redirects: Proxy API requests to your persistent backend host
+# (e.g. Render, Railway, Fly.io, or VPS where Python/Flask/DuckDB runs with persistent disk)
+# Configure BACKEND_URL in Netlify Environment Variables
+[[redirects]]
+  from = "/api/*"
+  to = ":splat"
+  status = 200
+  force = false
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
